@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <string>
+#include <utility>
 
 #include "Core/Text/TextEncoding.h"
 
@@ -23,18 +24,27 @@ namespace Chrivent {
 				line.pop_back();
 			return true;
 		};
+		const auto DecodePath = [](const std::string& encodedPath, std::filesystem::path& path) {
+			auto decodedPath = TextEncoding::TryUtf8ToPath(encodedPath);
+			if (!decodedPath)
+				return false;
+			path = std::move(*decodedPath);
+			return true;
+		};
 		if (!ReadLine())
 			return false;
 		size_t tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "camera")
 			return false;
-		loaded.cameraAnim = TextEncoding::Utf8ToPath(line.substr(tab + 1));
+		if (!DecodePath(line.substr(tab + 1), loaded.cameraAnim))
+			return false;
 		if (!ReadLine())
 			return false;
 		tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "music")
 			return false;
-		loaded.musicPath = TextEncoding::Utf8ToPath(line.substr(tab + 1));
+		if (!DecodePath(line.substr(tab + 1), loaded.musicPath))
+			return false;
 		if (!ReadLine())
 			return false;
 		tab = line.find('\t');
@@ -54,7 +64,8 @@ namespace Chrivent {
 				return false;
 			model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
 			const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
-			model.modelPath = TextEncoding::Utf8ToPath(line.substr(tab3 + 1));
+			if (!DecodePath(line.substr(tab3 + 1), model.modelPath))
+				return false;
 			model.animPaths.reserve(animCount);
 			for (size_t j = 0; j < animCount; j++) {
 				if (!ReadLine())
@@ -62,7 +73,10 @@ namespace Chrivent {
 				tab = line.find('\t');
 				if (tab == std::string::npos || line.substr(0, tab) != "anim")
 					return false;
-				model.animPaths.emplace_back(TextEncoding::Utf8ToPath(line.substr(tab + 1)));
+				std::filesystem::path animationPath;
+				if (!DecodePath(line.substr(tab + 1), animationPath))
+					return false;
+				model.animPaths.emplace_back(std::move(animationPath));
 			}
 			loaded.modelConfigs.emplace_back(std::move(model));
 		}

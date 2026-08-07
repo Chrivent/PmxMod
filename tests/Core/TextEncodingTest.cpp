@@ -9,14 +9,19 @@ namespace Chrivent {
 		utf8.reserve(encodedText.size());
 		for (const char8_t character : encodedText)
 			utf8.push_back(static_cast<char>(character));
-		const std::wstring wide = TextEncoding::Utf8ToWide(utf8);
-		ASSERT_FALSE(wide.empty());
-		EXPECT_EQ(TextEncoding::WideToUtf8(wide), utf8);
+		const auto wide = TextEncoding::TryUtf8ToWide(utf8);
+		ASSERT_TRUE(wide);
+		ASSERT_FALSE(wide->empty());
+		const auto convertedUtf8 = TextEncoding::TryWideToUtf8(*wide);
+		ASSERT_TRUE(convertedUtf8);
+		EXPECT_EQ(*convertedUtf8, utf8);
 	}
 
 	TEST(TextEncodingContract, ConvertsFixedLengthShiftJisWithoutNullTerminator) {
 		constexpr char fixedName[] = {'A', 'B', 'C'};
-		EXPECT_EQ(TextEncoding::ShiftJisToUtf8(fixedName, sizeof(fixedName)), "ABC");
+		const auto converted = TextEncoding::TryShiftJisToUtf8(fixedName, sizeof(fixedName));
+		ASSERT_TRUE(converted);
+		EXPECT_EQ(*converted, "ABC");
 	}
 
 	TEST(TextEncodingContract, CreatesAFileSystemPathFromUtf8) {
@@ -25,6 +30,21 @@ namespace Chrivent {
 		utf8Path.reserve(encodedPath.size());
 		for (const char8_t character : encodedPath)
 			utf8Path.push_back(static_cast<char>(character));
-		EXPECT_EQ(TextEncoding::Utf8ToPath(utf8Path), std::filesystem::path(encodedPath));
+		const auto path = TextEncoding::TryUtf8ToPath(utf8Path);
+		ASSERT_TRUE(path);
+		EXPECT_EQ(*path, std::filesystem::path(encodedPath));
+	}
+
+	TEST(TextEncodingContract, DistinguishesEmptyTextFromInvalidUtf8) {
+		const auto emptyText = TextEncoding::TryUtf8ToWide({});
+		ASSERT_TRUE(emptyText);
+		EXPECT_TRUE(emptyText->empty());
+		constexpr std::string invalidUtf8{"\xC3\x28", 2};
+		const auto invalidText = TextEncoding::TryUtf8ToWide(invalidUtf8);
+		ASSERT_FALSE(invalidText);
+		EXPECT_EQ(invalidText.error(), TextEncoding::Error::InvalidSequence);
+		const auto invalidPath = TextEncoding::TryUtf8ToPath(invalidUtf8);
+		ASSERT_FALSE(invalidPath);
+		EXPECT_EQ(invalidPath.error(), TextEncoding::Error::InvalidSequence);
 	}
 }

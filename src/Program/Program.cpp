@@ -415,8 +415,8 @@ namespace Chrivent {
         for (const auto& [packageIndex, effectIndex] : shaderEffectEntries) {
             const auto& package = shaderPackages[packageIndex];
             const auto& effect = package.effects[effectIndex];
-            shaderNames.emplace_back(
-                TextEncoding::Utf8ToWide(package.name) + L" / " + TextEncoding::Utf8ToWide(effect.name));
+            shaderNames.emplace_back(TextEncoding::Utf8ToWideOrEmpty(package.name) + L" / " +
+                TextEncoding::Utf8ToWideOrEmpty(effect.name));
         }
         panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
 		const SceneRenderState& scene = viewer->GetSceneRenderState();
@@ -579,8 +579,12 @@ namespace Chrivent {
         std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
         std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
         std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
-        if (animation) {
-            for (const auto& [node, keys] : animation->GetNodeTracks()) {
+        if (animation && animation->IsBoundTo(model)) {
+            const auto& nodes = model.skeletonData.GetNodes();
+            for (const auto& [targetIndex, keys] : animation->GetNodeTracks()) {
+                if (targetIndex >= nodes.size() || !nodes[targetIndex])
+                    continue;
+                const Node* node = nodes[targetIndex].get();
                 auto& timelineKeys = nodeKeys[node];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
@@ -604,13 +608,21 @@ namespace Chrivent {
                     });
                 }
             }
-            for (const auto& [ikSolver, keys] : animation->GetIkTracks()) {
+            const auto& ikSolvers = model.skeletonData.GetIkSolvers();
+            for (const auto& [targetIndex, keys] : animation->GetIkTracks()) {
+                if (targetIndex >= ikSolvers.size() || !ikSolvers[targetIndex])
+                    continue;
+                const IkSolver* ikSolver = ikSolvers[targetIndex].get();
                 auto& timelineKeys = ikKeys[ikSolver];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, ikEnable] : keys)
                     timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
             }
-            for (const auto& [morph, keys] : animation->GetMorphTracks()) {
+            const auto& morphs = model.morphData.GetMorphs();
+            for (const auto& [targetIndex, keys] : animation->GetMorphTracks()) {
+                if (targetIndex >= morphs.size() || !morphs[targetIndex])
+                    continue;
+                const Morph* morph = morphs[targetIndex].get();
                 auto& timelineKeys = morphKeys[morph];
                 timelineKeys.reserve(keys.size());
                 for (const auto& [frame, morphWeight] : keys)
@@ -667,7 +679,7 @@ namespace Chrivent {
         }
         for (const auto& [name, boneIndices, morphIndices] : model.skeletonData.displayFrames) {
             MotionTimelineGroup group{
-                .name = TextEncoding::Utf8ToWide(name)
+                .name = TextEncoding::Utf8ToWideOrEmpty(name)
             };
             group.rows.reserve(boneIndices.size() + morphIndices.size());
             for (const uint32_t boneIndex : boneIndices) {
@@ -683,7 +695,7 @@ namespace Chrivent {
                 }
                 NormalizeKeys(keys);
                 group.rows.push_back({
-                    .name = TextEncoding::Utf8ToWide(node->name),
+                    .name = TextEncoding::Utf8ToWideOrEmpty(node->name),
                     .curveNames = {
                         Language::Text("interpolation.x"),
                         Language::Text("interpolation.y"),
@@ -703,7 +715,7 @@ namespace Chrivent {
                 auto keys = morphKeys[morph.get()];
                 NormalizeKeys(keys);
                 group.rows.push_back({
-                    .name = TextEncoding::Utf8ToWide(morph->name),
+                    .name = TextEncoding::Utf8ToWideOrEmpty(morph->name),
                     .keys = std::move(keys)
                 });
             }
@@ -724,7 +736,7 @@ namespace Chrivent {
                 }
                 NormalizeKeys(keys);
                 boneGroup.rows.push_back({
-                    .name = TextEncoding::Utf8ToWide(node->name),
+                    .name = TextEncoding::Utf8ToWideOrEmpty(node->name),
                     .curveNames = {
                         Language::Text("interpolation.x"),
                         Language::Text("interpolation.y"),
@@ -745,7 +757,7 @@ namespace Chrivent {
                 auto keys = morphKeys[morph.get()];
                 NormalizeKeys(keys);
                 morphGroup.rows.push_back({
-                    .name = TextEncoding::Utf8ToWide(morph->name),
+                    .name = TextEncoding::Utf8ToWideOrEmpty(morph->name),
                     .keys = std::move(keys)
                 });
             }
@@ -753,7 +765,7 @@ namespace Chrivent {
             if (!morphGroup.rows.empty())
                 groups.emplace_back(std::move(morphGroup));
         }
-        std::wstring modelName = TextEncoding::Utf8ToWide(model.infoData.modelName);
+        std::wstring modelName = TextEncoding::Utf8ToWideOrEmpty(model.infoData.modelName);
         if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
             modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
         panelManager.ApplyMotionTimeline(std::move(modelName), std::move(groups));
@@ -824,8 +836,8 @@ namespace Chrivent {
             const auto& [packageIndex, effectIndex] = shaderEffectEntries[shaderEffectIndex];
             const auto& package = shaderPackages[packageIndex];
             const auto& effect = package.effects[effectIndex];
-            const std::wstring name =
-                TextEncoding::Utf8ToWide(package.name) + L" / " + TextEncoding::Utf8ToWide(effect.name);
+            const std::wstring name = TextEncoding::Utf8ToWideOrEmpty(package.name) + L" / " +
+                TextEncoding::Utf8ToWideOrEmpty(effect.name);
             panelManager.ApplyMotionTimeline(name, {});
             return;
         }

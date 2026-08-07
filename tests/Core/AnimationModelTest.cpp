@@ -100,7 +100,7 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, ModelAnimationNormalizesDirectlyProvidedKeys) {
 		const auto model = std::make_shared<Model>();
-		Node* node = AddNode(*model);
+		const Node* node = AddNode(*model);
 		std::vector<NodeAnimationKey> keys(3);
 		keys[0].frame = 5;
 		keys[0].translate = glm::vec3(1, 0, 0);
@@ -109,7 +109,7 @@ namespace Chrivent {
 		keys[2].frame = 5;
 		keys[2].translate = glm::vec3(2, 0, 0);
 		std::vector<NodeAnimationTrack> tracks;
-		tracks.push_back({node, std::move(keys)});
+		tracks.push_back({0, std::move(keys)});
 		const Animation animation(model, std::move(tracks), {}, {});
 		ASSERT_EQ(animation.GetNodeTracks().front().keys.size(), 2);
 		animation.Evaluate(5.0f);
@@ -128,9 +128,9 @@ namespace Chrivent {
 		ikSolver->enable = false;
 		morphTarget->weight = 0.75f;
 		const Animation animation(model,
-			{{.node = node}},
-			{{.ikSolver = ikSolver}},
-			{{.morph = morphTarget}});
+			{{.targetIndex = 0}},
+			{{.targetIndex = 0}},
+			{{.targetIndex = 0}});
 		animation.Evaluate(0);
 		EXPECT_EQ(node->animTranslate, glm::vec3(0));
 		EXPECT_EQ(node->animRotate, glm::quat(1, 0, 0, 0));
@@ -140,10 +140,9 @@ namespace Chrivent {
 
 	TEST_F(AnimationModelContractTest, CalculatesLastFrameAcrossEveryTrackType) {
 		const auto model = std::make_shared<Model>();
-		Node* node = AddNode(*model);
-		IkSolver* ikSolver = AddIkSolver(*model);
+		AddNode(*model);
+		AddIkSolver(*model);
 		auto morph = std::make_unique<Morph>();
-		auto* morphTarget = morph.get();
 		model->morphData.AddMorph(std::move(morph));
 		NodeAnimationKey nodeKey{};
 		nodeKey.frame = 3;
@@ -152,9 +151,9 @@ namespace Chrivent {
 		MorphAnimationKey morphKey{};
 		morphKey.frame = 5;
 		const Animation animation(model,
-			{{node, {nodeKey}}},
-			{{ikSolver, {ikKey}}},
-			{{morphTarget, {morphKey}}});
+			{{0, {nodeKey}}},
+			{{0, {ikKey}}},
+			{{0, {morphKey}}});
 		EXPECT_EQ(animation.CalculateLastFrame(), 7);
 	}
 
@@ -265,8 +264,10 @@ namespace Chrivent {
 		AnimationBuilder builder(model);
 		builder.Build(data);
 		const auto animation = builder.TakeAnimation();
+		EXPECT_TRUE(animation->IsBoundTo(*model));
 		model->Reset();
 		Node* replacementNode = AddNode(*model, "A");
+		EXPECT_FALSE(animation->IsBoundTo(*model));
 		replacementNode->animTranslate = glm::vec3(7);
 		animation->Evaluate(0);
 		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(7));
@@ -283,9 +284,9 @@ namespace Chrivent {
 		MorphAnimationKey morphKey{};
 		morphKey.morphWeight = 1.0f;
 		const Animation animation(model,
-			{{.node = originalNode, .keys = {nodeKey} }},
+			{{.targetIndex = 0, .keys = {nodeKey} }},
 			{},
-			{{.morph = originalMorphReference, .keys = {morphKey} }});
+			{{.targetIndex = 0, .keys = {morphKey} }});
 		Model replacement;
 		Node* replacementNode = AddNode(replacement);
 		auto replacementMorph = std::make_unique<Morph>();
@@ -318,7 +319,8 @@ namespace Chrivent {
 		Node* replacementNode = AddNode(*model, "A");
 		const auto animation = builder.TakeAnimation();
 		ASSERT_EQ(animation->GetNodeTracks().size(), 1);
-		EXPECT_EQ(animation->GetNodeTracks().front().node, replacementNode);
+		EXPECT_EQ(animation->GetNodeTracks().front().targetIndex, 0);
+		EXPECT_TRUE(animation->IsBoundTo(*model));
 		animation->Evaluate(0);
 		EXPECT_EQ(replacementNode->animTranslate, glm::vec3(4, 0, 0));
 	}

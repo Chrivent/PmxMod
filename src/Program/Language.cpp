@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <limits>
+#include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <windows.h>
@@ -50,8 +51,10 @@ namespace Chrivent {
 		std::unordered_map<std::string, std::wstring> texts;
 		texts.reserve(json.size());
 		for (const auto& [key, value] : json.items()) {
-			if (value.is_string())
-				texts.emplace(key, TextEncoding::Utf8ToWide(value.get<std::string>()));
+			if (!value.is_string())
+				continue;
+			if (auto text = TextEncoding::TryUtf8ToWide(value.get<std::string>()))
+				texts.emplace(key, std::move(*text));
 		}
 		return texts;
 	}
@@ -87,6 +90,6 @@ namespace Chrivent {
 			return current->second;
 		if (const auto fallback = fallbackTexts.find(ownedKey); fallback != fallbackTexts.end())
 			return fallback->second;
-		return TextEncoding::Utf8ToWide(ownedKey);
+		return TextEncoding::Utf8ToWideOrEmpty(ownedKey);
 	}
 }

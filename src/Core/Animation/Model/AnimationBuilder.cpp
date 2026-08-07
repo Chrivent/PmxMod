@@ -14,7 +14,8 @@ namespace Chrivent {
 		std::string cacheKey(encodedName, length);
 		auto [iterator, inserted] = decodedNames.try_emplace(std::move(cacheKey));
 		if (inserted)
-			iterator->second = TextEncoding::ShiftJisToUtf8(iterator->first.data(), iterator->first.size());
+			iterator->second = TextEncoding::TryShiftJisToUtf8(
+				iterator->first.data(), iterator->first.size()).value_or(std::string{});
 		return iterator->second;
 	}
 
@@ -23,10 +24,10 @@ namespace Chrivent {
 		std::vector<Track> tracks;
 		tracks.reserve(keysByName.size());
 		for (auto& [name, keys] : keysByName) {
-			auto* target = resolveTarget(name);
-			if (!target)
+			const auto* targetIndex = resolveTarget(name);
+			if (!targetIndex)
 				continue;
-			tracks.emplace_back(Track{target, std::move(keys)});
+			tracks.emplace_back(Track{*targetIndex, std::move(keys)});
 		}
 		keysByName.clear();
 		return tracks;
@@ -88,42 +89,42 @@ namespace Chrivent {
 	}
 
 	std::unique_ptr<Animation> AnimationBuilder::TakeAnimation() {
-		std::unordered_map<std::string, Node*> nodesByName;
-		std::unordered_map<std::string, IkSolver*> ikSolversByName;
-		std::unordered_map<std::string, Morph*> morphsByName;
+		std::unordered_map<std::string, std::size_t> nodesByName;
+		std::unordered_map<std::string, std::size_t> ikSolversByName;
+		std::unordered_map<std::string, std::size_t> morphsByName;
 		if (model) {
 			const auto& nodes = model->skeletonData.GetNodes();
 			nodesByName.reserve(nodes.size());
-			for (const auto& node : nodes) {
-				if (node)
-					nodesByName.try_emplace(node->name, node.get());
+			for (std::size_t index = 0; index < nodes.size(); index++) {
+				if (const auto& node = nodes[index])
+					nodesByName.try_emplace(node->name, index);
 			}
 			const auto& ikSolvers = model->skeletonData.GetIkSolvers();
 			ikSolversByName.reserve(ikSolvers.size());
-			for (const auto& ikSolver : ikSolvers) {
-				if (ikSolver) {
+			for (std::size_t index = 0; index < ikSolvers.size(); index++) {
+				if (const auto& ikSolver = ikSolvers[index]) {
 					if (const auto ikNode = ikSolver->ikNode)
-						ikSolversByName.try_emplace(ikNode->name, ikSolver.get());
+						ikSolversByName.try_emplace(ikNode->name, index);
 				}
 			}
 			const auto& morphs = model->morphData.GetMorphs();
 			morphsByName.reserve(morphs.size());
-			for (const auto& morph : morphs) {
-				if (morph)
-					morphsByName.try_emplace(morph->name, morph.get());
+			for (std::size_t index = 0; index < morphs.size(); index++) {
+				if (const auto& morph = morphs[index])
+					morphsByName.try_emplace(morph->name, index);
 			}
 		}
 		const auto ResolveNode = [&nodesByName](const std::string& name) {
 			const auto iterator = nodesByName.find(name);
-			return iterator != nodesByName.end() ? iterator->second : nullptr;
+			return iterator != nodesByName.end() ? &iterator->second : nullptr;
 		};
 		const auto ResolveIkSolver = [&ikSolversByName](const std::string& name) {
 			const auto iterator = ikSolversByName.find(name);
-			return iterator != ikSolversByName.end() ? iterator->second : nullptr;
+			return iterator != ikSolversByName.end() ? &iterator->second : nullptr;
 		};
 		const auto ResolveMorph = [&morphsByName](const std::string& name) {
 			const auto iterator = morphsByName.find(name);
-			return iterator != morphsByName.end() ? iterator->second : nullptr;
+			return iterator != morphsByName.end() ? &iterator->second : nullptr;
 		};
 		auto nodeTracks = TakeTracks<NodeAnimationTrack>(nodeKeysByName, ResolveNode);
 		auto ikTracks = TakeTracks<IkAnimationTrack>(ikKeysByName, ResolveIkSolver);

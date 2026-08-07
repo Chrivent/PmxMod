@@ -105,8 +105,8 @@ namespace Chrivent {
 
 	bool ShaderPackageParser::ResolvePackagePath(const std::filesystem::path& packageRoot,
 		const std::string& relativePath, std::filesystem::path& resolvedPath, std::string& error) {
-		const std::filesystem::path requestedPath = TextEncoding::Utf8ToPath(relativePath);
-		if (requestedPath.empty() || requestedPath.is_absolute()) {
+		const auto requestedPath = TextEncoding::TryUtf8ToPath(relativePath);
+		if (!requestedPath || requestedPath->empty() || requestedPath->is_absolute()) {
 			error = "패키지 경로는 상대 경로여야 합니다: " + relativePath;
 			return false;
 		}
@@ -116,7 +116,7 @@ namespace Chrivent {
 			error = "패키지 루트 경로를 확인하지 못했습니다: " + packageRoot.string();
 			return false;
 		}
-		resolvedPath = std::filesystem::weakly_canonical(canonicalRoot / requestedPath, filesystemError);
+		resolvedPath = std::filesystem::weakly_canonical(canonicalRoot / *requestedPath, filesystemError);
 		if (filesystemError || !IsPathInside(canonicalRoot, resolvedPath)) {
 			error = "패키지 경로가 루트 밖을 가리킵니다: " + relativePath;
 			return false;

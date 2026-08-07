@@ -20,6 +20,10 @@ namespace Chrivent {
 		NormalizeTracks(morphTracks);
 	}
 
+	bool Animation::IsBoundTo(const Model& model) const {
+		return targetModel.get() == &model && targetModelRevision == model.GetStructureRevision();
+	}
+
 	uint32_t Animation::CalculateLastFrame() const {
 		uint32_t lastFrame = 0;
 		const auto IncludeTracks = [&lastFrame](const auto& tracks) {
@@ -35,7 +39,7 @@ namespace Chrivent {
 	}
 
 	void Animation::Evaluate(const float t, const float animWeight) const {
-		if (!targetModel || targetModel->GetStructureRevision() != targetModelRevision)
+		if (!targetModel || !IsBoundTo(*targetModel))
 			return;
 		EvaluateNodes(t, animWeight);
 		EvaluateIks(t, animWeight);
@@ -43,7 +47,11 @@ namespace Chrivent {
 	}
 	
 	void Animation::EvaluateNodes(const float t, const float animWeight) const {
-		for (const auto& [node, keys]: nodeTracks) {
+		const auto& nodes = targetModel->skeletonData.GetNodes();
+		for (const auto& [targetIndex, keys] : nodeTracks) {
+			if (targetIndex >= nodes.size())
+				continue;
+			Node* node = nodes[targetIndex].get();
 			if (!node)
 				continue;
 			if (keys.empty()) {
@@ -75,7 +83,11 @@ namespace Chrivent {
 	}
 
 	void Animation::EvaluateIks(const float t, const float animWeight) const {
-		for (const auto& [ikSolver, keys] : ikTracks) {
+		const auto& ikSolvers = targetModel->skeletonData.GetIkSolvers();
+		for (const auto& [targetIndex, keys] : ikTracks) {
+			if (targetIndex >= ikSolvers.size())
+				continue;
+			IkSolver* ikSolver = ikSolvers[targetIndex].get();
 			if (!ikSolver)
 				continue;
 			if (keys.empty()) {
@@ -89,7 +101,11 @@ namespace Chrivent {
 	}
 
 	void Animation::EvaluateMorphs(const float t, const float animWeight) const {
-		for (const auto& [morph, keys] : morphTracks) {
+		const auto& morphs = targetModel->morphData.GetMorphs();
+		for (const auto& [targetIndex, keys] : morphTracks) {
+			if (targetIndex >= morphs.size())
+				continue;
+			Morph* morph = morphs[targetIndex].get();
 			if (!morph)
 				continue;
 			if (keys.empty()) {

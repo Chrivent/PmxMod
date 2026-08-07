@@ -23,18 +23,18 @@ namespace Chrivent {
 			}
 			std::wstring utf16String(bufferSize / sizeof(char16_t), L'\0');
 			if (reader.Read(utf16String.data(), bufferSize)) {
-				auto converted = TextEncoding::WideToUtf8(utf16String);
-				if (converted.empty()) {
+				auto converted = TextEncoding::TryWideToUtf8(utf16String);
+				if (!converted) {
 					reader.Fail(ParseErrorCode::InvalidValue, "UTF-16 문자열을 UTF-8로 변환하지 못했습니다.");
 					return;
 				}
-				value = std::move(converted);
+				value = std::move(*converted);
 			}
 		} else {
 			value.resize(bufferSize);
 			if (!reader.Read(value.data(), bufferSize))
 				return;
-			if (TextEncoding::Utf8ToWide(value).empty())
+			if (!TextEncoding::TryUtf8ToWide(value))
 				reader.Fail(ParseErrorCode::InvalidValue, "UTF-8 문자열이 올바르지 않습니다.");
 		}
 	}
@@ -203,7 +203,12 @@ namespace Chrivent {
 			ReadString(reader, utf8);
 			if (!reader.Result())
 				return;
-			textureName = TextEncoding::Utf8ToPath(utf8);
+			auto texturePath = TextEncoding::TryUtf8ToPath(utf8);
+			if (!texturePath) {
+				reader.Fail(ParseErrorCode::InvalidValue, "텍스처 경로의 UTF-8 문자열이 올바르지 않습니다.");
+				return;
+			}
+			textureName = std::move(*texturePath);
 		}
 	}
 

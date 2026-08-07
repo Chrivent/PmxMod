@@ -135,7 +135,8 @@ namespace Chrivent {
 			return true;
 		};
 		const auto IsValidShiftJis = [](const char* value, const std::size_t size) {
-			return !value || size == 0 || value[0] == '\0' || !TextEncoding::ShiftJisToUtf8(value, size).empty();
+			return !value || size == 0 || value[0] == '\0' ||
+				TextEncoding::TryShiftJisToUtf8(value, size).has_value();
 		};
 		for (const auto& motion : data.motions) {
 			const float quaternionLength = glm::dot(motion.quaternion, motion.quaternion);
