@@ -1,5 +1,12 @@
 ﻿#pragma once
 
+#include "Viewer/Device/GraphicsCapabilities.h"
+#include "Viewer/Drawer/SceneDrawState.h"
+#include "Viewer/Error/GraphicsError.h"
+#include "Viewer/PostProcess/PostProcessFrameData.h"
+#include "Viewer/PostProcess/PostProcessRuntimeContract.h"
+#include "Viewer/Shader/SceneShaderRuntimeContract.h"
+
 #include <memory>
 #include <span>
 #include <vector>
@@ -8,17 +15,12 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "Viewer/Device/GraphicsCapabilities.h"
-#include "Viewer/Drawer/SceneDrawState.h"
-#include "Viewer/Error/GraphicsError.h"
-#include "Viewer/PostProcess/PostProcess.h"
-#include "Viewer/PostProcess/PostProcessFrameData.h"
-#include "Viewer/Shader/SceneShaderRuntimeContract.h"
-
 namespace Chrivent {
 	class Animation;
 	class Instance;
 	class Model;
+	class PostProcess;
+	class PreparedPostProcessEffects;
 
 	// 프레임 기록 시작의 정상 상태를 준비 완료와 일시적 건너뜀으로 구분한다.
 	enum class FrameBeginState {

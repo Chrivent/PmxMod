@@ -12,11 +12,10 @@ namespace Chrivent {
 	// HLSL pass를 Vulkan shader module과 graphics pipeline stage 정보로 구성한다.
 	class VulkanShaderStageBuilder {
 		// stage builder에서만 사용하는 Vulkan shader module의 수명을 관리한다.
-		class ShaderModule {
+		struct ShaderModule {
 			VkShaderModule shaderModule = VK_NULL_HANDLE;
 			VkDevice device = VK_NULL_HANDLE;
 
-		public:
 			ShaderModule() = default;
 			~ShaderModule();
 

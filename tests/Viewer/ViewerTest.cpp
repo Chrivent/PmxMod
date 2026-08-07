@@ -1,5 +1,8 @@
 ﻿#include "Viewer/Viewer/Viewer.h"
 
+#include "Core/Animation/Model/Animation.h"
+#include "Core/Model/Model.h"
+#include "Viewer/Drawer/Drawer.h"
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
@@ -161,9 +164,104 @@ namespace Chrivent {
 		void SetSkipEnd(const bool skip) { skipEnd = skip; }
 	};
 
+	// GPU 없이 Instance의 초기화와 공개 작업 계약을 검증하는 드로어 구현이다.
+	class InstanceTestDrawer final : public Drawer {
+	protected:
+		// 테스트 모델 패스는 GPU 명령 없이 성공한다.
+		GraphicsError::Result<void> DrawModel() override { return {}; }
+		// 테스트 엣지 패스는 GPU 명령 없이 성공한다.
+		GraphicsError::Result<void> DrawEdge() override { return {}; }
+		// 테스트 지면 그림자 패스는 GPU 명령 없이 성공한다.
+		GraphicsError::Result<void> DrawGroundShadow() override { return {}; }
+		// 테스트 장면 입력 패스는 GPU 명령 없이 성공한다.
+		GraphicsError::Result<void> DrawSceneInputs() override { return {}; }
+
+	public:
+		InstanceTestDrawer() : Drawer(GraphicsApi::Unknown) {}
+	};
+
+	// API 리소스 생성 성공과 실패를 주입해 Instance의 롤백 계약을 검증한다.
+	class InstanceTestAdapter final : public Instance {
+		bool setupFailure = false;
+		size_t resetCallCount = 0;
+		size_t uploadCallCount = 0;
+
+	protected:
+		// 테스트 리소스 초기화 횟수를 기록한다.
+		void ResetRendererResources() override { resetCallCount++; }
+		// 설정한 테스트 상태에 따라 리소스 초기화 결과를 반환한다.
+		GraphicsError::Result<void> SetupRenderer() override {
+			if (!setupFailure)
+				return {};
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::ResourceCreationFailed,
+				"테스트 모델 리소스 생성", "의도한 테스트 실패"));
+		}
+		// 테스트 버텍스 업로드 횟수를 기록한다.
+		GraphicsError::Result<void> UploadCore() override {
+			uploadCallCount++;
+			return {};
+		}
+
+	public:
+		InstanceTestAdapter() : Instance(GraphicsApi::Unknown) {
+			drawer = std::make_unique<InstanceTestDrawer>();
+		}
+
+		bool HasBoundModel() const { return model != nullptr; }
+		size_t GetResetCallCount() const { return resetCallCount; }
+		size_t GetUploadCallCount() const { return uploadCallCount; }
+		void SetSetupFailure(const bool fail) { setupFailure = fail; }
+	};
+
+	// Instance 공통 검증을 통과하는 최소 모델을 생성한다.
+	std::shared_ptr<Model> CreateInstanceTestModel() {
+		auto model = std::make_shared<Model>();
+		model->geometryData.positions.emplace_back(0.0f);
+		model->geometryData.indices.emplace_back(0);
+		model->geometryData.indexCount = 1;
+		model->geometryData.indexElementSize = 1;
+		model->materialData.materials.emplace_back();
+		model->materialData.subMeshes.emplace_back(SubMesh{
+			.beginIndex = 0,
+			.indexCount = 1,
+			.materialId = 0
+		});
+		return model;
+	}
+
 	// GLFW 객체를 사용하지 않는 공통 상태 테스트에 전달할 비어 있지 않은 핸들을 반환한다.
 	GLFWwindow* ResolveTestWindow() {
 		return reinterpret_cast<GLFWwindow*>(uintptr_t{1});
+	}
+
+	TEST(InstanceContract, RejectsPublicWorkBeforeInitialization) {
+		InstanceTestAdapter instance;
+		EXPECT_FALSE(instance.Upload().has_value());
+		EXPECT_FALSE(instance.DrawModelPass().has_value());
+		EXPECT_FALSE(instance.DrawEdgePass().has_value());
+		EXPECT_FALSE(instance.DrawGroundShadowPass().has_value());
+		EXPECT_FALSE(instance.DrawPostProcessSceneInputs().has_value());
+		instance.BeginDraw({});
+		instance.PrepareUpdate({});
+		EXPECT_EQ(instance.CalculateSkinningTaskCount(), 0);
+		instance.UpdateSkinning(0);
+		EXPECT_EQ(instance.GetUploadCallCount(), 0);
+	}
+
+	TEST(InstanceContract, RollsBackFailedInitializationAndCanRetry) {
+		InstanceTestAdapter instance;
+		const std::shared_ptr<Model> model = CreateInstanceTestModel();
+		instance.SetSetupFailure(true);
+		const auto failureResult = instance.Initialize(model, {}, 1.0f);
+		ASSERT_FALSE(failureResult.has_value());
+		EXPECT_FALSE(instance.HasBoundModel());
+		EXPECT_FALSE(instance.Upload().has_value());
+		EXPECT_EQ(instance.GetResetCallCount(), 2);
+		instance.SetSetupFailure(false);
+		ASSERT_TRUE(instance.Initialize(model, {}, 1.0f).has_value());
+		EXPECT_TRUE(instance.HasBoundModel());
+		EXPECT_TRUE(instance.Upload().has_value());
+		EXPECT_EQ(instance.GetUploadCallCount(), 1);
 	}
 
 	TEST(ViewerContract, BeginFailureInvalidatesRenderer) {

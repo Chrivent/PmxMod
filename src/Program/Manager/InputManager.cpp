@@ -2,6 +2,9 @@
 
 #include "Viewer/Viewer/Viewer.h"
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 namespace Chrivent {
 	void InputManager::ScrollCallback(GLFWwindow*, const double, const double yOffset) {
 		if (activeManager)

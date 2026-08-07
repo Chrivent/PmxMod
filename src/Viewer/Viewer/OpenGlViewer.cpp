@@ -4,6 +4,9 @@
 
 #include <utility>
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 // NVIDIA Optimus가 OpenGL 프로세스에 고성능 GPU를 우선 배정하도록 요청한다.
 // ReSharper disable once CppInconsistentNaming
 extern "C" __declspec(dllexport) unsigned long NvOptimusEnablement = 1;

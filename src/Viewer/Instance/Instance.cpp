@@ -1,8 +1,9 @@
 ﻿#include "Viewer/Instance/Instance.h"
 
+#include "Core/Animation/Model/Animation.h"
+#include "Core/Model/ModelUpdater.h"
 #include "Viewer/Drawer/Drawer.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
-#include "Core/Model/ModelUpdater.h"
 
 #include <utility>
 
@@ -28,8 +29,16 @@ namespace Chrivent {
 		return true;
 	}
 
+	GraphicsError::Result<void> Instance::CheckInitialized(const char* operation) const {
+		if (initialized)
+			return {};
+		return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+			operation, "모델 인스턴스가 초기화되지 않았습니다"));
+	}
+
 	GraphicsError::Result<void> Instance::Initialize(std::shared_ptr<Model> sourceModel,
 		std::unique_ptr<Animation> sourceAnimation, const float sourceScale) {
+		initialized = false;
 		ResetRendererResources();
 		model.reset();
 		animation.reset();
@@ -44,8 +53,10 @@ namespace Chrivent {
 		animation = std::move(sourceAnimation);
 		scale = sourceScale;
 		const auto setupResult = SetupRenderer();
-		if (setupResult)
+		if (setupResult) {
+			initialized = true;
 			return {};
+		}
 		ResetRendererResources();
 		model.reset();
 		animation.reset();
@@ -54,30 +65,49 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Instance::Upload() {
+		const auto initializedResult = CheckInitialized("모델 버텍스 업로드");
+		if (!initializedResult)
+			return std::unexpected(initializedResult.error());
 		return UploadCore();
 	}
 
 	void Instance::BeginDraw(const SceneDrawState& state) const {
+		if (!initialized)
+			return;
 		drawer->BeginDraw(state);
 	}
 
 	GraphicsError::Result<void> Instance::DrawModelPass() const {
+		const auto initializedResult = CheckInitialized("모델 패스 그리기");
+		if (!initializedResult)
+			return std::unexpected(initializedResult.error());
 		return drawer->DrawModelPass();
 	}
 
 	GraphicsError::Result<void> Instance::DrawEdgePass() const {
+		const auto initializedResult = CheckInitialized("엣지 패스 그리기");
+		if (!initializedResult)
+			return std::unexpected(initializedResult.error());
 		return drawer->DrawEdgePass();
 	}
 
 	GraphicsError::Result<void> Instance::DrawGroundShadowPass() const {
+		const auto initializedResult = CheckInitialized("지면 그림자 패스 그리기");
+		if (!initializedResult)
+			return std::unexpected(initializedResult.error());
 		return drawer->DrawGroundShadowPass();
 	}
 
 	GraphicsError::Result<void> Instance::DrawPostProcessSceneInputs() const {
+		const auto initializedResult = CheckInitialized("후처리 장면 입력 그리기");
+		if (!initializedResult)
+			return std::unexpected(initializedResult.error());
 		return drawer->DrawPostProcessSceneInputs();
 	}
 
 	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {
+		if (!initialized)
+			return;
 		ModelUpdater::Prepare(*model, {
 			.animation = animation.get(),
 			.frame = state.animationFrame,
@@ -89,10 +119,14 @@ namespace Chrivent {
 	}
 
 	std::size_t Instance::CalculateSkinningTaskCount() const {
+		if (!initialized)
+			return 0;
 		return ModelUpdater::CalculateSkinningTaskCount(*model);
 	}
 
 	void Instance::UpdateSkinning(const std::size_t taskIndex) const {
+		if (!initialized)
+			return;
 		ModelUpdater::UpdateSkinning(*model, taskIndex);
 	}
 }

@@ -1,10 +1,14 @@
 ﻿#include "Viewer/Viewer/Viewer.h"
 
+#include "Core/Animation/Model/Animation.h"
 #include "Viewer/Instance/Instance.h"
 #include "Viewer/PostProcess/PostProcess.h"
 
 #include <algorithm>
 #include <utility>
+
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 namespace Chrivent {
 	void Viewer::ConfigureWindowHints() {
