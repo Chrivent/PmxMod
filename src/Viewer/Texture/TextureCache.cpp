@@ -10,14 +10,17 @@ namespace Chrivent {
 
 	TextureImageLoader::LoadedImage TextureImageLoader::LoadImageRgba(const std::filesystem::path& texturePath) {
 		LoadedImage image;
+		int components = 0;
 		FILE* imageFile = nullptr;
 		if (_wfopen_s(&imageFile, texturePath.c_str(), L"rb") != 0 || imageFile == nullptr)
 			return image;
 		image.pixels.reset(stbi_load_from_file(
-			imageFile, &image.width, &image.height, &image.components, STBI_rgb_alpha));
+			imageFile, &image.width, &image.height, &components, STBI_rgb_alpha));
 		std::fclose(imageFile);
 		if (image.width <= 0 || image.height <= 0)
 			image.pixels.reset();
+		else
+			image.hasAlpha = components == 2 || components == 4;
 		return image;
 	}
 }

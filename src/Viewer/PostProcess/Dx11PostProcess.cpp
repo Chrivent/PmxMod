@@ -9,26 +9,6 @@
 #include <utility>
 
 namespace Chrivent {
-	GraphicsError::Result<void> Dx11PostProcess::WriteConstantBuffer(ID3D11DeviceContext* context,
-		ID3D11Buffer* buffer, const void* data, const size_t size, const char* operation) {
-		if (context == nullptr || buffer == nullptr || data == nullptr || size == 0) {
-			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
-				GraphicsErrorCode::InvalidArgument, operation,
-				"DirectX 11 후처리 상수 버퍼 입력이 올바르지 않습니다"));
-		}
-		D3D11_MAPPED_SUBRESOURCE mappedResource{};
-		const HRESULT result = context->Map(
-			buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(result)) {
-			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
-				GraphicsErrorCode::CommandRecordingFailed, operation,
-				"DirectX 11 후처리 상수 버퍼를 매핑하지 못했습니다", result, true));
-		}
-		std::memcpy(mappedResource.pData, data, size);
-		context->Unmap(buffer, 0);
-		return {};
-	}
-
 	GraphicsError::Result<void> Dx11PostProcess::CreateEffectResources(ID3D11Device* device) {
 		ResetEffectResources();
 		if (device == nullptr) {
@@ -349,7 +329,7 @@ namespace Chrivent {
 			context->ResolveSubresource(sceneColor.Get(), 0, sceneSource, 0, DXGI_FORMAT_R8G8B8A8_UNORM);
 		else
 			context->CopyResource(sceneColor.Get(), sceneSource);
-		const auto frameWriteResult = WriteConstantBuffer(context, frameDataBuffer.Get(),
+		const auto frameWriteResult = Dx11DrawContext::WriteConstantBuffer(context, frameDataBuffer.Get(),
 			&frameData, sizeof(frameData), "후처리 frame 상수 기록");
 		if (!frameWriteResult)
 			return std::unexpected(frameWriteResult.error());
@@ -375,7 +355,7 @@ namespace Chrivent {
 			const PassRoute& route = routes[index];
 			if (parameterEffectIndex != route.effectIndex) {
 				const ParameterData& parameterData = GetParameterData(route);
-				const auto parameterWriteResult = WriteConstantBuffer(context,
+				const auto parameterWriteResult = Dx11DrawContext::WriteConstantBuffer(context,
 					parameterDataBuffer.Get(), &parameterData, sizeof(parameterData),
 					"후처리 parameter 상수 기록");
 				if (!parameterWriteResult) {

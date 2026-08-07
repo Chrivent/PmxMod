@@ -2,6 +2,7 @@
 
 #include "Core/Text/TextEncoding.h"
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
+#include "Viewer/Shader/PostProcessShaderValidator.h"
 
 #include <algorithm>
 #include <fstream>
@@ -19,6 +20,7 @@ namespace Chrivent {
 	ShaderPackageDiscovery ShaderPackageLoader::Discover(const std::filesystem::path& packagesDirectory) {
 		ShaderPackageDiscovery discovery;
 		std::unordered_set<std::string> packageIds;
+		std::vector<std::filesystem::path> manifestPaths;
 		std::error_code error;
 		if (!std::filesystem::is_directory(packagesDirectory, error))
 			return discovery;
@@ -30,6 +32,10 @@ namespace Chrivent {
 			const auto manifestPath = entry.path() / "package.json";
 			if (!std::filesystem::is_regular_file(manifestPath))
 				continue;
+			manifestPaths.emplace_back(manifestPath);
+		}
+		std::ranges::sort(manifestPaths);
+		for (const std::filesystem::path& manifestPath : manifestPaths) {
 			auto loadResult = ShaderPackageParser::Load(manifestPath);
 			if (!loadResult) {
 				discovery.errors.emplace_back(std::move(loadResult.error()));
@@ -136,6 +142,7 @@ namespace Chrivent {
 		}
 		if (!ResolvePackagePath(packageRoot, shaderPath, pass.program.shaderPath, error))
 			return false;
+		pass.program.includeRoot = packageRoot;
 		pass.program.vertexEntry = json.value("vertexEntry", pass.program.vertexEntry);
 		pass.program.pixelEntry = json.value("pixelEntry", pass.program.pixelEntry);
 		if (pass.program.vertexEntry.empty() || pass.program.pixelEntry.empty()) {
@@ -472,10 +479,18 @@ namespace Chrivent {
 			pass.output.resourceIndex = outputResourceDefinition->second.index;
 			passes.emplace_back(std::move(pass));
 		}
-		if (parsedPasses.back().output == "effect_output")
-			return true;
-		error = "마지막 후처리 pass는 effect_output에 써야 합니다: " + manifestPath.string();
-		return false;
+		if (parsedPasses.back().output != "effect_output") {
+			error = "마지막 후처리 pass는 effect_output에 써야 합니다: " + manifestPath.string();
+			return false;
+		}
+		for (const EffectPassDefinition& pass : passes) {
+			const auto validationResult = PostProcessShaderValidator::Validate(pass);
+			if (!validationResult) {
+				error = validationResult.error() + " / " + manifestPath.string();
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool ShaderPackageParser::LoadPackage(const std::filesystem::path& manifestPath,

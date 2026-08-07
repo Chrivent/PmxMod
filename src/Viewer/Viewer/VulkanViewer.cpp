@@ -18,7 +18,7 @@ namespace Chrivent {
 			if (!postProcessResult)
 				return std::unexpected(postProcessResult.error());
 		}
-		return commandContext.Initialize(device, swapChain);
+		return commandContext.Initialize(device, swapChain.GetImageCount());
 	}
 
 	void VulkanViewer::ResetSwapChainResources() {

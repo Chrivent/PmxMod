@@ -341,11 +341,11 @@ namespace Chrivent {
 		};
 		if (const auto texture = FindCachedTexture(cacheKey))
 			return std::optional{ *texture };
-		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		const auto [pixels, width, height, hasAlpha] = LoadImageRgba(texturePath);
 		if (!pixels)
 			return std::optional<VulkanTexture>{};
 		VulkanTexture texture;
-		texture.hasAlpha = components == 4;
+		texture.hasAlpha = hasAlpha;
 		const auto uploadResult = UploadRgbaPixels(
 			sourceDevice, pixels.get(), width, height, texture, clamp);
 		if (!uploadResult)

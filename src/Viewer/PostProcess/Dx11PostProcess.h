@@ -37,9 +37,6 @@ namespace Chrivent {
 		int targetWidth = 0;
 		int targetHeight = 0;
 
-		// 동적 상수 버퍼를 새 저장소로 매핑하고 후처리 입력 데이터를 기록한다.
-		static GraphicsError::Result<void> WriteConstantBuffer(ID3D11DeviceContext* context,
-			ID3D11Buffer* buffer, const void* data, size_t size, const char* operation);
 		// 패키지가 선언한 transient/history texture view를 생성한다.
 		GraphicsError::Result<void> CreateEffectResources(ID3D11Device* device);
 		// 초기화가 필요한 모든 history texture를 0으로 지운다.

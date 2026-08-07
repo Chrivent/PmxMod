@@ -143,7 +143,7 @@ namespace Chrivent {
 
 	std::expected<PreparedPostProcessEffects::ExecutionPlan, PostProcessPlanError>
 	PreparedPostProcessEffects::BuildExecutionPlan(
-		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		const std::span<const EffectRuntimeDefinition* const> effects) {
 		std::vector<ShaderProgramDefinition> plannedPrograms;
 		std::vector<PassRoute> plannedRoutes;
 		std::vector<ParameterData> plannedParameters;
@@ -315,7 +315,7 @@ namespace Chrivent {
 	}
 
 	std::expected<PreparedPostProcessEffects, PostProcessPlanError> PreparedPostProcessEffects::Prepare(
-		const std::vector<const EffectRuntimeDefinition*>& effects) {
+		const std::span<const EffectRuntimeDefinition* const> effects) {
 		auto planResult = BuildExecutionPlan(effects);
 		if (!planResult)
 			return std::unexpected(planResult.error());

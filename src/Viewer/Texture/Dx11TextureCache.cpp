@@ -50,10 +50,9 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture(key))
 			return std::optional{ *texture };
-		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		const auto [pixels, width, height, hasAlpha] = LoadImageRgba(texturePath);
 		if (!pixels)
 			return std::optional<Dx11Texture>{};
-		const bool textureHasAlpha = components == 4;
 		const auto textureDescription = Dx11DescBuilder::MakeTexture2DDesc(
 			width, height, DXGI_FORMAT_R8G8B8A8_UNORM, D3D11_BIND_SHADER_RESOURCE);
 		D3D11_SUBRESOURCE_DATA initData = {};
@@ -76,7 +75,7 @@ namespace Chrivent {
 		Dx11Texture texture;
 		texture.texture = tex2D;
 		texture.textureView = tex2DRv;
-		texture.hasAlpha = textureHasAlpha;
+		texture.hasAlpha = hasAlpha;
 		textures.emplace(key, texture);
 		return std::optional{ texture };
 	}

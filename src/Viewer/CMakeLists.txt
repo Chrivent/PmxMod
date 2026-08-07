@@ -35,24 +35,6 @@ target_link_libraries(PmxModViewerCommon PUBLIC
         PmxMod::ProjectWarnings
 )
 
-add_library(PmxModDxcHlslCompiler OBJECT
-        Shader/DxcHlslCompiler.cpp
-)
-
-target_compile_features(PmxModDxcHlslCompiler PRIVATE cxx_std_23)
-
-target_include_directories(PmxModDxcHlslCompiler PRIVATE
-        ${PROJECT_SOURCE_DIR}/src
-)
-
-target_include_directories(PmxModDxcHlslCompiler SYSTEM PRIVATE
-        "$ENV{VULKAN_SDK}/Include"
-)
-
-target_link_libraries(PmxModDxcHlslCompiler PRIVATE
-        PmxMod::ProjectWarnings
-)
-
 target_sources(PmxModViewer PRIVATE
         Buffer/OpenGlDynamicBufferRing.h Buffer/OpenGlDynamicBufferRing.cpp
         Buffer/Dx12Buffer.h Buffer/Dx12Buffer.cpp
@@ -123,10 +105,10 @@ target_sources(PmxModViewer PRIVATE
         Shader/ShaderConstants.h
         Shader/SceneShaderInputLayout.h
         Shader/D3DCompilerHlslCompiler.h Shader/D3DCompilerHlslCompiler.cpp
-        Shader/DxcHlslCompiler.h
+        Shader/DxcHlslCompiler.h Shader/DxcHlslCompiler.cpp
         Shader/ShaderCompileError.h
         Shader/SpirvBindingLayout.h
-        $<TARGET_OBJECTS:PmxModDxcHlslCompiler>
+        Shader/PostProcessShaderValidator.h Shader/PostProcessShaderValidator.cpp
         Shader/OpenGlShader.h Shader/OpenGlShader.cpp
         Shader/Dx11Shader.h Shader/Dx11Shader.cpp
 

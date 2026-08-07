@@ -1,8 +1,6 @@
 ﻿#pragma once
 
 #include "Viewer/Device/VulkanDevice.h"
-#include "Viewer/SwapChain/VulkanSwapChain.h"
-
 #include <span>
 #include <vector>
 
@@ -34,7 +32,7 @@ namespace Chrivent {
 		static void ApplyViewportAndScissor(VkCommandBuffer commandBuffer, VkExtent2D extent);
 		// 그래픽스 큐 패밀리에 맞는 command pool과 command buffer를 생성한다.
 		GraphicsError::Result<void> Initialize(const VulkanDevice& sourceDevice,
-			const VulkanSwapChain& sourceSwapChain);
+			size_t commandBufferCount);
 		// 지정한 이미지의 command buffer를 새 프레임 기록에 사용할 수 있도록 초기화한다.
 		GraphicsError::Result<void> ResetRecord(uint32_t imageIndex) const;
 		// 지정한 이미지 attachment로 dynamic rendering을 시작한다.

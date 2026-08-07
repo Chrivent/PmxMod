@@ -25,24 +25,6 @@ namespace Chrivent {
 		}
 	}
 
-	GraphicsError::Result<void> Dx11Drawer::WriteConstantBuffer(ID3D11Buffer* buffer,
-		const void* data, const size_t size, const char* operation) const {
-		if (buffer == nullptr || data == nullptr || size == 0) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
-				operation, "DirectX 11 상수 버퍼 입력이 올바르지 않습니다"));
-		}
-		D3D11_MAPPED_SUBRESOURCE mappedResource{};
-		const HRESULT result = drawContext.GetDeviceContext()->Map(
-			buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		if (FAILED(result)) {
-			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::CommandRecordingFailed,
-				operation, "DirectX 11 상수 버퍼를 매핑하지 못했습니다", result, true));
-		}
-		std::memcpy(mappedResource.pData, data, size);
-		drawContext.GetDeviceContext()->Unmap(buffer, 0);
-		return {};
-	}
-
 	const glm::mat4& Dx11Drawer::ClipMatrix() const {
 		static constexpr glm::mat4 clipMatrix(
 			1.0f, 0.0f, 0.0f, 0.0f,
@@ -69,7 +51,7 @@ namespace Chrivent {
 		drawContext.GetDeviceContext()->IASetIndexBuffer(indexBuffer.Get(), indexBufferFormat, 0);
 		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		const ModelVertexConstants vsCb = BuildModelVertexConstants(drawState, world, ClipMatrix());
-		const auto vertexWriteResult = WriteConstantBuffer(
+		const auto vertexWriteResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 			vsConstantBuffer.Get(), &vsCb, sizeof(vsCb), "모델 vertex 상수 기록");
 		if (!vertexWriteResult)
 			return std::unexpected(vertexWriteResult.error());
@@ -105,7 +87,7 @@ namespace Chrivent {
 				material.sphereTexture, drawContext.GetTextureSampler(),
 				boundViews[SceneShaderInputLayout::sphereTextureRegister],
 				boundSamplers[SceneShaderInputLayout::sphereSamplerRegister]);
-			const auto pixelWriteResult = WriteConstantBuffer(
+			const auto pixelWriteResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 				psConstantBuffer.Get(), &psCb, sizeof(psCb), "모델 pixel 상수 기록");
 			if (!pixelWriteResult)
 				return std::unexpected(pixelWriteResult.error());
@@ -146,13 +128,13 @@ namespace Chrivent {
 			if (!ShouldDrawEdgeMaterial(mat))
 				continue;
 			vsCb1.edgeSize = mat.edgeSize;
-			const auto vertexWriteResult = WriteConstantBuffer(
+			const auto vertexWriteResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 				edgeVsConstantBuffer.Get(), &vsCb1, sizeof(vsCb1), "엣지 vertex 상수 기록");
 			if (!vertexWriteResult)
 				return std::unexpected(vertexWriteResult.error());
 			EdgePixelConstants psCb{};
 			psCb.edgeColor = mat.edgeColor;
-			const auto pixelWriteResult = WriteConstantBuffer(
+			const auto pixelWriteResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 				edgePsConstantBuffer.Get(), &psCb, sizeof(psCb), "엣지 pixel 상수 기록");
 			if (!pixelWriteResult)
 				return std::unexpected(pixelWriteResult.error());
@@ -178,14 +160,14 @@ namespace Chrivent {
 		drawContext.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		const GroundShadowVertexConstants vsCb = BuildGroundShadowVertexConstants(
 			drawState, world, ClipMatrix());
-		const auto vertexWriteResult = WriteConstantBuffer(
+		const auto vertexWriteResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 			gsVsConstantBuffer.Get(), &vsCb, sizeof(vsCb), "지면 그림자 vertex 상수 기록");
 		if (!vertexWriteResult)
 			return std::unexpected(vertexWriteResult.error());
 		drawContext.GetDeviceContext()->VSSetConstantBuffers(
 			SceneShaderInputLayout::vertexConstantRegister, 1, gsVsConstantBuffer.GetAddressOf());
 		constexpr GroundShadowPixelConstants psCb;
-		const auto pixelWriteResult = WriteConstantBuffer(
+		const auto pixelWriteResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 			gsPsConstantBuffer.Get(), &psCb, sizeof(psCb), "지면 그림자 pixel 상수 기록");
 		if (!pixelWriteResult)
 			return std::unexpected(pixelWriteResult.error());
@@ -214,13 +196,13 @@ namespace Chrivent {
 		if (velocityRequired) {
 			const SceneVelocityVertexConstants vsCb = BuildSceneVelocityVertexConstants(
 				drawState, world, ClipMatrix());
-			const auto writeResult = WriteConstantBuffer(
+			const auto writeResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 				vsConstantBuffer.Get(), &vsCb, sizeof(vsCb), "장면 velocity vertex 상수 기록");
 			if (!writeResult)
 				return std::unexpected(writeResult.error());
 		} else {
 			const ModelVertexConstants vsCb = BuildModelVertexConstants(drawState, world, ClipMatrix());
-			const auto writeResult = WriteConstantBuffer(
+			const auto writeResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
 				vsConstantBuffer.Get(), &vsCb, sizeof(vsCb), "장면 depth vertex 상수 기록");
 			if (!writeResult)
 				return std::unexpected(writeResult.error());
@@ -246,7 +228,8 @@ namespace Chrivent {
 				continue;
 			const SceneSurfacePixelConstants pixelConstants = BuildSceneSurfacePixelConstants(
 				mat.diffuse.a, material.texture.texture && material.texture.hasAlpha);
-			const auto writeResult = WriteConstantBuffer(sceneSurfaceConstantBuffer.Get(),
+			const auto writeResult = Dx11DrawContext::WriteConstantBuffer(drawContext.GetDeviceContext(),
+				sceneSurfaceConstantBuffer.Get(),
 				&pixelConstants, sizeof(pixelConstants), "장면 입력 pixel 상수 기록");
 			if (!writeResult)
 				return std::unexpected(writeResult.error());

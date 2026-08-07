@@ -48,10 +48,9 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath, clamp };
 		if (const auto texture = FindCachedTexture(key))
 			return std::optional{ *texture };
-		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		const auto [pixels, width, height, hasAlpha] = LoadImageRgba(texturePath);
 		if (!pixels)
 			return std::optional<OpenGlTexture>{};
-		const bool hasAlpha = components == 4;
 		GLuint tex = 0;
 		OpenGlErrorState::Clear();
 		glCreateTextures(GL_TEXTURE_2D, 1, &tex);

@@ -98,7 +98,7 @@ namespace Chrivent {
 			size_t passIndex = PostProcessPlanError::noPassIndex);
 		// 효과 선언을 검증하고 API 독립 실행 계획을 생성한다.
 		static std::expected<ExecutionPlan, PostProcessPlanError> BuildExecutionPlan(
-			const std::vector<const EffectRuntimeDefinition*>& effects);
+			std::span<const EffectRuntimeDefinition* const> effects);
 
 	public:
 		PreparedPostProcessEffects(const PreparedPostProcessEffects&) = delete;
@@ -108,7 +108,7 @@ namespace Chrivent {
 
 		// GPU 대기나 API 리소스 생성 전에 효과 선언을 검증하고 실행 계획을 한 번 생성한다.
 		static std::expected<PreparedPostProcessEffects, PostProcessPlanError> Prepare(
-			const std::vector<const EffectRuntimeDefinition*>& effects);
+			std::span<const EffectRuntimeDefinition* const> effects);
 		// 보관한 실행 계획의 소유권을 호출자에게 반환한다.
 		ExecutionPlan TakeExecutionPlan() &&;
 	};

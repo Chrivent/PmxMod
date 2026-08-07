@@ -56,7 +56,7 @@ namespace Chrivent {
 	public:
 		~OpenGlPostProcess() override;
 
-		GLuint TryGetSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
+		GLuint ResolveSceneFramebuffer() const { return HasEffects() ? sceneFramebuffer : 0; }
 
 		// 화면 크기에 맞는 OpenGL 후처리용 화면 framebuffer를 생성한다.
 		GraphicsError::Result<void> InitializeTargets(int width, int height, int sampleCount);

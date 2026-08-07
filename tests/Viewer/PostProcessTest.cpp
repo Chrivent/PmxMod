@@ -36,7 +36,7 @@ namespace Chrivent {
 
 		// 테스트 효과 정의를 API 독립 실행 계획으로 변환한다.
 		std::expected<void, PostProcessPlanError> Configure(
-			const std::vector<const EffectRuntimeDefinition*>& effects) {
+			const std::span<const EffectRuntimeDefinition* const> effects) {
 			auto preparedEffectsResult = PreparedPostProcessEffects::Prepare(effects);
 			if (!preparedEffectsResult)
 				return std::unexpected(preparedEffectsResult.error());

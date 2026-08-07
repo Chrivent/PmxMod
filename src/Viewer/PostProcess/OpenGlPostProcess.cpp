@@ -309,6 +309,7 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 시작",
 				"OpenGL 후처리 장면 입력 target이 준비되지 않았습니다"));
 		}
+		OpenGlErrorState::Clear();
 		glBindFramebuffer(GL_FRAMEBUFFER, postProcessDepthFramebuffer);
 		glViewport(0, 0, width, height);
 		glColorMask(RequiresVelocity(), RequiresVelocity(), GL_FALSE, GL_FALSE);
@@ -322,13 +323,15 @@ namespace Chrivent {
 		glDisable(GL_BLEND);
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_POLYGON_OFFSET_FILL);
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"후처리 장면 입력 패스 시작", "OpenGL 장면 입력 target 기록을 시작하지 못했습니다");
 	}
 
 	GraphicsError::Result<void> OpenGlPostProcess::EndSceneInputPass() {
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"후처리 장면 입력 패스 종료", "OpenGL 장면 입력 기록을 완료하지 못했습니다");
 	}
 
 	GraphicsError::Result<void> OpenGlPostProcess::Draw(
@@ -342,6 +345,7 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "후처리 효과 draw",
 				"OpenGL 후처리 리소스 또는 실행 계획이 준비되지 않았습니다"));
 		}
+		OpenGlErrorState::Clear();
 		BeginHistoryFrame();
 		glNamedBufferSubData(frameDataBuffer, 0, sizeof(frameData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, PostProcessInputLayout::frameDataRegister, frameDataBuffer);
@@ -392,7 +396,11 @@ namespace Chrivent {
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 			AdvanceHistory(route);
 		}
-		return {};
+		const auto result = OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"후처리 효과 draw", "OpenGL 후처리 패스 기록을 완료하지 못했습니다");
+		if (!result)
+			DiscardHistoryFrame();
+		return result;
 	}
 
 	void OpenGlPostProcess::ResetResources() {

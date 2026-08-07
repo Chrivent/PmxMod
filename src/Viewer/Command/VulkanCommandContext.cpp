@@ -51,7 +51,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanCommandContext::Initialize(const VulkanDevice& sourceDevice,
-		const VulkanSwapChain& sourceSwapChain) {
+		const size_t commandBufferCount) {
 		Reset();
 		device = sourceDevice.GetDevice();
 		if (device == VK_NULL_HANDLE) {
@@ -70,7 +70,7 @@ namespace Chrivent {
 				GraphicsErrorCode::ResourceCreationFailed, "command pool 생성",
 				"Vulkan command pool을 만들지 못했습니다", result, true));
 		}
-		commandBuffers.resize(sourceSwapChain.GetImageCount());
+		commandBuffers.resize(commandBufferCount);
 		if (commandBuffers.empty()) {
 			Reset();
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,

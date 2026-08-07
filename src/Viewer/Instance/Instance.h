@@ -51,8 +51,7 @@ namespace Chrivent {
 
         Model& GetModel() { return *model; }
         const Model& GetModel() const { return *model; }
-        Animation* GetAnimation() { return animation.get(); }
-        const Animation* GetAnimation() const { return animation.get(); }
+		const Animation* GetAnimation() const { return animation.get(); }
         float GetScale() const { return scale; }
 
         // 모델, 애니메이션과 배율을 확정한 뒤 렌더러별 리소스를 원자적으로 초기화한다.

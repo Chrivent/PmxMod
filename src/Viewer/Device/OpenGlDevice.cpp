@@ -1,5 +1,7 @@
 ﻿#include "Viewer/Device/OpenGlDevice.h"
 
+#include "Viewer/Error/OpenGlErrorState.h"
+
 #include <algorithm>
 #include <glad/glad.h>
 
@@ -34,6 +36,7 @@ namespace Chrivent {
 				GraphicsErrorCode::InitializationFailed, "OpenGL 함수 로드",
 				"GLAD가 필요한 함수를 찾지 못했습니다"));
 		}
+		OpenGlErrorState::Clear();
 		GLint majorVersion = 0;
 		GLint minorVersion = 0;
 		GLint maxSamples = 1;
@@ -64,7 +67,8 @@ namespace Chrivent {
 		capabilities.maxTextureBindings = static_cast<uint32_t>(std::max(maxTextureBindings, 0));
 		glfwSwapInterval(0);
 		glEnable(GL_MULTISAMPLE);
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::InitializationFailed,
+			"OpenGL device 초기화", "OpenGL 기능 조회 또는 초기 상태 설정에 실패했습니다");
 	}
 
 	GraphicsError::Result<void> OpenGlDevice::WaitIdle(GLFWwindow* window) {
@@ -74,7 +78,9 @@ namespace Chrivent {
 				"OpenGL 윈도우를 사용할 수 없습니다"));
 		}
 		glfwMakeContextCurrent(window);
+		OpenGlErrorState::Clear();
 		glFinish();
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::SynchronizationFailed,
+			"GPU 대기", "OpenGL 명령 완료를 기다리지 못했습니다");
 	}
 }

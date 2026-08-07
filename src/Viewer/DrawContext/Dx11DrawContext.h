@@ -56,5 +56,8 @@ namespace Chrivent {
 		void BindSceneVelocityPipeline();
 		// 현재 출력 크기에 맞는 viewport를 immediate context에 적용한다.
 		static void ApplyViewport(ID3D11DeviceContext* context, int width, int height);
+		// 동적 상수 버퍼를 새 저장소로 매핑하고 상수 데이터를 기록한다.
+		static GraphicsError::Result<void> WriteConstantBuffer(ID3D11DeviceContext* context,
+			ID3D11Buffer* buffer, const void* data, size_t size, const char* operation);
 	};
 }

@@ -71,6 +71,10 @@ namespace Chrivent {
 
 	VkPresentModeKHR VulkanSwapChain::ChoosePresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
 		for (const VkPresentModeKHR mode : presentModes) {
+			if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+				return mode;
+		}
+		for (const VkPresentModeKHR mode : presentModes) {
 			if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
 				return mode;
 		}

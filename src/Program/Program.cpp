@@ -314,7 +314,11 @@ namespace Chrivent {
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
-        ApplyShaderEffects();
+		const auto effectResult = ApplyShaderEffects();
+		if (!effectResult) {
+			PrintGraphicsError(effectResult.error());
+			return false;
+		}
         saveTime = std::chrono::steady_clock::now();
         if (!LoadScene(panelManager.GetSceneConfig(), false))
             return false;
@@ -344,6 +348,29 @@ namespace Chrivent {
     }
 
     void Program::DiscoverShaderPackages() {
+		std::vector<std::pair<std::string, std::string>> enabledEffectIds;
+		enabledEffectIds.reserve(shaderEffectEntries.size());
+		for (size_t index = 0;
+			index < shaderEffectEntries.size() && index < shaderEffectEnabled.size(); index++) {
+			if (!shaderEffectEnabled[index])
+				continue;
+			const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
+			if (packageIndex < shaderPackages.size()
+				&& effectIndex < shaderPackages[packageIndex].effects.size()) {
+				enabledEffectIds.emplace_back(
+					shaderPackages[packageIndex].id, shaderPackages[packageIndex].effects[effectIndex].id);
+			}
+		}
+		std::string selectedPackageId;
+		std::string selectedEffectId;
+		if (selectedShaderEffectIndex < shaderEffectEntries.size()) {
+			const auto& [packageIndex, effectIndex] = shaderEffectEntries[selectedShaderEffectIndex];
+			if (packageIndex < shaderPackages.size()
+				&& effectIndex < shaderPackages[packageIndex].effects.size()) {
+				selectedPackageId = shaderPackages[packageIndex].id;
+				selectedEffectId = shaderPackages[packageIndex].effects[effectIndex].id;
+			}
+		}
         shaderPackages.clear();
         shaderEffectEntries.clear();
         if (!viewer)
@@ -356,16 +383,21 @@ namespace Chrivent {
         const size_t effectCount = shaderEffectEntries.size();
         std::cout << "shader_packages=" << shaderPackages.size() << '\n';
         std::cout << "effects=" << effectCount << '\n';
-        selectedShaderEffectIndex = effectCount == 0 ? 0 : std::min(selectedShaderEffectIndex, effectCount - 1);
-        if (shaderEffectEnabled.size() != effectCount) {
-            std::vector newEnabled(effectCount, false);
-            const size_t copyCount = std::min(shaderEffectEnabled.size(), newEnabled.size());
-            for (size_t index = 0; index < copyCount; index++)
-                newEnabled[index] = shaderEffectEnabled[index];
-            shaderEffectEnabled = std::move(newEnabled);
-        }
+		selectedShaderEffectIndex = 0;
+		shaderEffectEnabled.assign(effectCount, false);
+		for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
+			const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
+			const ShaderPackage& package = shaderPackages[packageIndex];
+			const EffectDefinition& effect = package.effects[effectIndex];
+			shaderEffectEnabled[index] = std::ranges::contains(
+				enabledEffectIds, std::pair{ package.id, effect.id });
+			if (package.id == selectedPackageId && effect.id == selectedEffectId)
+				selectedShaderEffectIndex = index;
+		}
         UpdateShaderPanel();
-        ApplyShaderEffects();
+		const auto applyResult = ApplyShaderEffects();
+		if (!applyResult)
+			PrintGraphicsError(applyResult.error());
     }
 
     void Program::BuildShaderEffectEntries() {
@@ -391,9 +423,9 @@ namespace Chrivent {
 		panelManager.ApplyBuiltInShaderStates(scene.modelEnabled, scene.edgeEnabled, scene.groundShadowEnabled);
     }
 
-    void Program::ApplyShaderEffects() const {
+	GraphicsError::Result<void> Program::ApplyShaderEffects() const {
         if (!viewer)
-            return;
+			return {};
         std::vector<const EffectRuntimeDefinition*> postProcessEffects;
         for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
             const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
@@ -404,9 +436,9 @@ namespace Chrivent {
         const auto loadResult = viewer->LoadPostProcessEffects(postProcessEffects);
         if (loadResult) {
             std::cout << "active_post_effects=" << postProcessEffects.size() << '\n';
-            return;
+			return {};
         }
-        PrintGraphicsError(loadResult.error());
+		return std::unexpected(loadResult.error());
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
@@ -913,13 +945,21 @@ namespace Chrivent {
 		size_t selectedEffectIndex = 0;
         bool selectedEffectEnabled = false;
         if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex, selectedEffectEnabled)) {
-            selectedShaderEffectIndex = selectedEffectIndex;
-            if (selectedShaderEffectIndex >= shaderEffectEnabled.size())
-                shaderEffectEnabled.resize(selectedShaderEffectIndex + 1, false);
-            shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
-            ApplyShaderEffects();
-            panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-            UpdateShaderMotionPanel(selectedShaderEffectIndex);
+			if (selectedEffectIndex < shaderEffectEntries.size()
+				&& selectedEffectIndex < shaderEffectEnabled.size()) {
+				selectedShaderEffectIndex = selectedEffectIndex;
+				const bool previousEnabled = shaderEffectEnabled[selectedShaderEffectIndex];
+				shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
+				const auto applyResult = ApplyShaderEffects();
+				if (!applyResult) {
+					shaderEffectEnabled[selectedShaderEffectIndex] = previousEnabled;
+					UpdateShaderPanel();
+					PrintGraphicsError(applyResult.error());
+				} else {
+					panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+					UpdateShaderMotionPanel(selectedShaderEffectIndex);
+				}
+			}
         }
         BuiltInShaderToggle builtInShader;
         bool builtInShaderEnabled = false;

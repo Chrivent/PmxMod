@@ -1,6 +1,7 @@
 ﻿#include "Viewer/Drawer/OpenGlDrawer.h"
 
 #include "Viewer/DrawContext/OpenGlDrawContext.h"
+#include "Viewer/Error/OpenGlErrorState.h"
 #include "Viewer/Instance/OpenGlInstance.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Shader/ShaderConstants.h"
@@ -23,6 +24,7 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> OpenGlDrawer::DrawModel() {
+		OpenGlErrorState::Clear();
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -104,10 +106,12 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"OpenGL 모델 패스 기록", "OpenGL 모델 draw 명령을 기록하지 못했습니다");
 	}
 
 	GraphicsError::Result<void> OpenGlDrawer::DrawEdge() {
+		OpenGlErrorState::Clear();
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -149,10 +153,12 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"OpenGL 엣지 패스 기록", "OpenGL 엣지 draw 명령을 기록하지 못했습니다");
 	}
 
 	GraphicsError::Result<void> OpenGlDrawer::DrawGroundShadow() {
+		OpenGlErrorState::Clear();
 		const auto& materials = resources.materials;
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
@@ -201,10 +207,12 @@ namespace Chrivent {
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"OpenGL 지면 그림자 패스 기록", "OpenGL 지면 그림자 draw 명령을 기록하지 못했습니다");
 	}
 
 	GraphicsError::Result<void> OpenGlDrawer::DrawSceneInputs() {
+		OpenGlErrorState::Clear();
 		const auto indexType = resources.indexType;
 		const auto world = BuildWorldMatrix(instance.GetScale());
 		if (drawState.velocityRequired) {
@@ -272,7 +280,8 @@ namespace Chrivent {
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
 			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
 		}
-		return {};
+		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
+			"OpenGL 후처리 장면 입력 기록", "OpenGL 장면 입력 draw 명령을 기록하지 못했습니다");
 	}
 
 	OpenGlDrawer::OpenGlDrawer(const OpenGlInstance& sourceInstance, OpenGlModelResources& sourceResources,

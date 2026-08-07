@@ -39,7 +39,7 @@ namespace Chrivent {
 			std::unique_ptr<unsigned char, ImageDeleter> pixels;
 			int width = 0;
 			int height = 0;
-			int components = 0;
+			bool hasAlpha = false;
 		};
 
 		// 이미지 파일을 자동 해제되는 RGBA 픽셀 데이터로 읽는다.

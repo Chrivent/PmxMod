@@ -149,11 +149,11 @@ namespace Chrivent {
 		const TextureKey key{ TextureKind::File, texturePath };
 		if (const auto texture = FindCachedTexture(key))
 			return std::optional{ *texture };
-		const auto [pixels, width, height, components] = LoadImageRgba(texturePath);
+		const auto [pixels, width, height, hasAlpha] = LoadImageRgba(texturePath);
 		if (!pixels)
 			return std::optional<Dx12Texture>{};
 		Dx12Texture texture;
-		texture.hasAlpha = components == 4;
+		texture.hasAlpha = hasAlpha;
 		const auto uploadResult = UploadRgbaPixels(
 			sourceDevice, pixels.get(), width, height, texture);
 		if (!uploadResult)

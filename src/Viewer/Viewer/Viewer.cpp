@@ -27,6 +27,8 @@ namespace Chrivent {
 		rendererLost = true;
 		frameActive = false;
 		sceneInputPassActive = false;
+		sceneInputRequiredThisFrame = false;
+		sceneInputCompletedThisFrame = false;
 		pendingPostProcessParameterUpdates.clear();
 		if (activePostProcess != nullptr)
 			activePostProcess->DiscardHistoryFrame();
@@ -106,6 +108,10 @@ namespace Chrivent {
 			return std::unexpected(result.error());
 		}
 		frameActive = *result == FrameBeginState::Ready;
+		sceneInputRequiredThisFrame = frameActive
+			&& activePostProcess != nullptr
+			&& (activePostProcess->RequiresDepth() || activePostProcess->RequiresVelocity());
+		sceneInputCompletedThisFrame = frameActive && !sceneInputRequiredThisFrame;
 		return result;
 	}
 
@@ -113,6 +119,10 @@ namespace Chrivent {
 		if (rendererLost || !frameActive || sceneInputPassActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"프레임 종료", "제출할 완성된 프레임이 없습니다"));
+		if (sceneInputRequiredThisFrame && !sceneInputCompletedThisFrame) {
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"프레임 종료", "현재 프레임의 후처리 장면 입력 패스가 완료되지 않았습니다"));
+		}
 		const auto result = EndFrameCore();
 		PostProcess& postProcess = *activePostProcess;
 		if (!result) {
@@ -120,6 +130,8 @@ namespace Chrivent {
 			return std::unexpected(result.error());
 		}
 		frameActive = false;
+		sceneInputRequiredThisFrame = false;
+		sceneInputCompletedThisFrame = false;
 		if (*result == FrameEndState::Presented) {
 			postProcess.CommitHistoryFrame();
 			CommitPostProcessFrameHistory();
@@ -144,7 +156,8 @@ namespace Chrivent {
 		return {};
 	}
 
-	GraphicsError::Result<void> Viewer::LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects) {
+	GraphicsError::Result<void> Viewer::LoadPostProcessEffects(
+		const std::span<const EffectRuntimeDefinition* const> effects) {
 		if (!initialized || rendererLost || frameActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 효과 구성", "렌더러를 사용할 수 없거나 프레임 기록 중입니다"));
@@ -212,9 +225,11 @@ namespace Chrivent {
 		if (!frameActive || sceneInputPassActive)
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"후처리 장면 입력 패스 시작", "프레임 또는 장면 입력 상태가 올바르지 않습니다"));
-		const PostProcess& postProcess = *activePostProcess;
-		if (!postProcess.RequiresDepth() && !postProcess.RequiresVelocity())
+		if (!sceneInputRequiredThisFrame)
 			return PostProcessSceneInputState::NotRequired;
+		if (sceneInputCompletedThisFrame)
+			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
+				"후처리 장면 입력 패스 시작", "현재 프레임의 장면 입력 패스가 이미 완료되었습니다"));
 		const auto beginResult = BeginPostProcessSceneInputPassCore();
 		if (!beginResult) {
 			InvalidateRenderer();
@@ -234,6 +249,7 @@ namespace Chrivent {
 			return std::unexpected(result.error());
 		}
 		sceneInputPassActive = false;
+		sceneInputCompletedThisFrame = true;
 		return {};
 	}
 

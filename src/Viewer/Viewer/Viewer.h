@@ -56,6 +56,8 @@ namespace Chrivent {
 		bool rendererLost = false;
 		bool frameActive = false;
 		bool sceneInputPassActive = false;
+		bool sceneInputRequiredThisFrame = false;
+		bool sceneInputCompletedThisFrame = false;
 		bool invertNdcYForTextureCoordinates = false;
 		GraphicsApi graphicsApi = GraphicsApi::Unknown;
 		
@@ -150,7 +152,8 @@ namespace Chrivent {
 		GraphicsError::Result<void> WaitIdle();
 		// 체크된 포스트 프로세스 효과의 선언형 리소스와 패스 그래프를 렌더러에 준비한다.
 		// HLSL 입력은 FrameData=b0, 패스별 JSON reads=t0~t7, LinearClamp=s0 규격을 사용한다.
-		GraphicsError::Result<void> LoadPostProcessEffects(const std::vector<const EffectRuntimeDefinition*>& effects);
+		GraphicsError::Result<void> LoadPostProcessEffects(
+			std::span<const EffectRuntimeDefinition* const> effects);
 		// 활성 후처리 효과의 스칼라 파라미터 변경을 다음 프레임에 적용하도록 예약한다.
 		GraphicsError::Result<void> UpdatePostProcessParameters(std::span<const EffectParameterUpdate> updates);
 		// 현재 프레임의 Drawer 입력을 API 객체 수명과 분리된 값으로 조립한다.

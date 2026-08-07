@@ -16,7 +16,7 @@ namespace Chrivent {
 
 		// depth 입력이 필요한 최소 실행 계획을 구성한다.
 		std::expected<void, PostProcessPlanError> ConfigureDepthEffect(
-			const std::vector<const EffectRuntimeDefinition*>& effects) {
+			const std::span<const EffectRuntimeDefinition* const> effects) {
 			auto preparedEffectsResult = PreparedPostProcessEffects::Prepare(effects);
 			if (!preparedEffectsResult)
 				return std::unexpected(preparedEffectsResult.error());
@@ -143,6 +143,13 @@ namespace Chrivent {
 		size_t GetLoadEffectCallCount() const { return loadEffectCallCount; }
 		float GetParameterValue(const size_t slot) const { return postProcess.GetParameterValue(slot); }
 		size_t GetWaitCallCount() const { return waitCallCount; }
+		// 현재 프레임에서 요구하는 후처리 장면 입력 패스를 정상적으로 완료한다.
+		void CompleteSceneInput() {
+			const auto beginResult = BeginPostProcessSceneInputPass();
+			ASSERT_TRUE(beginResult.has_value());
+			ASSERT_EQ(*beginResult, PostProcessSceneInputState::Ready);
+			ASSERT_TRUE(EndPostProcessSceneInputPass().has_value());
+		}
 		void SetBeginFailure(const bool fail) { failBegin = fail; }
 		void SetBeginSceneInputFailure(const bool fail) { failBeginSceneInput = fail; }
 		void SetEndFailure(const bool fail) { failEnd = fail; }
@@ -175,6 +182,7 @@ namespace Chrivent {
 		const auto beginResult = viewer.BeginFrame();
 		ASSERT_TRUE(beginResult.has_value());
 		ASSERT_EQ(*beginResult, FrameBeginState::Ready);
+		viewer.CompleteSceneInput();
 		viewer.SetEndFailure(true);
 		EXPECT_FALSE(viewer.EndFrame().has_value());
 		EXPECT_FALSE(viewer.BeginFrame().has_value());
@@ -226,12 +234,14 @@ namespace Chrivent {
 	TEST(ViewerContract, EffectValidationFailureKeepsRendererUsable) {
 		ViewerTestAdapter viewer;
 		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
-		EXPECT_FALSE(viewer.LoadPostProcessEffects({ nullptr }).has_value());
+		constexpr const EffectRuntimeDefinition* invalidEffects[]{ nullptr };
+		EXPECT_FALSE(viewer.LoadPostProcessEffects(invalidEffects).has_value());
 		EXPECT_EQ(viewer.GetWaitCallCount(), 0);
 		EXPECT_EQ(viewer.GetLoadEffectCallCount(), 0);
 		const auto beginResult = viewer.BeginFrame();
 		ASSERT_TRUE(beginResult.has_value());
 		EXPECT_EQ(*beginResult, FrameBeginState::Ready);
+		viewer.CompleteSceneInput();
 		const auto endResult = viewer.EndFrame();
 		ASSERT_TRUE(endResult.has_value());
 		EXPECT_EQ(*endResult, FrameEndState::Presented);
@@ -292,7 +302,19 @@ namespace Chrivent {
 		ASSERT_TRUE(beginResult.has_value());
 		ASSERT_EQ(*beginResult, FrameBeginState::Ready);
 		EXPECT_FLOAT_EQ(viewer.GetParameterValue(2), 0.75f);
+		viewer.CompleteSceneInput();
 		ASSERT_TRUE(viewer.EndFrame().has_value());
+	}
+
+	TEST(ViewerContract, RequiredSceneInputMustCompleteBeforeFrameEnd) {
+		ViewerTestAdapter viewer;
+		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
+		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		const auto incompleteResult = viewer.EndFrame();
+		ASSERT_FALSE(incompleteResult.has_value());
+		EXPECT_EQ(incompleteResult.error().code, GraphicsErrorCode::InvalidState);
+		viewer.CompleteSceneInput();
+		EXPECT_TRUE(viewer.EndFrame().has_value());
 	}
 
 	TEST(ViewerContract, SkippedFrameKeepsRendererUsable) {
@@ -306,6 +328,7 @@ namespace Chrivent {
 		const auto beginResult = viewer.BeginFrame();
 		ASSERT_TRUE(beginResult.has_value());
 		ASSERT_EQ(*beginResult, FrameBeginState::Ready);
+		viewer.CompleteSceneInput();
 		const auto endResult = viewer.EndFrame();
 		ASSERT_TRUE(endResult.has_value());
 		EXPECT_EQ(*endResult, FrameEndState::Presented);
@@ -316,6 +339,7 @@ namespace Chrivent {
 		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
 		viewer.GetSceneRenderState().viewMatrix[3].x = 1.0f;
 		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		viewer.CompleteSceneInput();
 		const auto presentedResult = viewer.EndFrame();
 		ASSERT_TRUE(presentedResult.has_value());
 		ASSERT_EQ(*presentedResult, FrameEndState::Presented);
@@ -324,6 +348,7 @@ namespace Chrivent {
 		viewer.GetSceneRenderState().viewMatrix[3].x = 2.0f;
 		viewer.SetSkipEnd(true);
 		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		viewer.CompleteSceneInput();
 		const auto skippedResult = viewer.EndFrame();
 		ASSERT_TRUE(skippedResult.has_value());
 		EXPECT_EQ(*skippedResult, FrameEndState::Skipped);
@@ -331,6 +356,7 @@ namespace Chrivent {
 		EXPECT_FALSE(viewer.IsPostProcessHistoryResetPending());
 		viewer.SetSkipEnd(false);
 		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		viewer.CompleteSceneInput();
 		const auto resumedResult = viewer.EndFrame();
 		ASSERT_TRUE(resumedResult.has_value());
 		EXPECT_EQ(*resumedResult, FrameEndState::Presented);

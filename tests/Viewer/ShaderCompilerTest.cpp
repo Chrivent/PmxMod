@@ -3,15 +3,37 @@
 #include "Viewer/Shader/D3DCompilerHlslCompiler.h"
 #include "Viewer/Shader/DxcHlslCompiler.h"
 #include "Viewer/Shader/OpenGlShader.h"
+#include "Viewer/Shader/PostProcessShaderValidator.h"
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 #include <vector>
 
 namespace Chrivent {
 	// 실제 내장 및 패키지 HLSL이 네 API의 컴파일 계약을 모두 만족하는지 검증한다.
 	class ShaderCompilerContractTest : public testing::Test {
+	protected:
+		// 이름이 겹치지 않는 검증용 임시 폴더를 비운 상태로 준비한다.
+		static std::filesystem::path PrepareShaderDirectory(const char* name) {
+			const std::filesystem::path directory = std::filesystem::temp_directory_path() / name;
+			std::error_code filesystemError;
+			std::filesystem::remove_all(directory, filesystemError);
+			filesystemError.clear();
+			std::filesystem::create_directories(directory, filesystemError);
+			EXPECT_FALSE(filesystemError);
+			return directory;
+		}
+
+		// 검증용 HLSL 텍스트를 지정한 경로에 기록한다.
+		static void WriteShader(const std::filesystem::path& path, const char* source) {
+			std::ofstream stream(path, std::ios::binary);
+			ASSERT_TRUE(stream.good());
+			stream << source;
+			ASSERT_TRUE(stream.good());
+		}
+
 		// 경로와 진입점이 같은 프로그램을 중복하지 않고 수집한다.
 		static void AppendProgram(std::vector<ShaderProgramDefinition>& programs,
 			const ShaderProgramDefinition& program) {
@@ -96,7 +118,6 @@ namespace Chrivent {
 			}
 		}
 
-	protected:
 		// 소스 리소스 루트 아래의 절대 경로를 반환한다.
 		static std::filesystem::path GetResourcePath(const std::filesystem::path& relativePath) {
 			return std::filesystem::path(PMXMOD_RESOURCE_SOURCE_DIR) / relativePath;
@@ -156,5 +177,55 @@ namespace Chrivent {
 		ASSERT_FALSE(programs.empty());
 		for (const auto& program : programs)
 			ExpectPostProcessProgramCompiles(program);
+	}
+
+	TEST_F(ShaderCompilerContractTest, RejectsIncludeOutsidePackageRoot) {
+		const std::filesystem::path directory = PrepareShaderDirectory("PmxModShaderIncludeEscapeTest");
+		const std::filesystem::path outsidePath = directory.parent_path() / "PmxModOutsideShaderInclude.hlsli";
+		WriteShader(outsidePath, "float4 ResolveColor() { return 1.0; }\n");
+		const std::filesystem::path shaderPath = directory / "effect.hlsl";
+		WriteShader(shaderPath, "#include \"../PmxModOutsideShaderInclude.hlsli\"\n");
+		const EffectPassDefinition pass{
+			.program = {
+				.shaderPath = shaderPath,
+				.includeRoot = directory,
+				.vertexEntry = "VSMain",
+				.pixelEntry = "PSMain"
+			}
+		};
+		EXPECT_FALSE(PostProcessShaderValidator::Validate(pass).has_value());
+		std::error_code filesystemError;
+		std::filesystem::remove_all(directory, filesystemError);
+		std::filesystem::remove(outsidePath, filesystemError);
+	}
+
+	TEST_F(ShaderCompilerContractTest, RejectsTextureBindingMissingFromPassReads) {
+		const std::filesystem::path directory = PrepareShaderDirectory("PmxModShaderBindingTest");
+		const std::filesystem::path shaderPath = directory / "effect.hlsl";
+		WriteShader(shaderPath,
+			"Texture2D InputTexture : register(t1);\n"
+			"SamplerState LinearClamp : register(s0);\n"
+			"struct VertexOutput { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };\n"
+			"VertexOutput VSMain(uint id : SV_VertexID) {\n"
+			"    VertexOutput output;\n"
+			"    output.uv = float2((id << 1) & 2, id & 2);\n"
+			"    output.position = float4(output.uv * float2(2, -2) + float2(-1, 1), 0, 1);\n"
+			"    return output;\n"
+			"}\n"
+			"float4 PSMain(VertexOutput input) : SV_TARGET {\n"
+			"    return InputTexture.Sample(LinearClamp, input.uv);\n"
+			"}\n");
+		const EffectPassDefinition pass{
+			.program = {
+				.shaderPath = shaderPath,
+				.includeRoot = directory,
+				.vertexEntry = "VSMain",
+				.pixelEntry = "PSMain"
+			},
+			.inputs = { { .slot = 0, .kind = EffectPassInputKind::SceneColor } }
+		};
+		EXPECT_FALSE(PostProcessShaderValidator::Validate(pass).has_value());
+		std::error_code filesystemError;
+		std::filesystem::remove_all(directory, filesystemError);
 	}
 }

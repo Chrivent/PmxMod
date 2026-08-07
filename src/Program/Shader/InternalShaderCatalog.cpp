@@ -15,8 +15,10 @@ namespace Chrivent {
 
 	ShaderProgramDefinition InternalShaderCatalog::CreateProgram(
 		std::filesystem::path shaderPath, const char* vertexEntry, const char* pixelEntry) {
+		const std::filesystem::path includeRoot = shaderPath.parent_path();
 		return {
 			.shaderPath = std::move(shaderPath),
+			.includeRoot = includeRoot,
 			.vertexEntry = vertexEntry,
 			.pixelEntry = pixelEntry
 		};

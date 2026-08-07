@@ -33,7 +33,7 @@ namespace Chrivent {
 			Support& support);
 		// 사용할 surface format을 선택한다.
 		static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
-		// 사용할 present mode를 선택한다.
+		// API 공통 비동기 표시 정책에 맞춰 immediate, mailbox, fifo 순으로 present mode를 선택한다.
 		static VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& presentModes);
 		// 현재 윈도우 크기에 맞는 swap extent를 선택한다.
 		static VkExtent2D ChooseExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);

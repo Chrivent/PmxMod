@@ -122,7 +122,7 @@ namespace Chrivent {
         // 검색된 패키지의 효과 이름을 카메라 패널에 반영한다.
         void UpdateShaderPanel();
         // 체크된 셰이더 효과들을 뷰어에 적용한다.
-        void ApplyShaderEffects() const;
+		GraphicsError::Result<void> ApplyShaderEffects() const;
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
         bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.

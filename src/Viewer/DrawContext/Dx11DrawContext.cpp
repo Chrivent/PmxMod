@@ -50,4 +50,23 @@ namespace Chrivent {
 		viewport.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &viewport);
 	}
+
+	GraphicsError::Result<void> Dx11DrawContext::WriteConstantBuffer(ID3D11DeviceContext* context,
+		ID3D11Buffer* buffer, const void* data, const size_t size, const char* operation) {
+		if (context == nullptr || buffer == nullptr || data == nullptr || size == 0) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
+				GraphicsErrorCode::InvalidArgument, operation,
+				"DirectX 11 상수 버퍼 입력이 올바르지 않습니다"));
+		}
+		D3D11_MAPPED_SUBRESOURCE mappedResource{};
+		const HRESULT result = context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if (FAILED(result)) {
+			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX11,
+				GraphicsErrorCode::CommandRecordingFailed, operation,
+				"DirectX 11 상수 버퍼를 매핑하지 못했습니다", result, true));
+		}
+		std::memcpy(mappedResource.pData, data, size);
+		context->Unmap(buffer, 0);
+		return {};
+	}
 }
