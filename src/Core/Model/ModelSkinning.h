@@ -5,7 +5,7 @@
 namespace Chrivent {
 	class Model;
 
-	// 본 변환과 모프를 적용해 렌더링용 버텍스를 계산한다.
+	// ModelUpdater 내부에서 본 변환과 모프를 적용해 렌더링용 버텍스를 계산한다.
 	class ModelSkinning {
 		// 병렬 정점 갱신에 사용할 작업 범위를 구성한다.
 		static void SetupParallelUpdate(Model& model);

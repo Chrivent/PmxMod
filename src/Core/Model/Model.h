@@ -90,7 +90,7 @@ namespace Chrivent {
 		std::string									englishComment;
 	};
 
-	// 원본 및 변형된 버텍스와 인덱스 데이터를 관리한다.
+	// 원본 및 변형된 버텍스와 인덱스를 관리하며 정점별 배열은 같은 크기로 구성한다.
 	struct ModelGeometryData {
 		std::vector<glm::vec3>						positions;
 		std::vector<glm::vec3>						normals;

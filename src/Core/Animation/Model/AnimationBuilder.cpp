@@ -7,15 +7,15 @@
 #include <unordered_map>
 
 namespace Chrivent {
-	const std::string& AnimationBuilder::ResolveName(const char* encodedName, const std::size_t size) {
+	const std::string& AnimationBuilder::ResolveName(const std::span<const char> encodedName) {
 		std::size_t length = 0;
-		while (length < size && encodedName[length] != '\0')
+		while (length < encodedName.size() && encodedName[length] != '\0')
 			length++;
-		std::string cacheKey(encodedName, length);
+		std::string cacheKey(encodedName.data(), length);
 		auto [iterator, inserted] = decodedNames.try_emplace(std::move(cacheKey));
 		if (inserted)
 			iterator->second = TextEncoding::TryShiftJisToUtf8(
-				iterator->first.data(), iterator->first.size()).value_or(std::string{});
+				std::span(iterator->first)).value_or(std::string{});
 		return iterator->second;
 	}
 
@@ -51,7 +51,7 @@ namespace Chrivent {
 		if (vmdData.motions.empty())
 			return;
 		for (const auto& motion : vmdData.motions) {
-			const auto& nodeName = ResolveName(motion.boneName, sizeof(motion.boneName));
+			const auto& nodeName = ResolveName(motion.boneName);
 			nodeKeysByName[nodeName].emplace_back(CreateNodeAnimationKey(motion));
 		}
 	}
@@ -61,7 +61,7 @@ namespace Chrivent {
 			return;
 		for (const auto& ik : vmdData.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
-				const auto& ikName = ResolveName(name, sizeof(name));
+				const auto& ikName = ResolveName(name);
 				auto& keys = ikKeysByName[ikName];
 				auto& [frame, ikEnable] = keys.emplace_back();
 				frame = ik.frame;
@@ -74,7 +74,7 @@ namespace Chrivent {
 		if (vmdData.morphs.empty())
 			return;
 		for (const auto& [blendShapeName, frame, weight] : vmdData.morphs) {
-			const auto& morphName = ResolveName(blendShapeName, sizeof(blendShapeName));
+			const auto& morphName = ResolveName(blendShapeName);
 			auto& keys = morphKeysByName[morphName];
 			auto& [keyFrame, morphWeight] = keys.emplace_back();
 			keyFrame = frame;

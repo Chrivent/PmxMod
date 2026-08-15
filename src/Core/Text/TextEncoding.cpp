@@ -46,30 +46,37 @@ namespace Chrivent {
 	}
 
 	std::expected<std::string, TextEncoding::Error> TextEncoding::TryShiftJisToUtf8(
-		const char* shiftJis, const std::size_t size) {
-		if (!shiftJis) {
-			if (size == 0)
-				return std::string{};
-			return std::unexpected(Error::InvalidSequence);
-		}
-		if (size == 0)
+		const std::span<const char> shiftJis) {
+		if (shiftJis.empty())
 			return std::string{};
 		std::size_t length = 0;
-		while (length < size && shiftJis[length] != '\0')
+		while (length < shiftJis.size() && shiftJis[length] != '\0')
 			length++;
 		if (length == 0)
 			return std::string{};
 		if (length > static_cast<std::size_t>(std::numeric_limits<int>::max()))
 			return std::unexpected(Error::InputTooLarge);
-		const int sourceLength = static_cast<int>(length);
-		const int requiredLength = MultiByteToWideChar(
-			932, MB_ERR_INVALID_CHARS, shiftJis, sourceLength,
+		int sourceLength = static_cast<int>(length);
+		int requiredLength = MultiByteToWideChar(
+			932, MB_ERR_INVALID_CHARS, shiftJis.data(), sourceLength,
 			nullptr, 0);
+		if (requiredLength <= 0 && length == shiftJis.size() && length > 1) {
+			const auto trailingByte = static_cast<unsigned char>(shiftJis[length - 1]);
+			const bool isShiftJisLeadByte =
+				(trailingByte >= 0x81 && trailingByte <= 0x9F) ||
+				(trailingByte >= 0xE0 && trailingByte <= 0xFC);
+			if (isShiftJisLeadByte) {
+				sourceLength--;
+				requiredLength = MultiByteToWideChar(
+					932, MB_ERR_INVALID_CHARS, shiftJis.data(), sourceLength,
+					nullptr, 0);
+			}
+		}
 		if (requiredLength <= 0)
 			return std::unexpected(Error::InvalidSequence);
 		std::wstring wide(requiredLength, L'\0');
 		const int writtenLength = MultiByteToWideChar(
-			932, MB_ERR_INVALID_CHARS, shiftJis, sourceLength,
+			932, MB_ERR_INVALID_CHARS, shiftJis.data(), sourceLength,
 			wide.data(), requiredLength);
 		if (writtenLength != requiredLength)
 			return std::unexpected(Error::ConversionFailed);

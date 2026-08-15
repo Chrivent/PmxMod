@@ -3,8 +3,8 @@
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/Model.h"
 #include "Core/Model/ModelLoader.h"
-#include "Core/Model/ModelSkinning.h"
 #include "Core/Model/ModelUpdater.h"
+#include "Core/Parser/PmxParser.h"
 
 #include <gtest/gtest.h>
 #include <fstream>
@@ -63,6 +63,75 @@ namespace Chrivent {
 			for (int stringIndex = 0; stringIndex < 4; stringIndex++)
 				Append(bytes, emptyCount);
 			for (int sectionIndex = 0; sectionIndex < 9; sectionIndex++)
+				Append(bytes, emptyCount);
+			return bytes;
+		}
+
+		// 정점, 면, 재질과 본 변환을 함께 검증할 수 있는 최소 PMX를 만든다.
+		static std::string BuildRenderablePmx() {
+			std::string bytes;
+			bytes.append("PMX ", 4);
+			Append(bytes, 2.0f);
+			constexpr uint8_t headerData[] = {8, 1, 0, 1, 1, 1, 1, 1, 1};
+			bytes.append(reinterpret_cast<const char*>(headerData), sizeof(headerData));
+			const auto AppendString = [&](const std::string& value) {
+				const int32_t length = static_cast<int32_t>(value.size());
+				Append(bytes, length);
+				bytes.append(value);
+			};
+			AppendString("Triangle");
+			AppendString({});
+			AppendString({});
+			AppendString({});
+			constexpr int32_t vertexCount = 3;
+			Append(bytes, vertexCount);
+			const auto AppendVertex = [&](const glm::vec3& position, const glm::vec2& uv) {
+				Append(bytes, position);
+				Append(bytes, glm::vec3(0, 0, 1));
+				Append(bytes, uv);
+				Append(bytes, PmxParser::WeightType::BoneDeform1);
+				Append(bytes, uint8_t{0});
+				Append(bytes, 1.0f);
+			};
+			AppendVertex(glm::vec3(-1, 0, 2), glm::vec2(0, 0));
+			AppendVertex(glm::vec3(1, 0, 2), glm::vec2(1, 0));
+			AppendVertex(glm::vec3(0, 2, 2), glm::vec2(0.5f, 1));
+			constexpr int32_t indexCount = 3;
+			Append(bytes, indexCount);
+			Append(bytes, uint8_t{0});
+			Append(bytes, uint8_t{1});
+			Append(bytes, uint8_t{2});
+			constexpr int32_t emptyCount = 0;
+			Append(bytes, emptyCount);
+			constexpr int32_t materialCount = 1;
+			Append(bytes, materialCount);
+			AppendString("Material");
+			AppendString({});
+			Append(bytes, glm::vec4(0.8f, 0.7f, 0.6f, 1));
+			Append(bytes, glm::vec3(0.1f));
+			Append(bytes, 8.0f);
+			Append(bytes, glm::vec3(0.2f));
+			Append(bytes, PmxParser::DrawModeFlags::DrawEdge);
+			Append(bytes, glm::vec4(0, 0, 0, 1));
+			Append(bytes, 1.0f);
+			constexpr uint8_t missingIndex = 0xFF;
+			Append(bytes, missingIndex);
+			Append(bytes, missingIndex);
+			Append(bytes, PmxParser::SphereMode::None);
+			Append(bytes, PmxParser::ToonMode::Separate);
+			Append(bytes, missingIndex);
+			AppendString({});
+			Append(bytes, indexCount);
+			constexpr int32_t boneCount = 1;
+			Append(bytes, boneCount);
+			AppendString("Root");
+			AppendString({});
+			Append(bytes, glm::vec3(0));
+			Append(bytes, missingIndex);
+			Append(bytes, int32_t{0});
+			Append(bytes, PmxParser::BoneFlags::Visible);
+			Append(bytes, glm::vec3(0, 1, 0));
+			for (int sectionIndex = 0; sectionIndex < 4; sectionIndex++)
 				Append(bytes, emptyCount);
 			return bytes;
 		}
@@ -179,12 +248,12 @@ namespace Chrivent {
 	TEST_F(AnimationModelContractTest, CreatesOnlyUsefulSkinningRanges) {
 		Model model;
 		model.geometryData.positions.resize(10);
-		ModelSkinning::PrepareUpdate(model, false);
+		ModelUpdater::Prepare(model, {.updatePhysics = false});
 		ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexOffset, 0);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexCount, 10);
 		model.geometryData.positions.clear();
-		ModelSkinning::PrepareUpdate(model, false);
+		ModelUpdater::Prepare(model, {.updatePhysics = false});
 		EXPECT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 0);
 	}
 
@@ -212,6 +281,41 @@ namespace Chrivent {
 		ASSERT_TRUE(result);
 		EXPECT_EQ(model.geometryData.bboxMin, glm::vec3(0));
 		EXPECT_EQ(model.geometryData.bboxMax, glm::vec3(0));
+	}
+
+	TEST_F(AnimationModelContractTest, LoadsRenderableModelDataThroughTheRuntimeBoundary) {
+		const auto path = std::filesystem::temp_directory_path() / "pmxmod_renderable_model_test.pmx";
+		const std::string bytes = BuildRenderablePmx();
+		{
+			std::ofstream file(path, std::ios::binary);
+			file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+		}
+		Model model;
+		const auto result = ModelLoader::Load(model, path, {});
+		std::error_code error;
+		std::filesystem::remove(path, error);
+		ASSERT_TRUE(result);
+		EXPECT_EQ(model.infoData.modelName, "Triangle");
+		ASSERT_EQ(model.geometryData.positions.size(), 3);
+		EXPECT_EQ(model.geometryData.positions.front(), glm::vec3(-1, 0, -2));
+		EXPECT_EQ(model.geometryData.bboxMin, glm::vec3(-1, 0, -2));
+		EXPECT_EQ(model.geometryData.bboxMax, glm::vec3(1, 2, -2));
+		EXPECT_EQ(model.geometryData.uvs.front(), glm::vec2(0, 1));
+		ASSERT_EQ(model.geometryData.indices.size(), 3);
+		EXPECT_EQ(model.geometryData.indices[0], char{2});
+		EXPECT_EQ(model.geometryData.indices[1], char{1});
+		EXPECT_EQ(model.geometryData.indices[2], char{0});
+		ASSERT_EQ(model.materialData.materials.size(), 1);
+		EXPECT_EQ(model.materialData.materials.front().edgeFlag, 1);
+		ASSERT_EQ(model.materialData.subMeshes.size(), 1);
+		EXPECT_EQ(model.materialData.subMeshes.front().indexCount, 3);
+		ASSERT_EQ(model.skeletonData.GetNodes().size(), 1);
+		EXPECT_EQ(model.skeletonData.GetNodes().front()->name, "Root");
+		EXPECT_EQ(model.morphData.morphPositions.size(), 3);
+		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
+		ModelUpdater::UpdateSkinning(model, 0);
+		EXPECT_EQ(model.geometryData.updatePositions.front(), glm::vec3(-1, 0, -2));
 	}
 
 	TEST_F(AnimationModelContractTest, NormalizesVmdBoneRotationsAtTheRuntimeBoundary) {
@@ -538,9 +642,9 @@ namespace Chrivent {
 		model.geometryData.updateUVs.resize(1);
 		model.morphData.morphPositions.resize(1);
 		model.morphData.morphUVs.resize(1);
-		model.skeletonData.transforms.emplace_back(1.0f);
-		ModelSkinning::PrepareUpdate(model, false);
-		ModelSkinning::UpdateRange(model, 0);
+		AddNode(model);
+		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		ModelUpdater::UpdateSkinning(model, 0);
 		const glm::vec3 normal = model.geometryData.updateNormals.front();
 		EXPECT_TRUE(std::isfinite(normal.x));
 		EXPECT_TRUE(std::isfinite(normal.y));

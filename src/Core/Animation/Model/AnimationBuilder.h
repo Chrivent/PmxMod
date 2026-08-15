@@ -5,6 +5,7 @@
 
 #include <map>
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,7 +22,7 @@ namespace Chrivent {
 		std::shared_ptr<Model> model;
 
 		// 고정 길이 Shift-JIS 이름을 한 번만 UTF-8로 변환해 보관한다.
-		const std::string& ResolveName(const char* encodedName, std::size_t size);
+		const std::string& ResolveName(const std::span<const char> encodedName);
 		// 이름별 키를 현재 모델 대상에 연결하고 정렬된 트랙 목록으로 옮긴다.
 		template <typename Track, typename KeyMap, typename Resolver>
 		static std::vector<Track> TakeTracks(KeyMap& keysByName, const Resolver& resolveTarget);

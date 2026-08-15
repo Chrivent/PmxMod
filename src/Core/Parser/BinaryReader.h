@@ -28,7 +28,7 @@ namespace Chrivent {
 		std::streamoff offset = 0;
 	};
 
-	// 바이너리 스트림을 범위 검사하며 읽고 첫 번째 오류를 기록한다.
+	// 탐색 가능한 바이너리 스트림을 범위 검사하며 읽고 첫 번째 오류를 기록한다.
 	class BinaryReader {
 		std::istream& stream;
 		std::streamoff length = 0;

@@ -2,6 +2,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <span>
 #include <string>
 
 namespace Chrivent {
@@ -19,8 +20,8 @@ namespace Chrivent {
 		static std::expected<std::string, Error> TryWideToUtf8(const std::wstring& wide);
 		// UTF-8 문자열을 Windows wide 문자열로 변환하고 실패 원인을 반환한다.
 		static std::expected<std::wstring, Error> TryUtf8ToWide(const std::string& utf8);
-		// 고정 길이 Shift-JIS 바이트열을 UTF-8 문자열로 변환하고 실패 원인을 반환한다.
-		static std::expected<std::string, Error> TryShiftJisToUtf8(const char* shiftJis, std::size_t size);
+		// 고정 길이 Shift-JIS 바이트열을 UTF-8로 변환하며 필드 끝에서 잘린 마지막 문자만 제외한다.
+		static std::expected<std::string, Error> TryShiftJisToUtf8(const std::span<const char> shiftJis);
 		// UTF-8 문자열을 파일 시스템 경로로 변환하고 실패 원인을 반환한다.
 		static std::expected<std::filesystem::path, Error> TryUtf8ToPath(const std::string& utf8);
 		// Windows wide 문자열 변환이 실패하면 빈 UTF-8 문자열을 반환한다.

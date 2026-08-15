@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <span>
 
 namespace Chrivent {
 	void VmdParser::ReadHeader(BinaryReader& reader) {
@@ -134,13 +135,13 @@ namespace Chrivent {
 			}
 			return true;
 		};
-		const auto IsValidShiftJis = [](const char* value, const std::size_t size) {
-			return !value || size == 0 || value[0] == '\0' ||
-				TextEncoding::TryShiftJisToUtf8(value, size).has_value();
+		const auto IsValidShiftJis = [](const std::span<const char> value) {
+			return value.empty() || value.front() == '\0' ||
+				TextEncoding::TryShiftJisToUtf8(value).has_value();
 		};
 		for (const auto& motion : data.motions) {
 			const float quaternionLength = glm::dot(motion.quaternion, motion.quaternion);
-			if (!IsValidShiftJis(motion.boneName, sizeof(motion.boneName)) ||
+			if (!IsValidShiftJis(motion.boneName) ||
 				!IsFiniteVector(motion.translate) || !IsFiniteVector(motion.quaternion) ||
 				quaternionLength <= 1.0e-8f || !IsValidInterpolation(motion.interpolation, 16)) {
 				reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 이름, 숫자 또는 보간 값이 올바르지 않습니다.");
@@ -148,7 +149,7 @@ namespace Chrivent {
 			}
 		}
 		for (const auto& morph : data.morphs) {
-			if (!IsValidShiftJis(morph.blendShapeName, sizeof(morph.blendShapeName)) ||
+			if (!IsValidShiftJis(morph.blendShapeName) ||
 				!std::isfinite(morph.weight)) {
 				reader.Fail(ParseErrorCode::InvalidValue, "모프 키의 이름 또는 가중치가 올바르지 않습니다.");
 				return;
@@ -176,7 +177,7 @@ namespace Chrivent {
 		}
 		for (const auto& ik : data.iks) {
 			for (const auto& [name, enable] : ik.ikStates) {
-				if (!IsValidShiftJis(name, sizeof(name))) {
+				if (!IsValidShiftJis(name)) {
 					reader.Fail(ParseErrorCode::InvalidValue, "IK 키의 이름이 올바르지 않습니다.");
 					return;
 				}

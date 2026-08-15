@@ -19,9 +19,19 @@ namespace Chrivent {
 
 	TEST(TextEncodingContract, ConvertsFixedLengthShiftJisWithoutNullTerminator) {
 		constexpr char fixedName[] = {'A', 'B', 'C'};
-		const auto converted = TextEncoding::TryShiftJisToUtf8(fixedName, sizeof(fixedName));
+		const auto converted = TextEncoding::TryShiftJisToUtf8(fixedName);
 		ASSERT_TRUE(converted);
 		EXPECT_EQ(*converted, "ABC");
+	}
+
+	TEST(TextEncodingContract, DropsOnlyATruncatedShiftJisCharacterAtTheFixedFieldBoundary) {
+		constexpr char fixedName[] = {
+			'T', 'r', 'u', 'n', 'c', 'a', 't', 'e', 'd', 'N', 'a', 'm', 'e', '!',
+			static_cast<char>(0x82)
+		};
+		const auto converted = TextEncoding::TryShiftJisToUtf8(fixedName);
+		ASSERT_TRUE(converted);
+		EXPECT_EQ(*converted, "TruncatedName!");
 	}
 
 	TEST(TextEncodingContract, CreatesAFileSystemPathFromUtf8) {
