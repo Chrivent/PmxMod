@@ -61,7 +61,7 @@ namespace Chrivent {
 		// 재생 상태에 따라 모델 추가/삭제와 모션 선택을 잠근다.
 		void ApplyPlaybackState(bool isPlaying);
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
-		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
+		bool HandleCommand(UINT_PTR commandId, int) override;
 		// 모델 리스트뷰의 행 선택과 모션 열 클릭 알림을 처리한다.
 		bool HandleNotify(const NMHDR& notifyHeader, LRESULT& result) override;
 		// 모델 패널 컨트롤 핸들을 정리한다.

@@ -38,7 +38,7 @@ namespace Chrivent {
 		// 패널 크기에 맞춰 볼륨 컨트롤 위치를 갱신한다.
 		void Resize(const RECT& clientRect) override;
 		// 볼륨 슬라이더 이동을 사운드 볼륨에 반영한다.
-		bool HandleScroll(HWND control, int scrollCode) override;
+		bool HandleScroll(HWND control, int) override;
 		// 패널 윈도우와 컨트롤 핸들을 정리한다.
 		void Destroy() override;
 	};

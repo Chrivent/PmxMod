@@ -36,7 +36,7 @@ namespace Chrivent {
 		ofn.hwndOwner = ownerWindow;
 		ofn.lpstrFilter = filter.c_str();
 		ofn.lpstrFile = filename.data();
-		ofn.nMaxFile = filename.size();
+		ofn.nMaxFile = MAX_PATH;
 		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
 		ofn.lpstrDefExt = L"pmscene";
 		if (!GetOpenFileNameW(&ofn))
@@ -59,14 +59,15 @@ namespace Chrivent {
 		filter.append(2, L'\0');
 		if (!sceneFilePath.empty()) {
 			const auto native = sceneFilePath.wstring();
-			std::wcsncpy(filename.data(), native.c_str(), filename.size() - 1);
+			const size_t copiedLength = native.copy(filename.data(), filename.size() - 1);
+			filename[copiedLength] = L'\0';
 		}
 		OPENFILENAMEW ofn{};
 		ofn.lStructSize = sizeof(ofn);
 		ofn.hwndOwner = ownerWindow;
 		ofn.lpstrFilter = filter.c_str();
 		ofn.lpstrFile = filename.data();
-		ofn.nMaxFile = filename.size();
+		ofn.nMaxFile = MAX_PATH;
 		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 		ofn.lpstrDefExt = L"pmscene";
 		if (!GetSaveFileNameW(&ofn))

@@ -293,8 +293,7 @@ namespace Chrivent {
     bool Program::ChangeRenderer(const RendererType rendererType) {
 		if (rendererType == currentRendererType)
 			return true;
-		const int playbackFrame = viewer
-			? cameraManager.GetAnimationFrame() + 0.5f : 0;
+		const int playbackFrame = viewer ? cameraManager.GetAnimationFrameIndex() : 0;
 		GLFWwindow* previousWindow = viewer ? viewer->GetWindow() : nullptr;
         if (viewer) {
 			const auto waitResult = viewer->WaitIdle();
@@ -534,7 +533,7 @@ namespace Chrivent {
             if (!instance || !instance->GetAnimation())
                 continue;
             Model& model = instance->GetModel();
-            ModelUpdater::ResetPhysicsAtFrame(model, *instance->GetAnimation(), frame);
+			ModelUpdater::ResetPhysicsAtFrame(model, *instance->GetAnimation(), static_cast<float>(frame));
         }
         viewer->ResetPostProcessHistory();
     }
@@ -1060,11 +1059,11 @@ namespace Chrivent {
         if (panelManager.ConsumePhysicsDirty())
             shouldResetPhysics = true;
         if (shouldResetPhysics) {
-			ResetPhysics(cameraManager.GetAnimationFrame() + 0.5f);
+			ResetPhysics(cameraManager.GetAnimationFrameIndex());
 			cameraManager.SetPhysicsSkipped(false);
         }
         panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
-		panelManager.SetPlaybackFrame(cameraManager.GetAnimationFrame() + 0.5f);
+		panelManager.SetPlaybackFrame(cameraManager.GetAnimationFrameIndex());
         cameraManager.UpdateCamera(*viewer);
         fpsOverlay.SetVisible(panelManager.IsFpsVisible());
         const auto animationStart = std::chrono::steady_clock::now();
@@ -1225,7 +1224,7 @@ namespace Chrivent {
             maximum.presentMilliseconds = std::max(maximum.presentMilliseconds, timing.presentMilliseconds);
             maximum.totalMilliseconds = std::max(maximum.totalMilliseconds, timing.totalMilliseconds);
         }
-        const double frameCount = benchmarkFrames;
+		const double frameCount = static_cast<double>(benchmarkFrames);
         const auto PrintMetric = [frameCount](const char* name, const double sum, const double max) {
             std::cout << name << "_avg_ms=" << sum / frameCount
                 << ' ' << name << "_max_ms=" << max << '\n';

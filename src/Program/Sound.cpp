@@ -4,6 +4,7 @@
 #include <miniaudio.h>
 
 #include <algorithm>
+#include <limits>
 
 namespace Chrivent {
     void Sound::UnInit() {
@@ -114,7 +115,7 @@ namespace Chrivent {
         ma_uint64 frames{};
         if (ma_sound_get_cursor_in_pcm_frames(sound.get(), &frames) != MA_SUCCESS) {
             deltaTime = 0.0f;
-            time = prevTimeSec;
+			time = static_cast<float>(prevTimeSec);
             return;
         }
         const double sr = ma_engine_get_sample_rate(engine.get());
@@ -123,8 +124,8 @@ namespace Chrivent {
         if (dt < 0.0)
             dt = 0.0;
         prevTimeSec = t;
-        deltaTime = dt;
-        time = t;
+		deltaTime = static_cast<float>(dt);
+		time = static_cast<float>(t);
     }
 
     void Sound::Pause() {
@@ -156,8 +157,11 @@ namespace Chrivent {
         const double clampedTime = lengthSec > 0.0
             ? std::clamp(seekSeconds, 0.0, lengthSec)
             : std::max(0.0f, seconds);
-        const auto frame = clampedTime * sr;
-        if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
+		const long double targetFrame = static_cast<long double>(clampedTime) * sr;
+		if (targetFrame > std::numeric_limits<ma_uint64>::max())
+			return;
+		const ma_uint64 frame = static_cast<ma_uint64>(targetFrame);
+		if (ma_sound_seek_to_pcm_frame(sound.get(), frame) == MA_SUCCESS) {
             prevTimeSec = clampedTime;
             if (playing)
                 ma_sound_start(sound.get());

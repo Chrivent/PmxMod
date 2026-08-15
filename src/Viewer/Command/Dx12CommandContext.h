@@ -38,7 +38,7 @@ namespace Chrivent {
 		// DX12 명령 큐와 프레임 명령 기록 리소스를 초기화한다.
 		GraphicsError::Result<void> Initialize(const Dx12Device& sourceDevice);
 		// 한 프레임의 명령 기록을 시작할 수 있도록 allocator와 list를 초기화한다.
-		GraphicsError::Result<void> BeginFrame(const Dx12Device& sourceDevice, UINT frameIndex);
+		GraphicsError::Result<void> BeginFrame(const Dx12Device& sourceDevice, UINT sourceFrameIndex);
 		// 기록한 명령 리스트를 닫고 command queue에 제출한다.
 		GraphicsError::Result<void> Execute(const Dx12Device& sourceDevice);
 		// CPU와 GPU를 동기화해 기록된 명령이 모두 끝날 때까지 대기한다.

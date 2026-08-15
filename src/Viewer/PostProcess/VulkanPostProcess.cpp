@@ -348,8 +348,8 @@ namespace Chrivent {
 			.layerCount = 1
 		};
 		constexpr VkClearColorValue clearColor{};
-		const auto resourcePlans = GetResourcePlans();
-		for (size_t index = 0; index < resources.size() && index < resourcePlans.size(); index++) {
+		const auto runtimeResourcePlans = GetResourcePlans();
+		for (size_t index = 0; index < resources.size() && index < runtimeResourcePlans.size(); index++) {
 			const VulkanPostProcessTarget& resource = resources[index];
 			if (!NeedsHistoryInitialization(index))
 				continue;

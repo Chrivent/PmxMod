@@ -112,33 +112,36 @@ namespace Chrivent {
 	}
 
 	bool VulkanDrawContext::BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet,
-		const uint32_t dynamicOffset) {
-		if (!frameReady)
+		const size_t dynamicOffset) {
+		if (!frameReady || dynamicOffset > std::numeric_limits<uint32_t>::max())
 			return false;
+		const uint32_t offset = static_cast<uint32_t>(dynamicOffset);
 		if (bindStateCache.vertexDescriptorSet == descriptorSet.GetVertexDescriptorSet() &&
-			bindStateCache.vertexDynamicOffset == dynamicOffset)
+			bindStateCache.vertexDynamicOffset == offset)
 			return true;
 		const VkDescriptorSet vertexDescriptorSet = descriptorSet.GetVertexDescriptorSet();
 		if (!commandContext.BindDescriptorSets(currentImageIndex,
-			pipeline.GetPipelineLayout(), 0, { &vertexDescriptorSet, 1 }, { &dynamicOffset, 1 }))
+			pipeline.GetPipelineLayout(), 0, { &vertexDescriptorSet, 1 }, { &offset, 1 }))
 			return false;
 		bindStateCache.vertexDescriptorSet = vertexDescriptorSet;
-		bindStateCache.vertexDynamicOffset = dynamicOffset;
+		bindStateCache.vertexDynamicOffset = offset;
 		return true;
 	}
 
 	bool VulkanDrawContext::BindPixelDescriptorSet(const VkDescriptorSet descriptorSet,
-		const uint32_t dynamicOffset) {
-		if (!frameReady || descriptorSet == VK_NULL_HANDLE)
+		const size_t dynamicOffset) {
+		if (!frameReady || descriptorSet == VK_NULL_HANDLE
+			|| dynamicOffset > std::numeric_limits<uint32_t>::max())
 			return false;
+		const uint32_t offset = static_cast<uint32_t>(dynamicOffset);
 		if (bindStateCache.pixelDescriptorSet == descriptorSet &&
-			bindStateCache.pixelDynamicOffset == dynamicOffset)
+			bindStateCache.pixelDynamicOffset == offset)
 			return true;
 		if (!commandContext.BindDescriptorSets(currentImageIndex,
-			pipeline.GetPipelineLayout(), 1, { &descriptorSet, 1 }, { &dynamicOffset, 1 }))
+			pipeline.GetPipelineLayout(), 1, { &descriptorSet, 1 }, { &offset, 1 }))
 			return false;
 		bindStateCache.pixelDescriptorSet = descriptorSet;
-		bindStateCache.pixelDynamicOffset = dynamicOffset;
+		bindStateCache.pixelDynamicOffset = offset;
 		return true;
 	}
 

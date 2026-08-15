@@ -35,7 +35,8 @@ namespace Chrivent {
 				if (parent != sources.end())
 					directory = parent->second->directory;
 			}
-			std::filesystem::path includePath = std::filesystem::u8path(fileName);
+			std::filesystem::path includePath(
+				std::u8string(reinterpret_cast<const char8_t*>(fileName)));
 			if (includePath.is_relative())
 				includePath = directory / includePath;
 			includePath = includePath.lexically_normal();

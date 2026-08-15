@@ -6,6 +6,7 @@
 #include "Program/Sound.h"
 
 #include <CommCtrl.h>
+#include <cmath>
 
 namespace Chrivent {
 	LRESULT CALLBACK SoundPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -52,7 +53,7 @@ namespace Chrivent {
 	void SoundPanel::UpdateValueText() const {
 		if (!valueText || !sound)
 			return;
-		const int percent = std::round(sound->GetVolume() * 100.0f);
+		const int percent = std::lround(sound->GetVolume() * 100.0f);
 		const std::wstring text = std::to_wstring(percent) + L"%";
 		SetWindowTextW(valueText, text.c_str());
 	}
@@ -60,7 +61,7 @@ namespace Chrivent {
 	void SoundPanel::ApplySliderValue() const {
 		if (!sound || !volumeSlider)
 			return;
-		const auto sliderValue = SendMessageW(volumeSlider, TBM_GETPOS, 0, 0);
+		const int sliderValue = static_cast<int>(SendMessageW(volumeSlider, TBM_GETPOS, 0, 0));
 		sound->ApplyVolume((100 - sliderValue) / 100.0f);
 		UpdateValueText();
 	}
@@ -68,7 +69,7 @@ namespace Chrivent {
 	void SoundPanel::CreateContent(const HWND parent) {
 		if (volumeSlider)
 			return;
-		const int initialVolume = sound ? std::round(sound->GetVolume() * 100.0f) : 0;
+		const int initialVolume = sound ? std::lround(sound->GetVolume() * 100.0f) : 0;
 		volumeSlider = GuiDrawer::CreateVerticalSlider(parent, volumeSliderId, 0, 100, 100 - initialVolume);
 		valueText = CreateWindowExW(
 			0, L"STATIC", L"",
@@ -81,8 +82,10 @@ namespace Chrivent {
 
 	void SoundPanel::BindSound(Sound& soundRef) {
 		sound = &soundRef;
-		if (volumeSlider)
-			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, 100 - std::round(sound->GetVolume() * 100.0f));
+		if (volumeSlider) {
+			const int sliderValue = 100 - std::lround(sound->GetVolume() * 100.0f);
+			SendMessageW(volumeSlider, TBM_SETPOS, TRUE, sliderValue);
+		}
 		UpdateValueText();
 	}
 
@@ -141,7 +144,7 @@ namespace Chrivent {
 			MoveWindow(valueText, x, y + sliderHeight + gap, controlWidth, valueHeight, TRUE);
 	}
 
-	bool SoundPanel::HandleScroll(const HWND control, const int scrollCode) {
+	bool SoundPanel::HandleScroll(const HWND control, const int) {
 		if (control != volumeSlider)
 			return false;
 		ApplySliderValue();

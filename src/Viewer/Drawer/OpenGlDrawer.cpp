@@ -104,7 +104,8 @@ namespace Chrivent {
 				}
 			}
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
-			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
+			glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexCount), indexType,
+				reinterpret_cast<GLvoid*>(offset));
 		}
 		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
 			"OpenGL 모델 패스 기록", "OpenGL 모델 draw 명령을 기록하지 못했습니다");
@@ -151,7 +152,8 @@ namespace Chrivent {
 					"OpenGL 엣지 패스 기록", pixelUploadResult.error().message));
 			}
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
-			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
+			glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexCount), indexType,
+				reinterpret_cast<GLvoid*>(offset));
 		}
 		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
 			"OpenGL 엣지 패스 기록", "OpenGL 엣지 draw 명령을 기록하지 못했습니다");
@@ -201,7 +203,8 @@ namespace Chrivent {
 			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
-			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
+			glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexCount), indexType,
+				reinterpret_cast<GLvoid*>(offset));
 		}
 		glDisable(GL_POLYGON_OFFSET_FILL);
 		glDisable(GL_STENCIL_TEST);
@@ -278,7 +281,8 @@ namespace Chrivent {
 				cullEnabled = true;
 			}
 			const size_t offset = beginIndex * instance.GetModel().geometryData.indexElementSize;
-			glDrawElements(GL_TRIANGLES, indexCount, indexType, reinterpret_cast<GLvoid*>(offset));
+			glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indexCount), indexType,
+				reinterpret_cast<GLvoid*>(offset));
 		}
 		return OpenGlErrorState::ResolveResult(GraphicsErrorCode::CommandRecordingFailed,
 			"OpenGL 후처리 장면 입력 기록", "OpenGL 장면 입력 draw 명령을 기록하지 못했습니다");

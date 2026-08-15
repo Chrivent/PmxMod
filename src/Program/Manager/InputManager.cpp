@@ -44,12 +44,14 @@ namespace Chrivent {
 		double cursorX = 0.0;
 		double cursorY = 0.0;
 		glfwGetCursorPos(window, &cursorX, &cursorY);
-		if (state.rotateCamera && prevRightMouseDown)
-			state.mouseDelta = glm::vec2(cursorX - prevCursorX, cursorY - prevCursorY);
+		if (state.rotateCamera && prevRightMouseDown) {
+			state.mouseDelta = glm::vec2(
+				static_cast<float>(cursorX - prevCursorX), static_cast<float>(cursorY - prevCursorY));
+		}
 		prevCursorX = cursorX;
 		prevCursorY = cursorY;
 		prevRightMouseDown = state.rotateCamera;
-		state.wheelDelta = pendingWheelDelta;
+		state.wheelDelta = static_cast<float>(pendingWheelDelta);
 		pendingWheelDelta = 0.0;
 	}
 }

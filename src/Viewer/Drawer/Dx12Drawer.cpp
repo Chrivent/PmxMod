@@ -58,7 +58,8 @@ namespace Chrivent {
 				1, constantBuffer.GetGpuAddress() + materialOffset + layout.modelPixel);
 			if (material.textureDescriptorHandle.ptr != 0)
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
-			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+			commandList->DrawIndexedInstanced(
+				static_cast<UINT>(indexCount), 1, static_cast<UINT>(beginIndex), 0, 0);
 		}
 		return {};
 	}
@@ -97,7 +98,8 @@ namespace Chrivent {
 				0, constantBuffer.GetGpuAddress() + materialOffset + layout.edgeVertex);
 			commandList->SetGraphicsRootConstantBufferView(
 				1, constantBuffer.GetGpuAddress() + materialOffset + layout.edgePixel);
-			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+			commandList->DrawIndexedInstanced(
+				static_cast<UINT>(indexCount), 1, static_cast<UINT>(beginIndex), 0, 0);
 		}
 		return {};
 	}
@@ -134,7 +136,8 @@ namespace Chrivent {
 			const auto& mat = resources.materials[materialId].material;
 			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
-			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+			commandList->DrawIndexedInstanced(
+				static_cast<UINT>(indexCount), 1, static_cast<UINT>(beginIndex), 0, 0);
 		}
 		return {};
 	}
@@ -185,7 +188,8 @@ namespace Chrivent {
 				1, constantBuffer.GetGpuAddress() + materialOffset + layout.sceneSurfacePixel);
 			if (material.textureDescriptorHandle.ptr != 0)
 				commandList->SetGraphicsRootDescriptorTable(2, material.textureDescriptorHandle);
-			commandList->DrawIndexedInstanced(indexCount, 1, beginIndex, 0, 0);
+			commandList->DrawIndexedInstanced(
+				static_cast<UINT>(indexCount), 1, static_cast<UINT>(beginIndex), 0, 0);
 		}
 		return {};
 	}

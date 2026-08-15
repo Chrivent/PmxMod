@@ -96,7 +96,8 @@ namespace Chrivent {
 				drawContext.GetDeviceContext()->RSSetState(targetRs);
 				currentRs = targetRs;
 			}
-			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(
+				static_cast<UINT>(indexCount), static_cast<UINT>(beginIndex), 0);
 		}
 		return {};
 	}
@@ -138,7 +139,8 @@ namespace Chrivent {
 				edgePsConstantBuffer.Get(), &psCb, sizeof(psCb), "엣지 pixel 상수 기록");
 			if (!pixelWriteResult)
 				return std::unexpected(pixelWriteResult.error());
-			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(
+				static_cast<UINT>(indexCount), static_cast<UINT>(beginIndex), 0);
 		}
 		return {};
 	}
@@ -178,7 +180,8 @@ namespace Chrivent {
 			const auto& mat = material.material;
 			if (!ShouldDrawGroundShadowMaterial(mat))
 				continue;
-			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(
+				static_cast<UINT>(indexCount), static_cast<UINT>(beginIndex), 0);
 		}
 		return {};
 	}
@@ -245,7 +248,8 @@ namespace Chrivent {
 				drawContext.GetDeviceContext()->RSSetState(targetRs);
 				currentRs = targetRs;
 			}
-			drawContext.GetDeviceContext()->DrawIndexed(indexCount, beginIndex, 0);
+			drawContext.GetDeviceContext()->DrawIndexed(
+				static_cast<UINT>(indexCount), static_cast<UINT>(beginIndex), 0);
 		}
 		return {};
 	}

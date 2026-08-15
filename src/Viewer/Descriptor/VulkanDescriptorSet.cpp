@@ -30,7 +30,7 @@ namespace Chrivent {
 		}
 		VkDescriptorPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		createInfo.poolSizeCount = poolSizes.size();
+		createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		createInfo.pPoolSizes = poolSizes.data();
 		createInfo.maxSets = static_cast<uint32_t>(2 + textureDescriptorCount);
 		const VkResult result = vkCreateDescriptorPool(
@@ -73,7 +73,7 @@ namespace Chrivent {
 		VkDescriptorSetAllocateInfo textureAllocateInfo{};
 		textureAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		textureAllocateInfo.descriptorPool = descriptorPool;
-		textureAllocateInfo.descriptorSetCount = textureLayouts.size();
+		textureAllocateInfo.descriptorSetCount = static_cast<uint32_t>(textureLayouts.size());
 		textureAllocateInfo.pSetLayouts = textureLayouts.data();
 		result = vkAllocateDescriptorSets(
 			device, &textureAllocateInfo, textureDescriptorSets.data());

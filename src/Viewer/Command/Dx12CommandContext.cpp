@@ -79,14 +79,14 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> Dx12CommandContext::BeginFrame(const Dx12Device& sourceDevice,
-		const UINT frameIndex) {
+		const UINT sourceFrameIndex) {
 		if (!sourceDevice.GetDevice() || !commandList || !fence || !fenceEvent) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "프레임 command 기록 시작",
 				"DirectX 12 command context가 초기화되지 않았습니다"));
 		}
-		this->frameIndex = frameIndex % FrameBuffering::dx12BufferCount;
-		const uint64_t frameFenceValue = frameFenceValues[this->frameIndex];
+		frameIndex = sourceFrameIndex % FrameBuffering::dx12BufferCount;
+		const uint64_t frameFenceValue = frameFenceValues[frameIndex];
 		if (frameFenceValue != 0 && fence->GetCompletedValue() < frameFenceValue) {
 			const HRESULT result = fence->SetEventOnCompletion(frameFenceValue, fenceEvent);
 			if (FAILED(result)) {
@@ -101,7 +101,7 @@ namespace Chrivent {
 					"DirectX 12 프레임 fence를 기다리지 못했습니다", waitResult, true));
 			}
 		}
-		ID3D12CommandAllocator* commandAllocator = commandAllocators[this->frameIndex].Get();
+		ID3D12CommandAllocator* commandAllocator = commandAllocators[frameIndex].Get();
 		if (commandAllocator == nullptr) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::DirectX12,
 				GraphicsErrorCode::InvalidState, "command allocator 초기화",

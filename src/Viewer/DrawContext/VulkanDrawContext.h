@@ -60,9 +60,9 @@ namespace Chrivent {
 		bool BindGroundShadowPipeline();
 		// 모델 공통 vertex descriptor set을 바인딩한다.
 		bool BindModelDescriptorSets(const VulkanDescriptorSet& descriptorSet,
-			uint32_t dynamicOffset);
+			size_t dynamicOffset);
 		// 재질 pixel descriptor set을 바인딩한다.
-		bool BindPixelDescriptorSet(VkDescriptorSet descriptorSet, uint32_t dynamicOffset);
+		bool BindPixelDescriptorSet(VkDescriptorSet descriptorSet, size_t dynamicOffset);
 		// 재질 texture descriptor set을 바인딩한다.
 		bool BindTextureDescriptorSet(VkDescriptorSet descriptorSet);
 	};

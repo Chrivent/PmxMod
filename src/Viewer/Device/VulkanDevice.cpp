@@ -128,7 +128,7 @@ namespace Chrivent {
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.pNext = &vulkan13Features;
-		createInfo.queueCreateInfoCount = queueCreateInfos.size();
+		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
 		createInfo.enabledExtensionCount = std::size(kDeviceExtensions);
 		createInfo.ppEnabledExtensionNames = kDeviceExtensions;

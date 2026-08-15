@@ -41,6 +41,7 @@ namespace Chrivent {
 		bool IsPlaying() const { return !paused; }
 		float GetElapsed() const { return playbackState.elapsed; }
 		float GetAnimationFrame() const { return playbackState.animationTime * 30.0f; }
+		int GetAnimationFrameIndex() const { return static_cast<int>(GetAnimationFrame() + 0.5f); }
 		bool IsPhysicsSkipped() const { return playbackState.skipPhysics; }
 		void SetPhysicsSkipped(const bool skipped) { playbackState.skipPhysics = skipped; }
 		const std::vector<CameraAnimationKey>& GetAnimationKeys() const;

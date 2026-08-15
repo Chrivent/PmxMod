@@ -44,7 +44,7 @@ namespace Chrivent {
 			}
 			auto& [BufferLocation, SizeInBytes, StrideInBytes] = modelResources.vertexBufferViews[frameIndex];
 			BufferLocation = vertexBuffer.GetGpuAddress();
-			SizeInBytes = vertexByteSize;
+			SizeInBytes = static_cast<UINT>(vertexByteSize);
 			StrideInBytes = sizeof(ViewerVertex);
 		}
 		Dx12Buffer indexUploadBuffer;
@@ -64,9 +64,9 @@ namespace Chrivent {
 		if (!uploadResult)
 			return std::unexpected(uploadResult.error());
 		modelResources.indexBufferView.BufferLocation = modelResources.indexBuffer.GetGpuAddress();
-		modelResources.indexBufferView.SizeInBytes = indexData.bytes.size();
+		modelResources.indexBufferView.SizeInBytes = static_cast<UINT>(indexData.bytes.size());
 		modelResources.indexBufferView.Format = indexFormat;
-		modelResources.indexCount = indexData.indexCount;
+		modelResources.indexCount = static_cast<UINT>(indexData.indexCount);
 		return {};
 	}
 

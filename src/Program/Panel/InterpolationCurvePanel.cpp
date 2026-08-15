@@ -62,12 +62,13 @@ namespace Chrivent {
 			const size_t channelCount = selection.channels.size();
 			const int width = client.right - client.left;
 			const int height = client.bottom - client.top;
-			const int channelHeight = channelCount == 0 ? 0 : height / channelCount;
+			const int channelHeight = channelCount == 0
+				? 0 : height / static_cast<int>(channelCount);
 			for (size_t channelIndex = 0; channelIndex < channelCount; channelIndex++) {
 				constexpr int labelHeight = 18;
 				constexpr int padding = 12;
 				const auto& [name, curves] = selection.channels[channelIndex];
-				const int areaTop = channelIndex * channelHeight;
+				const int areaTop = static_cast<int>(channelIndex) * channelHeight;
 				const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
 				const int graphSize = std::max(0,
 					std::min(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
@@ -91,8 +92,8 @@ namespace Chrivent {
 					for (int pointIndex = 0; pointIndex < 2; pointIndex++) {
 						if (std::abs(x - points[pointIndex].x) + std::abs(y - points[pointIndex].y) > 7)
 							continue;
-						selectedChannel = channelIndex;
-						selectedCurve = curveIndex;
+					selectedChannel = static_cast<int>(channelIndex);
+					selectedCurve = static_cast<int>(curveIndex);
 						selectedControlPoint = pointIndex;
 						break;
 					}
@@ -117,7 +118,7 @@ namespace Chrivent {
 			return;
 		const int width = client.right - client.left;
 		const int height = client.bottom - client.top;
-		const int channelHeight = height / channelCount;
+		const int channelHeight = height / static_cast<int>(channelCount);
 		const bool showControlPoints = selection.selectedKeyCount == 1;
 		for (size_t channelIndex = 0; channelIndex < channelCount; channelIndex++) {
 			constexpr int labelHeight = 18;
@@ -125,7 +126,7 @@ namespace Chrivent {
 			const auto& [name, curves] = selection.channels[channelIndex];
 			if (curves.empty())
 				continue;
-			const int areaTop = channelIndex * channelHeight;
+			const int areaTop = static_cast<int>(channelIndex) * channelHeight;
 			const int areaBottom = channelIndex + 1 == channelCount ? height : areaTop + channelHeight;
 			const int graphSize = std::max(0, std::min(width - padding * 2, areaBottom - areaTop - labelHeight - padding * 2));
 			if (graphSize <= 0)

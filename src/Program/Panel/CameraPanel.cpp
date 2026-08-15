@@ -384,7 +384,7 @@ namespace Chrivent {
 			pendingSelectedShaderIndex = -1;
 			pendingShaderEffectEnabled = false;
 		} else
-			selectedShaderIndex = std::min(selectedIndex, shaderNames.size() - 1);
+			selectedShaderIndex = static_cast<int>(std::min(selectedIndex, shaderNames.size() - 1));
 		if (selectedListIndex >= static_cast<int>(shaderNames.size()) + kShaderRowOffset)
 			selectedListIndex = kCameraMotionRow;
 		RefreshShaderList();

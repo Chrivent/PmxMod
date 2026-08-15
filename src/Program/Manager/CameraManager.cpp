@@ -100,9 +100,9 @@ namespace Chrivent {
 		const auto now = std::chrono::steady_clock::now();
 		const float frameSeconds = std::max(0.0f, std::chrono::duration<float>(now - saveTime).count());
 		playback.renderDeltaTime = std::min(frameSeconds, 1.0f / 15.0f);
-		double elapsedSeconds = frameSeconds;
-		if (elapsedSeconds > 1.0 / 30.0)
-			elapsedSeconds = 1.0 / 30.0;
+		float elapsedSeconds = frameSeconds;
+		if (elapsedSeconds > 1.0f / 30.0f)
+			elapsedSeconds = 1.0f / 30.0f;
 		saveTime = now;
 		if (paused) {
 			playback.elapsed = 0.0f;

@@ -26,21 +26,21 @@ namespace Chrivent {
 		virtual ~Panel() = default;
 
 		// 소유 윈도우의 메뉴에 패널 명령을 추가한다.
-		virtual void AddMenu(HMENU menu) {}
+		virtual void AddMenu(HMENU) {}
 		// 부모 윈도우 아래에 패널 컨트롤을 생성한다.
-		virtual void Create(HWND parent) {}
+		virtual void Create(HWND) {}
 		// 패널 클라이언트 영역 크기에 맞춰 컨트롤 배치를 갱신한다.
-		virtual void Resize(const RECT& clientRect) {}
+		virtual void Resize(const RECT&) {}
 		// 패널이 소유한 모든 컨트롤의 표시 상태를 갱신한다.
-		virtual void UpdateVisibility(bool visible) const {}
+		virtual void UpdateVisibility(bool) const {}
 		// 현재 언어에 맞춰 패널의 고정 GUI 문구를 갱신한다.
 		virtual void UpdateLanguage() {}
 		// 버튼이나 메뉴에서 들어온 명령을 처리한다.
-		virtual bool HandleCommand(UINT_PTR commandId, int notificationCode) { return false; }
+		virtual bool HandleCommand(UINT_PTR, int) { return false; }
 		// 리스트뷰 등 공용 컨트롤에서 들어온 알림을 처리하고 필요한 반환값을 채운다.
-		virtual bool HandleNotify(const NMHDR& notifyHeader, LRESULT& result) { return false; }
+		virtual bool HandleNotify(const NMHDR&, LRESULT&) { return false; }
 		// 슬라이더 등 스크롤 컨트롤에서 들어온 변경을 처리한다.
-		virtual bool HandleScroll(HWND control, int scrollCode) { return false; }
+		virtual bool HandleScroll(HWND, int) { return false; }
 		// 패널 윈도우와 보유 컨트롤을 해제한다.
 		virtual void Destroy() {}
 	};

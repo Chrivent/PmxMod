@@ -209,7 +209,7 @@ namespace Chrivent {
 		ApplyModelListTheme();
 	}
 
-	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
+	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int) {
 		if (commandId == addButtonId) {
 			ShowOpenModelDialog();
 			return true;

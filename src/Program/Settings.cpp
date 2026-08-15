@@ -8,12 +8,14 @@
 
 namespace Chrivent {
 	std::filesystem::path Settings::ResolveFilePath() {
-		std::vector<wchar_t> path(MAX_PATH);
+		DWORD bufferLength = MAX_PATH;
+		std::vector<wchar_t> path(bufferLength);
 		while (true) {
-			const DWORD length = GetModuleFileNameW(nullptr, path.data(), path.size());
-			if (length < path.size() - 1)
+			const DWORD length = GetModuleFileNameW(nullptr, path.data(), bufferLength);
+			if (length < bufferLength - 1)
 				return std::filesystem::path(std::wstring(path.data(), length)).parent_path() / "settings.json";
-			path.resize(path.size() * 2);
+			bufferLength *= 2;
+			path.resize(bufferLength);
 		}
 	}
 

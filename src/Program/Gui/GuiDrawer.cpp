@@ -108,7 +108,7 @@ namespace Chrivent {
 		const HGDIOBJ previousFont = SelectObject(deviceContext, GetTextFont());
 		SetBkMode(deviceContext, TRANSPARENT);
 		SetTextColor(deviceContext, color);
-		DrawTextW(deviceContext, text.c_str(), text.size(), &rect, format | DT_SINGLELINE | DT_VCENTER);
+		DrawTextW(deviceContext, text.c_str(), -1, &rect, format | DT_SINGLELINE | DT_VCENTER);
 		SelectObject(deviceContext, previousFont);
 	}
 
