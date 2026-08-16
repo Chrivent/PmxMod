@@ -146,7 +146,7 @@ namespace Chrivent {
 		std::vector<CameraAnimationKey> keys;
 		keys.emplace_back(CreateCameraKey(0, 0.0f));
 		keys.emplace_back(CreateCameraKey(1, 10.0f));
-		CameraAnimation animation(std::move(keys));
+		const CameraAnimation animation(std::move(keys));
 		const Camera beforeCut = animation.Evaluate(0.5f);
 		const Camera atCut = animation.Evaluate(1.0f);
 		EXPECT_FLOAT_EQ(beforeCut.interest.x, 0.0f);
