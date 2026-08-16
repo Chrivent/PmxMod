@@ -325,17 +325,14 @@ namespace Chrivent {
 
 	void ModelPanel::UpdateModelPaths(const std::vector<std::filesystem::path>& paths) {
 		modelPaths = paths;
-		RefreshModelList();
+		pendingSelectedModelIndex = -1;
+		pendingDeleteModelIndex = -1;
+		pendingModelMotionIndex = -1;
+		pendingModelMotionPath.clear();
 		if (modelPaths.empty()) {
 			selectedModelIndex = -1;
-			pendingSelectedModelIndex = -1;
-			pendingDeleteModelIndex = -1;
-			pendingModelMotionIndex = -1;
-			pendingModelMotionPath.clear();
-			return;
-		}
-		selectedModelIndex = std::clamp(selectedModelIndex, 0, static_cast<int>(modelPaths.size() - 1));
-		ApplyModelSelection();
-		pendingSelectedModelIndex = selectedModelIndex;
+		} else
+			selectedModelIndex = std::clamp(selectedModelIndex, 0, static_cast<int>(modelPaths.size() - 1));
+		RefreshModelList();
 	}
 }

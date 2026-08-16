@@ -8,6 +8,26 @@
 #include <utility>
 
 namespace Chrivent {
+	LRESULT CALLBACK CameraPanel::ShaderListWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam,
+		const LPARAM lParam, const UINT_PTR subclassId, const DWORD_PTR data) {
+		const auto* panel = reinterpret_cast<CameraPanel*>(data);
+		if (msg == WM_NCDESTROY) {
+			RemoveWindowSubclass(hwnd, ShaderListWindowProc, subclassId);
+			return DefSubclassProc(hwnd, msg, wParam, lParam);
+		}
+		if (!panel || !panel->IsInputLocked() || !IsInputLockMessage(msg))
+			return DefSubclassProc(hwnd, msg, wParam, lParam);
+		if (msg == WM_LBUTTONDOWN) {
+			const auto [x, y] = MAKEPOINTS(lParam);
+			LVHITTESTINFO hitInfo{};
+			hitInfo.pt = { .x = x, .y = y };
+			const int rowIndex = ListView_HitTest(hwnd, &hitInfo);
+			if (rowIndex >= kShaderRowOffset && (hitInfo.flags & LVHT_ONITEMSTATEICON) != 0)
+				ListView_SetCheckState(hwnd, rowIndex, !ListView_GetCheckState(hwnd, rowIndex));
+		}
+		return 0;
+	}
+
 	void CameraPanel::ShowOpenCameraMotionDialog() {
 		std::vector filename(32768, L'\0');
 		std::wstring filter = Language::Text("camera.dialog.vmd");
@@ -84,12 +104,9 @@ namespace Chrivent {
 	void CameraPanel::ApplyShaderListTheme() const {
 		if (!shaderList)
 			return;
-		const bool locked = IsInputLocked();
-		const COLORREF backgroundColor = locked ? GuiTheme::disabledControlColor : GuiTheme::controlColor;
-		const COLORREF textColor = locked ? GuiTheme::disabledTextColor : GuiTheme::textColor;
-		ListView_SetBkColor(shaderList, backgroundColor);
-		ListView_SetTextBkColor(shaderList, backgroundColor);
-		ListView_SetTextColor(shaderList, textColor);
+		ListView_SetBkColor(shaderList, GuiTheme::controlColor);
+		ListView_SetTextBkColor(shaderList, GuiTheme::controlColor);
+		ListView_SetTextColor(shaderList, GuiTheme::textColor);
 		InvalidateRect(shaderList, nullptr, TRUE);
 	}
 
@@ -156,7 +173,7 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(shaderListId), GetModuleHandleW(nullptr), nullptr);
-		AttachInputLockedControl(shaderList, shaderListId);
+		SetWindowSubclass(shaderList, ShaderListWindowProc, shaderListId, reinterpret_cast<DWORD_PTR>(this));
 		ListView_SetExtendedListViewStyle(shaderList, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 		ApplyShaderListTheme();
 		LVCOLUMNW column{};
@@ -220,13 +237,6 @@ namespace Chrivent {
 			EnableWindow(addCameraButton, enabled);
 		if (deleteCameraButton)
 			EnableWindow(deleteCameraButton, enabled);
-		if (modelShaderCheck)
-			EnableWindow(modelShaderCheck, enabled);
-		if (edgeShaderCheck)
-			EnableWindow(edgeShaderCheck, enabled);
-		if (groundShadowShaderCheck)
-			EnableWindow(groundShadowShaderCheck, enabled);
-		ApplyShaderListTheme();
 	}
 
 	void CameraPanel::UpdateLanguage() {

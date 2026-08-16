@@ -896,8 +896,10 @@ namespace Chrivent {
             if (LoadScene(sceneConfig))
                 panelManager.CommitSceneConfig(sceneConfig);
         }
-        if (panelManager.ConsumeSceneConfigDirty() && LoadScene(panelManager.GetSceneConfig()))
+        if (panelManager.ConsumeSceneConfigDirty() && LoadScene(panelManager.GetSceneConfig())) {
             panelManager.RefreshModelList();
+            UpdateCameraMotionPanel();
+        }
         std::filesystem::path cameraMotionPath;
         if (panelManager.ConsumeCameraMotionPath(cameraMotionPath)) {
             SceneConfig sceneConfig = panelManager.GetSceneConfig();
@@ -1306,6 +1308,7 @@ namespace Chrivent {
             Shutdown();
             return 1;
         }
+        UpdateCameraMotionPanel();
         const auto loadEnd = std::chrono::steady_clock::now();
         if (benchmarkMode) {
             std::cout << std::fixed << std::setprecision(3)

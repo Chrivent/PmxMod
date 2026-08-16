@@ -50,6 +50,9 @@ namespace Chrivent {
 		std::vector<std::wstring> shaderNames;
 		std::vector<bool> shaderEnabled;
 
+		// 재생 중에는 셰이더 체크박스 클릭만 허용하고 나머지 목록 입력을 차단한다.
+		static LRESULT CALLBACK ShaderListWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
+			UINT_PTR subclassId, DWORD_PTR data);
 		// 카메라 VMD 파일을 선택하는 열기 대화상자를 표시한다.
 		void ShowOpenCameraMotionDialog();
 		// 현재 카메라 모션 파일 이름으로 목록 표시용 문자열을 만든다.
@@ -58,7 +61,7 @@ namespace Chrivent {
 		void RefreshShaderList();
 		// 카메라 행과 셰이더 행의 선택/체크 상태를 리스트뷰에 반영한다.
 		void ApplyListState();
-		// 재생 중 입력 잠금 상태에 맞춰 셰이더 리스트 색을 갱신한다.
+		// 셰이더 리스트에 편집 가능한 컨트롤 색을 적용한다.
 		void ApplyShaderListTheme() const;
 		// 셰이더 목록에서 선택하거나 체크한 항목을 대기 요청으로 기록한다.
 		void QueueShaderSelection(int shaderIndex, bool enabled);
