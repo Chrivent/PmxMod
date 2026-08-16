@@ -21,7 +21,7 @@ namespace Chrivent {
 	};
 
 	// 이미지 파일을 Vulkan texture로 업로드하고 공통 키로 재사용한다.
-	class VulkanTextureCache : public TextureCache<VulkanTexture> {
+	class VulkanTextureCache final : protected TextureCache<VulkanTexture> {
 		VkDevice device = VK_NULL_HANDLE;
 		VkSampler wrapSampler = VK_NULL_HANDLE;
 		VkSampler clampSampler = VK_NULL_HANDLE;

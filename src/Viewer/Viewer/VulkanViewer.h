@@ -17,7 +17,7 @@
 
 namespace Chrivent {
 	// 공통 Viewer 계약을 Vulkan command buffer와 스왑체인 흐름으로 구현한다.
-	class VulkanViewer : public Viewer {
+	class VulkanViewer final : public Viewer {
 		VulkanDevice device;
 		VulkanSwapChain swapChain;
 		VulkanMsaaColorBuffer msaaColorBuffer;

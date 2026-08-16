@@ -17,7 +17,7 @@ namespace Chrivent {
 	};
 
 	// 이미지 파일을 D3D11 texture로 변환하고 공통 키로 재사용한다.
-	class Dx11TextureCache : public TextureCache<Dx11Texture> {
+	class Dx11TextureCache final : protected TextureCache<Dx11Texture> {
 	public:
 		// 텍스처가 없는 재질에 사용할 1x1 흰색 DX11 텍스처를 생성한다.
 		GraphicsError::Result<Dx11Texture> CreateWhiteTexture(ID3D11Device* device);

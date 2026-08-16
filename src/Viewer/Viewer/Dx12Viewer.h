@@ -16,7 +16,7 @@
 
 namespace Chrivent {
 	// 공통 Viewer 계약을 D3D12 명령 목록과 스왑체인 흐름으로 구현한다.
-	class Dx12Viewer : public Viewer {
+	class Dx12Viewer final : public Viewer {
 		Dx12Device device;
 		Dx12SwapChain swapChain;
 		Dx12MsaaColorBuffer msaaColorBuffer;

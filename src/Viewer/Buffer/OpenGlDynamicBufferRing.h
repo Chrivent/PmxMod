@@ -8,7 +8,7 @@
 
 namespace Chrivent {
 	// OpenGL uniform 업로드용 동적 링 버퍼를 관리한다.
-	class OpenGlDynamicBufferRing : public DynamicBufferRing {
+	class OpenGlDynamicBufferRing final : protected DynamicBufferRing {
 		GLenum usage = GL_DYNAMIC_DRAW;
 		GLuint buffer = 0;
 

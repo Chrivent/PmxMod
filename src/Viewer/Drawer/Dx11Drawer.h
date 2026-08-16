@@ -12,7 +12,7 @@ namespace Chrivent {
 	struct Dx11Texture;
 
 	// D3D11 명령으로 모델의 각 렌더링 패스를 기록한다.
-	class Dx11Drawer : public Drawer {
+	class Dx11Drawer final : public Drawer {
 		const Dx11Instance& instance;
 		Dx11ModelResources& resources;
 		Dx11DrawContext& drawContext;

@@ -10,7 +10,7 @@ namespace Chrivent {
 	struct PostProcessFrameData;
 
 	// 공통 실행 계획을 OpenGL framebuffer와 셰이더 프로그램으로 실행한다.
-	class OpenGlPostProcess : public PostProcess {
+	class OpenGlPostProcess final : public PostProcess {
 		// OpenGL 후처리 리소스의 ping-pong framebuffer와 texture를 보관한다.
 		struct Resource {
 			GLuint framebuffers[2]{};

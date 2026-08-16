@@ -13,7 +13,7 @@
 
 namespace Chrivent {
 	// 공통 Viewer 계약을 D3D11 렌더링 흐름으로 구현한다.
-	class Dx11Viewer : public Viewer {
+	class Dx11Viewer final : public Viewer {
 		UINT multiSampleCount = 4;
 		UINT multiSampleQuality = 0;
 		Dx11Device device;

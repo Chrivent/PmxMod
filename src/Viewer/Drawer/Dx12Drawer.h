@@ -10,7 +10,7 @@ namespace Chrivent {
 	struct Dx12ModelResources;
 
 	// D3D12 명령으로 모델의 각 렌더링 패스를 기록한다.
-	class Dx12Drawer : public Drawer {
+	class Dx12Drawer final : public Drawer {
 		const Dx12Instance& instance;
 		Dx12ModelResources& resources;
 		Dx12DrawContext& drawContext;

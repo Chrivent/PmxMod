@@ -19,7 +19,7 @@ namespace Chrivent {
 	struct PostProcessFrameData;
 	
 	// 공통 실행 계획을 D3D12 파이프라인과 명령 목록으로 실행한다.
-	class Dx12PostProcess : public PostProcess {
+	class Dx12PostProcess final : public PostProcess {
 		// D3D12 후처리 리소스의 ping-pong 출력 타깃을 보관한다.
 		struct Resource {
 			Dx12PostProcessTarget targets[2];

@@ -11,7 +11,7 @@ namespace Chrivent {
 	struct Dx12Texture;
 
 	// 한 모델의 D3D12 버퍼, 재질과 descriptor 상태를 관리한다.
-	class Dx12Instance : public Instance {
+	class Dx12Instance final : public Instance {
 		const Dx12Device& device;
 		Dx12UploadContext& uploadContext;
 		Dx12TextureCache& textureCache;

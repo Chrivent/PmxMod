@@ -12,7 +12,7 @@ namespace Chrivent {
 	struct PostProcessFrameData;
 
 	// 공통 실행 계획을 D3D11 렌더 타깃과 셰이더 패스로 실행한다.
-	class Dx11PostProcess : public PostProcess {
+	class Dx11PostProcess final : public PostProcess {
 		// D3D11 후처리 리소스의 ping-pong texture와 view를 보관한다.
 		struct Resource {
 			Microsoft::WRL::ComPtr<ID3D11Texture2D> textures[2];

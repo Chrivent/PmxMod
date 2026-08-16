@@ -20,7 +20,7 @@ namespace Chrivent {
 	};
 
 	// 이미지 파일을 D3D12 texture로 업로드하고 공통 키로 재사용한다.
-	class Dx12TextureCache : public TextureCache<Dx12Texture> {
+	class Dx12TextureCache final : protected TextureCache<Dx12Texture> {
 		Dx12UploadContext& uploadContext;
 		std::vector<TextureKey> pendingTextureKeys;
 		bool uploadBatchActive = false;

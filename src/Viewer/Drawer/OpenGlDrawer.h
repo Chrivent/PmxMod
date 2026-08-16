@@ -11,7 +11,7 @@ namespace Chrivent {
 	struct OpenGlModelResources;
 
 	// OpenGL 명령으로 모델의 각 렌더링 패스를 실행한다.
-	class OpenGlDrawer : public Drawer {
+	class OpenGlDrawer final : public Drawer {
 		const OpenGlInstance& instance;
 		OpenGlModelResources& resources;
 		OpenGlDrawContext& drawContext;

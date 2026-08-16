@@ -17,7 +17,7 @@ namespace Chrivent {
 	struct PostProcessFrameData;
 
 	// 공통 실행 계획을 Vulkan image와 그래픽 파이프라인으로 기록한다.
-	class VulkanPostProcess : public PostProcess {
+	class VulkanPostProcess final : public PostProcess {
 		VkDevice device = VK_NULL_HANDLE;
 		VkExtent2D targetExtent{};
 		VkFormat swapChainFormat = VK_FORMAT_UNDEFINED;

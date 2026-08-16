@@ -7,7 +7,7 @@
 
 namespace Chrivent {
 	// Vulkan 동적 uniform 버퍼의 프레임별 할당과 동기화를 관리한다.
-	class VulkanDynamicBufferRing : public DynamicBufferRing {
+	class VulkanDynamicBufferRing final : protected DynamicBufferRing {
 		VulkanBuffer buffer;
 
 	public:

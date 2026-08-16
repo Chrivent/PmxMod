@@ -15,7 +15,7 @@ namespace Chrivent {
 	};
 
 	// 이미지 파일을 OpenGL texture로 변환하고 공통 키로 재사용한다.
-	class OpenGlTextureCache : public TextureCache<OpenGlTexture> {
+	class OpenGlTextureCache final : protected TextureCache<OpenGlTexture> {
 	public:
 		~OpenGlTextureCache();
 

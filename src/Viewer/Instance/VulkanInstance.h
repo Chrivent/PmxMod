@@ -12,7 +12,7 @@ namespace Chrivent {
 	struct VulkanTexture;
 
 	// 한 모델의 Vulkan 버퍼, 재질과 descriptor 상태를 관리한다.
-	class VulkanInstance : public Instance {
+	class VulkanInstance final : public Instance {
 		const VulkanDevice& device;
 		const VulkanPipeline& pipeline;
 		VulkanUploadContext& uploadContext;

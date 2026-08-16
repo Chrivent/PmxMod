@@ -12,7 +12,7 @@ namespace Chrivent {
 	class Dx11TextureCache;
 
 	// 한 모델의 D3D11 버퍼, 재질과 descriptor 상태를 관리한다.
-	class Dx11Instance : public Instance {
+	class Dx11Instance final : public Instance {
 		const Dx11Device& device;
 		Dx11TextureCache& textureCache;
 		Dx11DrawContext& drawContext;

@@ -7,6 +7,7 @@ add_library(PmxMod::ViewerCommon ALIAS PmxModViewerCommon)
 target_sources(PmxModViewerCommon PRIVATE
         Buffer/BufferSize.h
         Buffer/DynamicBufferRing.h Buffer/DynamicBufferRing.cpp
+        Device/GraphicsCapabilities.h
         Drawer/SceneDrawState.h
         Drawer/Drawer.h Drawer/Drawer.cpp
         Error/GraphicsError.h Error/GraphicsError.cpp
@@ -16,7 +17,9 @@ target_sources(PmxModViewerCommon PRIVATE
         PostProcess/PostProcessFrameData.h
         PostProcess/PostProcessInputLayout.h
         PostProcess/PostProcessRuntimeContract.h
+        Shader/SceneShaderInputLayout.h
         Shader/SceneShaderRuntimeContract.h
+        Shader/ShaderConstants.h
         Shader/ShaderProgramDefinition.h
         Viewer/Viewer.h Viewer/Viewer.cpp
 )
@@ -50,7 +53,6 @@ target_sources(PmxModViewer PRIVATE
         Descriptor/VulkanDescriptorSet.h Descriptor/VulkanDescriptorSet.cpp
         Descriptor/VulkanPostProcessDescriptors.h Descriptor/VulkanPostProcessDescriptors.cpp
 
-        Device/GraphicsCapabilities.h
         Device/OpenGlDevice.h Device/OpenGlDevice.cpp
         Device/Dx11Device.h Device/Dx11Device.cpp
         Device/Dx12Device.h Device/Dx12Device.cpp
@@ -102,8 +104,6 @@ target_sources(PmxModViewer PRIVATE
 		RenderTarget/VulkanMsaaDepthBuffer.h RenderTarget/VulkanMsaaDepthBuffer.cpp
 		RenderTarget/VulkanPostProcessTarget.h RenderTarget/VulkanPostProcessTarget.cpp
 
-        Shader/ShaderConstants.h
-        Shader/SceneShaderInputLayout.h
         Shader/D3DCompilerHlslCompiler.h Shader/D3DCompilerHlslCompiler.cpp
         Shader/DxcHlslCompiler.h Shader/DxcHlslCompiler.cpp
         Shader/ShaderCompileError.h
@@ -141,11 +141,8 @@ target_include_directories(PmxModViewer
 
 target_link_libraries(PmxModViewer
         PUBLIC
-        PmxModCore
         PmxModViewerCommon
-        glfw
         glad::glad
-        glm::glm
         Vulkan::Vulkan
         PRIVATE
         d3d11

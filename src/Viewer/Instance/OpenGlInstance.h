@@ -10,7 +10,7 @@ namespace Chrivent {
 	class OpenGlTextureCache;
 
 	// 한 모델의 OpenGL 버퍼, VAO와 재질 상태를 관리한다.
-	class OpenGlInstance : public Instance {
+	class OpenGlInstance final : public Instance {
 		OpenGlTextureCache& textureCache;
 		OpenGlDrawContext& drawContext;
 		OpenGlModelResources modelResources;

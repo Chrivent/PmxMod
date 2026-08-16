@@ -11,7 +11,7 @@ namespace Chrivent {
 	struct VulkanModelResources;
 
 	// Vulkan 명령으로 모델의 각 렌더링 패스를 기록한다.
-	class VulkanDrawer : public Drawer {
+	class VulkanDrawer final : public Drawer {
 		const VulkanInstance& instance;
 		VulkanModelResources& resources;
 		VulkanDrawContext& drawContext;
