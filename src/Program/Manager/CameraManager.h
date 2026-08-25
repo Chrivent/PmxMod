@@ -3,6 +3,7 @@
 #include "Core/Animation/Camera/CameraAnimation.h"
 
 #include <filesystem>
+#include <span>
 
 namespace Chrivent {
 	class InputManager;
@@ -44,7 +45,7 @@ namespace Chrivent {
 		int GetAnimationFrameIndex() const { return static_cast<int>(GetAnimationFrame() + 0.5f); }
 		bool IsPhysicsSkipped() const { return playbackState.skipPhysics; }
 		void SetPhysicsSkipped(const bool skipped) { playbackState.skipPhysics = skipped; }
-		const std::vector<CameraAnimationKey>& GetAnimationKeys() const;
+		std::span<const CameraAnimationKey> GetAnimationKeys() const;
 
 		// 카메라 애니메이션의 마지막 프레임을 int 범위로 계산한다.
 		int CalculateLastFrame() const;

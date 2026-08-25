@@ -22,6 +22,7 @@
 
         Panel/Panel.h Panel/Panel.cpp
         Panel/CameraPanel.h Panel/CameraPanel.cpp
+        Panel/InformationPanel.h Panel/InformationPanel.cpp
         Panel/InterpolationCurvePanel.h Panel/InterpolationCurvePanel.cpp
         Panel/ModelPanel.h Panel/ModelPanel.cpp
         Panel/MotionPanel.h Panel/MotionPanel.cpp

@@ -119,6 +119,10 @@ namespace Chrivent {
         void DiscoverShaderPackages();
         // 검색된 셰이더 패키지에서 패널에 표시할 이펙트 목록을 구성한다.
         void BuildShaderEffectEntries();
+        // 선택한 모델의 PMX 메타데이터와 런타임 규모를 정보 패널에 표시한다.
+        void UpdateModelInformation(std::size_t modelIndex);
+        // 선택한 이펙트와 소속 패키지 메타데이터를 정보 패널에 표시한다.
+        void UpdateShaderEffectInformation(std::size_t shaderEffectIndex);
         // 검색된 패키지의 효과 이름을 카메라 패널에 반영한다.
         void UpdateShaderPanel();
         // 체크된 셰이더 효과들을 뷰어에 적용한다.

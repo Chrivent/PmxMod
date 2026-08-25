@@ -21,7 +21,7 @@ namespace Chrivent {
 			return DefWindowProcW(hwnd, msg, wParam, lParam);
 		switch (msg) {
 			case WM_CTLCOLORSTATIC:
-				return GuiTheme::HandleControlColor(msg, wParam);
+				return GuiTheme::HandleControlColor(msg, wParam, lParam);
 			case WM_CREATE:
 				panel->CreateContent(hwnd);
 				return 0;

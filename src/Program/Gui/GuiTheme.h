@@ -26,6 +26,6 @@ namespace Chrivent {
 		// 단일 Win32 컨트롤에 다크 테마와 UI 폰트를 적용한다.
 		static void ApplyControl(HWND control);
 		// 표준 컨트롤의 배경색과 글자색을 다크 테마에 맞춰 반환한다.
-		static LRESULT HandleControlColor(UINT message, WPARAM wParam);
+		static LRESULT HandleControlColor(UINT message, WPARAM wParam, LPARAM lParam);
 	};
 }

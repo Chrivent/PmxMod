@@ -12,6 +12,7 @@ namespace Chrivent {
 
 	enum class PanelWindowArea {
 		Model,
+		Information,
 		Motion,
 		InterpolationCurve,
 		Bottom

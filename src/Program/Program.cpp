@@ -22,6 +22,7 @@
 #include <GLFW/glfw3native.h>
 #include <algorithm>
 #include <cwchar>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -408,6 +409,68 @@ namespace Chrivent {
         }
     }
 
+	void Program::UpdateModelInformation(const std::size_t modelIndex) {
+		if (modelIndex >= instances.size()) {
+			panelManager.ClearInformation();
+			return;
+		}
+		const Instance& instance = *instances[modelIndex];
+		const Model& model = instance.GetModel();
+		const auto& modelConfigs = panelManager.GetSceneConfig().modelConfigs;
+		const std::filesystem::path modelPath = modelIndex < modelConfigs.size()
+			? modelConfigs[modelIndex].modelPath : std::filesystem::path{};
+		std::wstring modelName = TextEncoding::Utf8ToWideOrEmpty(model.infoData.modelName);
+		if (modelName.empty())
+			modelName = modelPath.filename().wstring();
+		std::vector<InformationField> fields;
+		fields.reserve(10);
+		fields.push_back({.labelKey = "information.model_name", .value = std::move(modelName)});
+		const std::wstring englishName = TextEncoding::Utf8ToWideOrEmpty(model.infoData.englishModelName);
+		if (!englishName.empty())
+			fields.push_back({.labelKey = "information.english_name", .value = englishName});
+		if (!modelPath.empty())
+			fields.push_back({.labelKey = "information.file", .value = modelPath.wstring()});
+		fields.push_back({.labelKey = "information.scale", .value = std::format(L"{:.3g}", instance.GetScale())});
+		fields.push_back({.labelKey = "information.vertices", .value = std::to_wstring(model.geometryData.positions.size())});
+		fields.push_back({.labelKey = "information.materials", .value = std::to_wstring(model.materialData.materials.size())});
+		fields.push_back({.labelKey = "information.bones", .value = std::to_wstring(model.skeletonData.GetNodes().size())});
+		fields.push_back({.labelKey = "information.morphs", .value = std::to_wstring(model.morphData.GetMorphs().size())});
+		std::wstring comment = TextEncoding::Utf8ToWideOrEmpty(model.infoData.comment);
+		if (comment.empty())
+			comment = TextEncoding::Utf8ToWideOrEmpty(model.infoData.englishComment);
+		if (!comment.empty())
+			fields.push_back({.labelKey = "information.comment", .value = std::move(comment)});
+		panelManager.ApplyInformation(std::move(fields));
+	}
+
+	void Program::UpdateShaderEffectInformation(const std::size_t shaderEffectIndex) {
+		if (shaderEffectIndex >= shaderEffectEntries.size()) {
+			panelManager.ClearInformation();
+			return;
+		}
+		const auto& [packageIndex, effectIndex] = shaderEffectEntries[shaderEffectIndex];
+		if (packageIndex >= shaderPackages.size() || effectIndex >= shaderPackages[packageIndex].effects.size()) {
+			panelManager.ClearInformation();
+			return;
+		}
+		const ShaderPackage& package = shaderPackages[packageIndex];
+		const auto& [id, name
+		    , parameters, runtime] = package.effects[effectIndex];
+		std::vector<InformationField> fields{
+			{.labelKey = "information.effect_name", .value = TextEncoding::Utf8ToWideOrEmpty(name)},
+			{.labelKey = "information.effect_id", .value = TextEncoding::Utf8ToWideOrEmpty(id)},
+			{.labelKey = "information.package_name", .value = TextEncoding::Utf8ToWideOrEmpty(package.name)},
+			{.labelKey = "information.package_id", .value = TextEncoding::Utf8ToWideOrEmpty(package.id)},
+			{.labelKey = "information.parameters", .value = std::to_wstring(parameters.size())},
+			{.labelKey = "information.passes", .value = std::to_wstring(runtime.passes.size())}
+		};
+		if (!package.version.empty())
+			fields.push_back({.labelKey = "information.version", .value = TextEncoding::Utf8ToWideOrEmpty(package.version)});
+		if (!package.author.empty())
+			fields.push_back({.labelKey = "information.author", .value = TextEncoding::Utf8ToWideOrEmpty(package.author)});
+		panelManager.ApplyInformation(std::move(fields));
+	}
+
     void Program::UpdateShaderPanel() {
         std::vector<std::wstring> shaderNames;
         shaderNames.reserve(shaderEffectEntries.size());
@@ -630,7 +693,7 @@ namespace Chrivent {
         }
         std::vector<MotionTimelineGroup> groups;
         groups.reserve(model.skeletonData.displayFrames.size() + 1);
-		const auto& cameraKeys = cameraManager.GetAnimationKeys();
+		const auto cameraKeys = cameraManager.GetAnimationKeys();
         if (!cameraKeys.empty()) {
             MotionTimelineRow cameraRow{
                 .name = Language::Text("motion.camera"),
@@ -771,7 +834,7 @@ namespace Chrivent {
     }
 
     void Program::UpdateCameraMotionPanel() {
-		const auto& cameraKeys = cameraManager.GetAnimationKeys();
+		const auto cameraKeys = cameraManager.GetAnimationKeys();
         std::vector<MotionTimelineGroup> groups;
         if (!cameraKeys.empty()) {
             MotionTimelineRow cameraRow{
@@ -950,6 +1013,7 @@ namespace Chrivent {
 		if (panelManager.ConsumeSelectedModelIndex(selectedModelIndex)) {
 			panelManager.ApplyMotionMode(MotionTimelineMode::Model);
 			UpdateMotionPanel(selectedModelIndex);
+			UpdateModelInformation(selectedModelIndex);
 		}
         if (panelManager.ConsumeCameraMotionSelected()) {
             panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
@@ -961,6 +1025,8 @@ namespace Chrivent {
 			if (selectedEffectIndex < shaderEffectEntries.size()
 				&& selectedEffectIndex < shaderEffectEnabled.size()) {
 				selectedShaderEffectIndex = selectedEffectIndex;
+				panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+				UpdateShaderEffectInformation(selectedShaderEffectIndex);
 				const bool previousEnabled = shaderEffectEnabled[selectedShaderEffectIndex];
 				shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
 				const auto applyResult = ApplyShaderEffects();
@@ -969,7 +1035,6 @@ namespace Chrivent {
 					UpdateShaderPanel();
 					PrintGraphicsError(applyResult.error());
 				} else {
-					panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
 					UpdateShaderMotionPanel(selectedShaderEffectIndex);
 				}
 			}

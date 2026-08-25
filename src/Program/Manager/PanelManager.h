@@ -5,6 +5,7 @@
 #include "Program/PanelWindow.h"
 #include "Program/RendererType.h"
 #include "Program/Panel/CameraPanel.h"
+#include "Program/Panel/InformationPanel.h"
 #include "Program/Panel/InterpolationCurvePanel.h"
 #include "Program/Panel/ModelPanel.h"
 #include "Program/Panel/MotionPanel.h"
@@ -42,11 +43,13 @@ namespace Chrivent {
 		MenuBar menuBar;
 		ModelPanel modelPanel;
 		CameraPanel cameraPanel;
+		InformationPanel informationPanel;
 		MotionPanel motionPanel;
 		InterpolationCurvePanel interpolationCurvePanel;
 		PlaybackPanel playbackPanel;
 		SoundPanel soundPanel;
 		PanelWindow panelWindow;
+		MotionTimelineMode visibleMotionMode = MotionTimelineMode::Camera;
 
 		// 현재 씬 설정의 모델 경로를 모델 패널 목록에 반영한다.
 		void UpdateModelPanel();
@@ -65,10 +68,7 @@ namespace Chrivent {
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
 
 		// 모션 표시 모드를 바꾸고 좌측 패널 표시를 함께 갱신한다.
-		void ApplyMotionMode(const MotionTimelineMode mode) {
-			motionPanel.ChangeMode(mode);
-			UpdateSidePanelVisibility();
-		}
+		void ApplyMotionMode(MotionTimelineMode mode);
 		void SetPlaybackFrame(const int frame) { motionPanel.UpdateCurrentFrame(std::max(0, frame)); }
 		void SetRendererType(const RendererType rendererType) { menuBar.ApplyRenderer(rendererType); }
 		PlaybackFrameRange GetPlaybackFrameRange() const { return playbackPanel.GetFrameRange(); }
@@ -136,6 +136,10 @@ namespace Chrivent {
 		void ApplyBuiltInShaderStates(const bool modelEnabled, const bool edgeEnabled, const bool groundShadowEnabled) {
 			cameraPanel.UpdateBuiltInShaderStates(modelEnabled, edgeEnabled, groundShadowEnabled);
 		}
+		// 선택한 모델이나 이펙트의 정보 필드를 좌측 정보 패널에 표시한다.
+		void ApplyInformation(std::vector<InformationField> fields);
+		// 선택 정보가 없을 때 정보 패널을 비우고 숨긴다.
+		void ClearInformation();
 		// 현재 씬의 카메라 모션 경로를 카메라 패널에 반영한다.
 		void ApplyCameraMotionPath(const std::filesystem::path& motionPath) {
 			cameraPanel.UpdateCameraMotionPath(motionPath);

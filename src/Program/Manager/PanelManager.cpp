@@ -13,6 +13,11 @@ namespace Chrivent {
 
 	void PanelManager::UpdateSidePanelVisibility() {
 		const bool cameraMode = IsCameraMode();
+		const MotionTimelineMode motionMode = cameraMode ? MotionTimelineMode::Camera : MotionTimelineMode::Model;
+		if (visibleMotionMode != motionMode) {
+			visibleMotionMode = motionMode;
+			ClearInformation();
+		}
 		if (cameraMode) {
 			panelWindow.UpdatePanelVisibility(modelPanel, false);
 			panelWindow.UpdatePanelVisibility(cameraPanel, true);
@@ -20,6 +25,13 @@ namespace Chrivent {
 			panelWindow.UpdatePanelVisibility(cameraPanel, false);
 			panelWindow.UpdatePanelVisibility(modelPanel, true);
 		}
+	}
+
+	void PanelManager::ApplyMotionMode(const MotionTimelineMode mode) {
+		motionPanel.ChangeMode(mode);
+		visibleMotionMode = mode;
+		ClearInformation();
+		UpdateSidePanelVisibility();
 	}
 
 	PanelManager::PanelManager() : menuBar(sceneConfigStorage) {
@@ -39,11 +51,26 @@ namespace Chrivent {
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);
 		panelWindow.RegisterPanel(cameraPanel, "panel.camera", PanelWindowArea::Model);
+		panelWindow.RegisterPanel(informationPanel, "panel.information", PanelWindowArea::Information, false);
 		panelWindow.RegisterPanel(motionPanel, "panel.motion", PanelWindowArea::Motion);
 		panelWindow.RegisterPanel(interpolationCurvePanel, "panel.interpolation_curve", PanelWindowArea::InterpolationCurve);
 		panelWindow.RegisterPanel(playbackPanel, "panel.playback", PanelWindowArea::Bottom);
 		panelWindow.RegisterPanel(soundPanel, "panel.sound", PanelWindowArea::Bottom);
 		Reset();
+	}
+
+	void PanelManager::ApplyInformation(std::vector<InformationField> fields) {
+		if (fields.empty()) {
+			ClearInformation();
+			return;
+		}
+		informationPanel.ApplyFields(std::move(fields));
+		panelWindow.UpdatePanelVisibility(informationPanel, true);
+	}
+
+	void PanelManager::ClearInformation() {
+		informationPanel.Clear();
+		panelWindow.UpdatePanelVisibility(informationPanel, false);
 	}
 
 	PanelManager::~PanelManager() {

@@ -51,7 +51,7 @@ namespace Chrivent {
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORLISTBOX:
 		case WM_CTLCOLORSTATIC:
-			return GuiTheme::HandleControlColor(msg, wParam);
+			return GuiTheme::HandleControlColor(msg, wParam, lParam);
 		case WM_COMMAND:
 			if (panelWindow->menuBar && panelWindow->menuBar->HandleCommand(LOWORD(wParam))) {
 				if (panelWindow->menuBar->ConsumePanelLayoutResetRequest())
@@ -236,6 +236,16 @@ namespace Chrivent {
 		const int interpolationX = width - margin - rightWidth;
 		const int motionWidth = std::max(0, interpolationX - gap - motionX);
 		const int bottomY = margin + topHeight + gap;
+		bool informationVisible = false;
+		for (const auto& entry : panels) {
+			if (entry.visible && entry.area == PanelWindowArea::Information) {
+				informationVisible = true;
+				break;
+			}
+		}
+		const int informationHeight = informationVisible && topHeight > gap
+			? std::min(topHeight - gap, std::clamp(topHeight / 3, 100, 220)) : 0;
+		const int modelHeight = std::max(0, topHeight - (informationHeight > 0 ? informationHeight + gap : 0));
 		int bottomIndex = 0;
 		int bottomCount = 0;
 		for (const auto& entry : panels) {
@@ -248,18 +258,21 @@ namespace Chrivent {
 			RECT area{};
 			switch (entry.area) {
 			case PanelWindowArea::Model:
-				area = { margin, margin, margin + leftWidth, margin + topHeight };
+				area = { .left = margin, .top = margin, .right = margin + leftWidth, .bottom = margin + modelHeight };
+				break;
+			case PanelWindowArea::Information:
+				area = { .left = margin, .top = margin + modelHeight + gap, .right = margin + leftWidth, .bottom = margin + topHeight };
 				break;
 			case PanelWindowArea::Motion:
-				area = { motionX, margin, motionX + motionWidth, margin + topHeight };
+				area = { .left = motionX, .top = margin, .right = motionX + motionWidth, .bottom = margin + topHeight };
 				break;
 			case PanelWindowArea::InterpolationCurve:
-				area = { interpolationX, margin, interpolationX + rightWidth, margin + topHeight };
+				area = { .left = interpolationX, .top = margin, .right = interpolationX + rightWidth, .bottom = margin + topHeight };
 				break;
 			case PanelWindowArea::Bottom: {
 				const int panelWidth = bottomCount > 0 ? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount : 0;
 				const int x = margin + bottomIndex * (panelWidth + gap);
-				area = {x, bottomY, x + panelWidth, bottomY + bottomHeight};
+				area = {.left = x, .top = bottomY, .right = x + panelWidth, .bottom = bottomY + bottomHeight};
 				bottomIndex++;
 				break;
 			}
@@ -267,7 +280,7 @@ namespace Chrivent {
 			const int areaWidth = std::max(0, static_cast<int>(area.right - area.left));
 			entry.bounds = area;
 			MoveWindow(entry.frame, area.left + 8, area.top + 5, areaWidth - 16, 18, TRUE);
-			RECT panelRect{area.left + 4, area.top + 24, area.right - 4, area.bottom - 4};
+			RECT panelRect{.left = area.left + 4, .top = area.top + 24, .right = area.right - 4, .bottom = area.bottom - 4};
 			entry.panel->Resize(panelRect);
 		}
 		InvalidateRect(window, nullptr, FALSE);

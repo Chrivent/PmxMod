@@ -86,12 +86,17 @@ namespace Chrivent {
 				<< std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
 	}
 
-	LRESULT GuiTheme::HandleControlColor(const UINT message, const WPARAM wParam) {
+	LRESULT GuiTheme::HandleControlColor(const UINT message, const WPARAM wParam, const LPARAM lParam) {
 		const auto deviceContext = reinterpret_cast<HDC>(wParam);
+		const auto control = reinterpret_cast<HWND>(lParam);
+		wchar_t className[16]{};
+		const bool readOnlyEdit = message == WM_CTLCOLORSTATIC && control
+			&& GetClassNameW(control, className, 16) > 0 && lstrcmpW(className, L"Edit") == 0;
 		SetTextColor(deviceContext, textColor);
-		if (message == WM_CTLCOLOREDIT || message == WM_CTLCOLORLISTBOX) {
+		if (message == WM_CTLCOLOREDIT || message == WM_CTLCOLORLISTBOX || readOnlyEdit) {
 			static const HBRUSH controlBrush = CreateSolidBrush(controlColor);
 			SetBkColor(deviceContext, controlColor);
+			SetBkMode(deviceContext, OPAQUE);
 			return reinterpret_cast<LRESULT>(controlBrush);
 		}
 		SetBkColor(deviceContext, backgroundColor);
