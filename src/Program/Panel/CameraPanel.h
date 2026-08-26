@@ -59,8 +59,6 @@ namespace Chrivent {
 		void RefreshShaderList();
 		// 카메라 행과 셰이더 행의 선택/체크 상태를 리스트뷰에 반영한다.
 		void ApplyListState();
-		// 셰이더 리스트에 편집 가능한 컨트롤 색을 적용한다.
-		void ApplyShaderListTheme() const;
 		// 셰이더 목록에서 선택하거나 체크한 항목을 대기 요청으로 기록한다.
 		void QueueShaderSelection(int shaderIndex, bool enabled);
 		// 내장 장면 셰이더 체크 상태를 대기 요청으로 기록한다.

@@ -84,6 +84,11 @@ namespace Chrivent {
 		if (FAILED(result))
 			std::cerr << "Win32 control theme을 적용하지 못했습니다: 0x"
 				<< std::hex << static_cast<unsigned long>(result) << std::dec << '\n';
+		if (lstrcmpW(className, WC_LISTVIEWW) == 0) {
+			ListView_SetBkColor(control, controlColor);
+			ListView_SetTextBkColor(control, controlColor);
+			ListView_SetTextColor(control, textColor);
+		}
 	}
 
 	LRESULT GuiTheme::HandleControlColor(const UINT message, const WPARAM wParam, const LPARAM lParam) {

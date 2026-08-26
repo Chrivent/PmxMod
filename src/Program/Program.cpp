@@ -323,7 +323,7 @@ namespace Chrivent {
         CreateViewer(rendererType);
         if (!InitializeViewer())
             return false;
-		const auto effectResult = ApplyShaderEffects();
+		const auto effectResult = shaderEffectController.Apply(*viewer);
 		if (!effectResult) {
 			PrintGraphicsError(effectResult.error());
 			return false;
@@ -354,68 +354,6 @@ namespace Chrivent {
         if (window)
             glfwDestroyWindow(window);
         glfwTerminate();
-    }
-
-    void Program::DiscoverShaderPackages() {
-		std::vector<std::pair<std::string, std::string>> enabledEffectIds;
-		enabledEffectIds.reserve(shaderEffectEntries.size());
-		for (size_t index = 0;
-			index < shaderEffectEntries.size() && index < shaderEffectEnabled.size(); index++) {
-			if (!shaderEffectEnabled[index])
-				continue;
-			const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
-			if (packageIndex < shaderPackages.size()
-				&& effectIndex < shaderPackages[packageIndex].effects.size()) {
-				enabledEffectIds.emplace_back(
-					shaderPackages[packageIndex].id, shaderPackages[packageIndex].effects[effectIndex].id);
-			}
-		}
-		std::string selectedPackageId;
-		std::string selectedEffectId;
-		if (selectedShaderEffectIndex < shaderEffectEntries.size()) {
-			const auto& [packageIndex, effectIndex] = shaderEffectEntries[selectedShaderEffectIndex];
-			if (packageIndex < shaderPackages.size()
-				&& effectIndex < shaderPackages[packageIndex].effects.size()) {
-				selectedPackageId = shaderPackages[packageIndex].id;
-				selectedEffectId = shaderPackages[packageIndex].effects[effectIndex].id;
-			}
-		}
-        shaderPackages.clear();
-        shaderEffectEntries.clear();
-        if (!viewer)
-            return;
-		auto [packages, errors] = ShaderPackageLoader::Discover(resourceDirectories.GetShaderPackagesDirectory());
-        shaderPackages = std::move(packages);
-        for (const auto& error : errors)
-            std::cerr << "셰이더 패키지를 불러오지 못했습니다: " << error.Format() << '\n';
-        BuildShaderEffectEntries();
-        const size_t effectCount = shaderEffectEntries.size();
-        std::cout << "shader_packages=" << shaderPackages.size() << '\n';
-        std::cout << "effects=" << effectCount << '\n';
-		selectedShaderEffectIndex = 0;
-		shaderEffectEnabled.assign(effectCount, false);
-		for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
-			const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
-			const ShaderPackage& package = shaderPackages[packageIndex];
-			const EffectDefinition& effect = package.effects[effectIndex];
-			shaderEffectEnabled[index] = std::ranges::contains(
-				enabledEffectIds, std::pair{ package.id, effect.id });
-			if (package.id == selectedPackageId && effect.id == selectedEffectId)
-				selectedShaderEffectIndex = index;
-		}
-        UpdateShaderPanel();
-		const auto applyResult = ApplyShaderEffects();
-		if (!applyResult)
-			PrintGraphicsError(applyResult.error());
-    }
-
-    void Program::BuildShaderEffectEntries() {
-        shaderEffectEntries.clear();
-        for (size_t packageIndex = 0; packageIndex < shaderPackages.size(); packageIndex++) {
-            const auto& package = shaderPackages[packageIndex];
-			for (size_t effectIndex = 0; effectIndex < package.effects.size(); effectIndex++)
-				shaderEffectEntries.push_back({packageIndex, effectIndex});
-        }
     }
 
 	void Program::UpdateModelInformation(const std::size_t modelIndex) {
@@ -451,66 +389,6 @@ namespace Chrivent {
 			fields.push_back({.labelKey = "information.comment", .value = std::move(comment)});
 		panelManager.ApplyInformation(std::move(fields));
 	}
-
-	void Program::UpdateShaderEffectInformation(const std::size_t shaderEffectIndex) {
-		if (shaderEffectIndex >= shaderEffectEntries.size()) {
-			panelManager.ClearInformation();
-			return;
-		}
-		const auto& [packageIndex, effectIndex] = shaderEffectEntries[shaderEffectIndex];
-		if (packageIndex >= shaderPackages.size() || effectIndex >= shaderPackages[packageIndex].effects.size()) {
-			panelManager.ClearInformation();
-			return;
-		}
-		const ShaderPackage& package = shaderPackages[packageIndex];
-		const auto& [id, name
-		    , parameters, runtime] = package.effects[effectIndex];
-		std::vector<InformationField> fields{
-			{.labelKey = "information.effect_name", .value = TextEncoding::Utf8ToWideOrEmpty(name)},
-			{.labelKey = "information.effect_id", .value = TextEncoding::Utf8ToWideOrEmpty(id)},
-			{.labelKey = "information.package_name", .value = TextEncoding::Utf8ToWideOrEmpty(package.name)},
-			{.labelKey = "information.package_id", .value = TextEncoding::Utf8ToWideOrEmpty(package.id)},
-			{.labelKey = "information.parameters", .value = std::to_wstring(parameters.size())},
-			{.labelKey = "information.passes", .value = std::to_wstring(runtime.passes.size())}
-		};
-		if (!package.version.empty())
-			fields.push_back({.labelKey = "information.version", .value = TextEncoding::Utf8ToWideOrEmpty(package.version)});
-		if (!package.author.empty())
-			fields.push_back({.labelKey = "information.author", .value = TextEncoding::Utf8ToWideOrEmpty(package.author)});
-		panelManager.ApplyInformation(std::move(fields));
-	}
-
-    void Program::UpdateShaderPanel() {
-        std::vector<std::wstring> shaderNames;
-        shaderNames.reserve(shaderEffectEntries.size());
-        for (const auto& [packageIndex, effectIndex] : shaderEffectEntries) {
-            const auto& package = shaderPackages[packageIndex];
-            const auto& effect = package.effects[effectIndex];
-            shaderNames.emplace_back(TextEncoding::Utf8ToWideOrEmpty(package.name) + L" / " +
-                TextEncoding::Utf8ToWideOrEmpty(effect.name));
-        }
-        panelManager.ApplyShaderNames(shaderNames, selectedShaderEffectIndex, shaderEffectEnabled);
-		const SceneRenderState& scene = viewer->GetSceneRenderState();
-		panelManager.ApplyBuiltInShaderStates(scene.modelEnabled, scene.edgeEnabled, scene.groundShadowEnabled);
-    }
-
-	GraphicsError::Result<void> Program::ApplyShaderEffects() const {
-        if (!viewer)
-			return {};
-        std::vector<const EffectRuntimeDefinition*> postProcessEffects;
-        for (size_t index = 0; index < shaderEffectEntries.size(); index++) {
-            const auto& [packageIndex, effectIndex] = shaderEffectEntries[index];
-            const auto& effect = shaderPackages[packageIndex].effects[effectIndex];
-            if (index < shaderEffectEnabled.size() && shaderEffectEnabled[index])
-                postProcessEffects.push_back(&effect.runtime);
-        }
-        const auto loadResult = viewer->LoadPostProcessEffects(postProcessEffects);
-        if (loadResult) {
-            std::cout << "active_post_effects=" << postProcessEffects.size() << '\n';
-			return {};
-        }
-		return std::unexpected(loadResult.error());
-    }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
         std::vector<std::unique_ptr<Instance>> loadedInstances;
@@ -637,19 +515,6 @@ namespace Chrivent {
 		panelManager.ApplyMotionTimeline(std::move(name), std::move(groups));
     }
 
-    void Program::UpdateShaderMotionPanel(const size_t shaderEffectIndex) {
-        if (shaderEffectIndex < shaderEffectEntries.size()) {
-            const auto& [packageIndex, effectIndex] = shaderEffectEntries[shaderEffectIndex];
-            const auto& package = shaderPackages[packageIndex];
-            const auto& effect = package.effects[effectIndex];
-            const std::wstring name = TextEncoding::Utf8ToWideOrEmpty(package.name) + L" / " +
-                TextEncoding::Utf8ToWideOrEmpty(effect.name);
-            panelManager.ApplyMotionTimeline(name, {});
-            return;
-        }
-        panelManager.ApplyMotionTimeline(Language::Text("panel.camera"), {});
-    }
-
     void Program::ClearInstances() {
         instances.clear();
     }
@@ -760,40 +625,9 @@ namespace Chrivent {
 			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
 			UpdateCameraMotionPanel();
 		}
-		size_t selectedEffectIndex = 0;
-		bool selectedEffectEnabled = false;
-		if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex, selectedEffectEnabled)
-			&& selectedEffectIndex < shaderEffectEntries.size()
-			&& selectedEffectIndex < shaderEffectEnabled.size()) {
-			selectedShaderEffectIndex = selectedEffectIndex;
-			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-			UpdateShaderEffectInformation(selectedShaderEffectIndex);
-			const bool previousEnabled = shaderEffectEnabled[selectedShaderEffectIndex];
-			shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
-			const auto applyResult = ApplyShaderEffects();
-			if (!applyResult) {
-				shaderEffectEnabled[selectedShaderEffectIndex] = previousEnabled;
-				UpdateShaderPanel();
-				PrintGraphicsError(applyResult.error());
-			} else
-				UpdateShaderMotionPanel(selectedShaderEffectIndex);
-		}
-		BuiltInShaderToggle builtInShader;
-		bool builtInShaderEnabled = false;
-		SceneRenderState& scene = viewer->GetSceneRenderState();
-		if (panelManager.ConsumeBuiltInShaderToggle(builtInShader, builtInShaderEnabled)) {
-			switch (builtInShader) {
-			case BuiltInShaderToggle::Model:
-				scene.modelEnabled = builtInShaderEnabled;
-				break;
-			case BuiltInShaderToggle::Edge:
-				scene.edgeEnabled = builtInShaderEnabled;
-				break;
-			case BuiltInShaderToggle::GroundShadow:
-				scene.groundShadowEnabled = builtInShaderEnabled;
-				break;
-			}
-		}
+		const auto shaderRequestResult = shaderEffectController.ProcessPanelRequests(panelManager, *viewer);
+		if (!shaderRequestResult)
+			PrintGraphicsError(shaderRequestResult.error());
 		return FrameRequestState::Continue;
 	}
 
@@ -1133,7 +967,10 @@ namespace Chrivent {
             std::cerr << "프로그램 실행 중 오류가 발생했습니다.\n";
             return 1;
         }
-        DiscoverShaderPackages();
+		const auto shaderResult = shaderEffectController.Reload(
+			resourceDirectories.GetShaderPackagesDirectory(), *viewer, panelManager);
+		if (!shaderResult)
+			PrintGraphicsError(shaderResult.error());
         panelManager.BindSound(music);
 		if (!panelManager.OpenGuiWindows()) {
 			std::cerr << "설정 창을 생성하지 못했습니다.\n";

@@ -2,6 +2,7 @@
         Program.h Program.cpp
         MotionTimelineBuilder.h MotionTimelineBuilder.cpp
         ResourceDirectories.h ResourceDirectories.cpp
+        ShaderEffectController.h ShaderEffectController.cpp
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
         Shader/InternalShaderCatalog.h Shader/InternalShaderCatalog.cpp
         Config.h Config.cpp

@@ -81,15 +81,6 @@ namespace Chrivent {
 		updatingShaderList = false;
 	}
 
-	void CameraPanel::ApplyShaderListTheme() const {
-		if (!shaderList)
-			return;
-		ListView_SetBkColor(shaderList, GuiTheme::controlColor);
-		ListView_SetTextBkColor(shaderList, GuiTheme::controlColor);
-		ListView_SetTextColor(shaderList, GuiTheme::textColor);
-		InvalidateRect(shaderList, nullptr, TRUE);
-	}
-
 	void CameraPanel::QueueShaderSelection(const int shaderIndex, const bool enabled) {
 		if (shaderIndex < 0 || shaderIndex >= static_cast<int>(shaderNames.size()))
 			return;
@@ -154,7 +145,6 @@ namespace Chrivent {
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(shaderListId), GetModuleHandleW(nullptr), nullptr);
 		ListView_SetExtendedListViewStyle(shaderList, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-		ApplyShaderListTheme();
 		LVCOLUMNW column{};
 		column.mask = LVCF_WIDTH;
 		ListView_InsertColumn(shaderList, 0, &column);
