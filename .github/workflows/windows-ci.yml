@@ -1,0 +1,105 @@
+﻿name: Windows CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VCPKG_ROOT: '${{ github.workspace }}/vcpkg'
+  VCPKG_BINARY_SOURCES: 'clear;files,${{ github.workspace }}/vcpkg-cache,readwrite'
+  VULKAN_SDK_VERSION: '1.4.350.0'
+  VULKAN_SDK: '${{ github.workspace }}/VulkanSDK/1.4.350.0'
+
+jobs:
+  build-and-test:
+    name: Release build and tests
+    runs-on: windows-2025
+
+    steps:
+      - name: 프로젝트 가져오기
+        uses: actions/checkout@v4
+
+      - name: vcpkg 가져오기
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: e0b785fa42e9b3ee27f62e54f65e41358a1d2671
+          path: vcpkg
+
+      - name: vcpkg 바이너리 캐시 복원
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ runner.os }}-x64-windows-${{ hashFiles('vcpkg.json') }}
+
+      - name: CMake 설치
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check 'cmake==4.1.2'
+          $cmakeBin = python -c 'import cmake; print(cmake.CMAKE_BIN_DIR)'
+          $cmakeBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & "$cmakeBin/cmake.exe" --version
+
+      - name: Vulkan SDK 설치
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'vulkan-sdk.exe'
+          $downloadUrl = "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/vulkan_sdk.exe"
+          curl.exe --fail --location $downloadUrl --output $installer
+          if ($LASTEXITCODE -ne 0) {
+              throw "Vulkan SDK 다운로드에 실패했습니다. 종료 코드: $LASTEXITCODE"
+          }
+
+          $expectedHash = '855B27BA05D2D8119C5114C5D4FF870CA38F2C632B11E1BB9923B9B7E6ECFE7B'
+          $actualHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash
+          if ($actualHash -ne $expectedHash) {
+              throw "Vulkan SDK 체크섬이 일치하지 않습니다. 실제 값: $actualHash"
+          }
+
+          & $installer --root $env:VULKAN_SDK --accept-licenses --default-answer --confirm-command install copy_only=1
+          if ($LASTEXITCODE -ne 0) {
+              throw "Vulkan SDK 설치에 실패했습니다. 종료 코드: $LASTEXITCODE"
+          }
+
+          $requiredFiles = @(
+              "$env:VULKAN_SDK/Lib/vulkan-1.lib",
+              "$env:VULKAN_SDK/Lib/dxcompiler.lib",
+              "$env:VULKAN_SDK/Bin/dxcompiler.dll"
+          )
+          foreach ($requiredFile in $requiredFiles) {
+              if (!(Test-Path -LiteralPath $requiredFile)) {
+                  throw "Vulkan SDK 필수 파일을 찾을 수 없습니다: $requiredFile"
+              }
+          }
+
+      - name: vcpkg 준비
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path '${{ github.workspace }}/vcpkg-cache' | Out-Null
+          & "$env:VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          if ($LASTEXITCODE -ne 0) {
+              throw "vcpkg 준비에 실패했습니다. 종료 코드: $LASTEXITCODE"
+          }
+
+      - name: CMake 구성
+        shell: pwsh
+        run: |
+          cmake -S . -B build-ci -G 'Visual Studio 17 2022' -A x64 `
+              "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+              -DPMXMOD_BUILD_TESTS=ON
+
+      - name: Release 빌드
+        shell: pwsh
+        run: cmake --build build-ci --config Release --parallel
+
+      - name: 테스트 실행
+        shell: pwsh
+        run: ctest --test-dir build-ci -C Release --output-on-failure
