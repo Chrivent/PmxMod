@@ -9,6 +9,7 @@ SamplerState LinearClamp : register(s0);
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float focusDistance = ReadDelayedFocusDistance();
+    float eighthResolutionMaxRadius = MaxBlurPixels * BokehEighthResolutionScale;
     float3 foregroundColor = 0.0;
     float foregroundColorWeight = 0.0;
     for (int index = 0; index < BroadBokehSampleCount; index++) {
@@ -18,8 +19,8 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         float sampleCameraDistance = ReadCircleOfConfusionCameraDistance(sampleUv, focusDistance);
         float signedCocPixels = CalculateCircleOfConfusionPixels(sampleCameraDistance, focusDistance);
         if (signedCocPixels < 0.0) {
-            float sampleRadius = abs(signedCocPixels);
-            float sampleDistance = normalizedDistance * MaxBlurPixels;
+            float sampleRadius = abs(signedCocPixels) * BokehEighthResolutionScale;
+            float sampleDistance = normalizedDistance * eighthResolutionMaxRadius;
             float support = saturate(sampleRadius - sampleDistance + 1.0);
             float brightnessWeight = CalculateCircleOfConfusionBrightness(sampleRadius);
             float layerWeight = CalculateLastBokehLayerWeight(signedCocPixels);

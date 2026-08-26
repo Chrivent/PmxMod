@@ -75,7 +75,7 @@
 // 틸트 초점면의 기준 축이다. UI가 생기기 전에는 월드 위쪽을 사용한다.
 #define TiltFocusDirection float3(ReadEffectParameter(23), ReadEffectParameter(24), ReadEffectParameter(25))
 
-// 현재 반해상도와 1/4 해상도 피라미드가 안정적으로 처리할 최대 CoC 반경이다.
+// 현재 반해상도, 1/4 해상도와 1/8 해상도 피라미드가 안정적으로 처리할 최대 CoC 반경이다.
 static const float MaxBlurPixels = 64.0;
 
 // 1/4 피라미드가 담당하고 1/8 피라미드로 넘기기 시작하는 CoC 반경이다.
@@ -293,7 +293,12 @@ float CalculateTiltedCameraDistance(float2 uv, float cameraDistance, float focus
     if (tiltAmount <= BokehColorEpsilon)
         return cameraDistance;
 
-    float3 tiltUp = normalize(TiltFocusDirection);
+    float3 tiltUp = TiltFocusDirection;
+    float tiltUpLength = length(tiltUp);
+    if (tiltUpLength > BokehColorEpsilon)
+        tiltUp /= tiltUpLength;
+    else
+        tiltUp = CameraWorldUp.xyz;
     if (dot(tiltUp, CameraWorldDirection.xyz) <= 0.0)
         tiltUp = -tiltUp;
     float3 perpendicularDirection = CameraWorldDirection.xyz
