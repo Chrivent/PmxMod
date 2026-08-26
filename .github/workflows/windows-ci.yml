@@ -43,7 +43,7 @@ jobs:
       - name: CMake 설치
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check 'cmake==4.2.7'
+          python -m pip install --disable-pip-version-check 'cmake==4.2.3'
           $cmakeBin = python -c 'import cmake; print(cmake.CMAKE_BIN_DIR)'
           $cmakeBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & "$cmakeBin/cmake.exe" --version
