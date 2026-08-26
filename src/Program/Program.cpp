@@ -1,7 +1,6 @@
 ﻿#define GLFW_EXPOSE_NATIVE_WIN32
 #include "Program/Program.h"
 
-#include "Core/Animation/Camera/CameraAnimation.h"
 #include "Core/Animation/Model/Animation.h"
 #include "Core/Animation/Model/AnimationBuilder.h"
 #include "Core/Model/Model.h"
@@ -10,6 +9,7 @@
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
 #include "Viewer/Instance/Instance.h"
+#include "Program/MotionTimelineBuilder.h"
 #include "Program/Shader/InternalShaderCatalog.h"
 #include "Viewer/Viewer/OpenGlViewer.h"
 #include "Viewer/Viewer/VulkanViewer.h"
@@ -27,7 +27,6 @@
 #include <iostream>
 #include <limits>
 #include <string>
-#include <unordered_map>
 #include <utility>
 
 namespace Chrivent {
@@ -112,13 +111,8 @@ namespace Chrivent {
         return "unknown";
     }
 
-    LRESULT CALLBACK Program::ViewerWindowProc(
-        const HWND hwnd,
-        const UINT msg,
-        const WPARAM wParam,
-        const LPARAM lParam,
-        const UINT_PTR subclassId,
-        const DWORD_PTR data) {
+    LRESULT CALLBACK Program::ViewerWindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam,
+        const LPARAM lParam, const UINT_PTR subclassId, const DWORD_PTR data) {
         auto* program = reinterpret_cast<Program*>(data);
         if (!program || subclassId != kViewerWindowSubclassId)
             return DefSubclassProc(hwnd, msg, wParam, lParam);
@@ -339,7 +333,7 @@ namespace Chrivent {
         fpsOverlay.Reset();
         RemoveViewerWindowSubclass();
         ClearInstances();
-        music.Stop();
+		music.Unload();
         panelManager.DestroyGui();
         viewer.reset();
         if (window)
@@ -504,12 +498,21 @@ namespace Chrivent {
     }
 
     bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
-        music.Pause();
         std::vector<std::unique_ptr<Instance>> loadedInstances;
         if (!LoadInstances(sceneConfig, loadedInstances)) {
             std::cerr << "장면 인스턴스를 불러오지 못했습니다.\n";
             return false;
         }
+		const bool reuseMusic = music.HasSound() && !sceneConfig.musicPath.empty()
+			&& sceneConfig.musicPath == panelManager.GetSceneConfig().musicPath;
+		Sound loadedMusic;
+		if (!reuseMusic && !sceneConfig.musicPath.empty() && !loadedMusic.Init(sceneConfig.musicPath, false)) {
+			std::cerr << "음악 파일을 불러오지 못했습니다.\n";
+			return false;
+		}
+		CameraManager loadedCameraManager;
+		if (!loadedCameraManager.LoadCameraAnim(sceneConfig.cameraAnim))
+			return false;
         const auto waitResult = viewer->WaitIdle();
         if (!waitResult) {
             PrintGraphicsError(waitResult.error());
@@ -517,11 +520,12 @@ namespace Chrivent {
         }
         ClearInstances();
         instances = std::move(loadedInstances);
-        music.Stop();
-        if (!sceneConfig.musicPath.empty() && music.Init(sceneConfig.musicPath, false))
-            music.Pause();
+		if (reuseMusic)
+			music.Pause();
+		else
+			music = std::move(loadedMusic);
+		cameraManager = std::move(loadedCameraManager);
         panelManager.BindSound(music);
-        cameraManager.LoadCameraAnim(sceneConfig.cameraAnim);
         panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
@@ -604,293 +608,18 @@ namespace Chrivent {
     void Program::UpdateMotionPanel(const size_t modelIndex) {
         if (modelIndex >= instances.size() || !instances[modelIndex])
             return;
-        const auto& instance = *instances[modelIndex];
-        const auto& model = instance.GetModel();
-        const auto* animation = instance.GetAnimation();
-        const auto NormalizeKeys = [](std::vector<MotionTimelineKey>& keys) {
-            std::ranges::sort(keys, {}, &MotionTimelineKey::frame);
-            std::vector<MotionTimelineKey> normalized;
-            normalized.reserve(keys.size());
-            for (auto& key : keys) {
-                if (!normalized.empty() && normalized.back().frame == key.frame) {
-                    if (normalized.back().curves.empty() && !key.curves.empty()) {
-                        normalized.back().curves = std::move(key.curves);
-                        normalized.back().values = std::move(key.values);
-                    }
-                    continue;
-                }
-                normalized.emplace_back(std::move(key));
-            }
-            keys = std::move(normalized);
-        };
-        const auto CollectFrames = [](const std::vector<MotionTimelineRow>& rows) {
-            std::vector<int> frames;
-            for (const auto& row : rows) {
-                for (const auto& key : row.keys)
-                    frames.emplace_back(key.frame);
-            }
-            std::ranges::sort(frames);
-            const auto uniqueFrames = std::ranges::unique(frames);
-            frames.erase(uniqueFrames.begin(), uniqueFrames.end());
-            return frames;
-        };
-        const auto ToTimelineFrame = [](const uint32_t frame) {
-            constexpr uint32_t maxFrame = std::numeric_limits<int>::max();
-            return frame > maxFrame ? std::numeric_limits<int>::max() : static_cast<int>(frame);
-        };
-        std::unordered_map<const Node*, std::vector<MotionTimelineKey>> nodeKeys;
-        std::unordered_map<const IkSolver*, std::vector<MotionTimelineKey>> ikKeys;
-        std::unordered_map<const Morph*, std::vector<MotionTimelineKey>> morphKeys;
-        if (animation && animation->IsBoundTo(model)) {
-            const auto& nodes = model.skeletonData.GetNodes();
-            for (const auto& [targetIndex, keys] : animation->GetNodeTracks()) {
-                if (targetIndex >= nodes.size() || !nodes[targetIndex])
-                    continue;
-                const Node* node = nodes[targetIndex].get();
-                auto& timelineKeys = nodeKeys[node];
-                timelineKeys.reserve(keys.size());
-                for (const auto& [frame, translate, rotate, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
-                    glm::quat rotation = glm::normalize(rotate);
-                    if (rotation.w < 0.0f)
-                        rotation = -rotation;
-                    timelineKeys.push_back({
-                        .frame = ToTimelineFrame(frame),
-                        .curves = {
-                            txBezier.GetControlPoints(),
-                            tyBezier.GetControlPoints(),
-                            tzBezier.GetControlPoints(),
-                            rotBezier.GetControlPoints()
-                        },
-                        .values = {
-                            translate.x,
-                            translate.y,
-                            translate.z,
-                            glm::degrees(glm::angle(rotation))
-                        }
-                    });
-                }
-            }
-            const auto& ikSolvers = model.skeletonData.GetIkSolvers();
-            for (const auto& [targetIndex, keys] : animation->GetIkTracks()) {
-                if (targetIndex >= ikSolvers.size() || !ikSolvers[targetIndex])
-                    continue;
-                const IkSolver* ikSolver = ikSolvers[targetIndex].get();
-                auto& timelineKeys = ikKeys[ikSolver];
-                timelineKeys.reserve(keys.size());
-                for (const auto& [frame, ikEnable] : keys)
-                    timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
-            }
-            const auto& morphs = model.morphData.GetMorphs();
-            for (const auto& [targetIndex, keys] : animation->GetMorphTracks()) {
-                if (targetIndex >= morphs.size() || !morphs[targetIndex])
-                    continue;
-                const Morph* morph = morphs[targetIndex].get();
-                auto& timelineKeys = morphKeys[morph];
-                timelineKeys.reserve(keys.size());
-                for (const auto& [frame, morphWeight] : keys)
-                    timelineKeys.push_back({.frame = ToTimelineFrame(frame)});
-            }
-        }
-        std::vector<MotionTimelineGroup> groups;
-        groups.reserve(model.skeletonData.displayFrames.size() + 1);
-		const auto cameraKeys = cameraManager.GetAnimationKeys();
-        if (!cameraKeys.empty()) {
-            MotionTimelineRow cameraRow{
-                .name = Language::Text("motion.camera"),
-                .curveNames = {
-                    Language::Text("interpolation.x"),
-                    Language::Text("interpolation.y"),
-                    Language::Text("interpolation.z"),
-                    Language::Text("interpolation.rotation"),
-                    Language::Text("interpolation.distance"),
-                    Language::Text("interpolation.fov")
-                }
-            };
-            cameraRow.keys.reserve(cameraKeys.size());
-            for (const auto& [frame, interest, rotate, distance, fov
-                , ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier] : cameraKeys) {
-                cameraRow.keys.push_back({
-                    .frame = ToTimelineFrame(frame),
-                    .curves = {
-                        ixBezier.GetControlPoints(),
-                        iyBezier.GetControlPoints(),
-                        izBezier.GetControlPoints(),
-                        rotateBezier.GetControlPoints(),
-                        distanceBezier.GetControlPoints(),
-                        fovBezier.GetControlPoints()
-                    },
-                    .values = {
-                        interest.x,
-                        interest.y,
-                        interest.z,
-                        glm::degrees(glm::length(rotate)),
-                        distance,
-                        glm::degrees(fov)
-                    }
-                });
-            }
-            cameraRow.expandable = true;
-            MotionTimelineGroup cameraGroup{
-                .name = Language::Text("motion.camera"),
-                .rows = {std::move(cameraRow)},
-                .mode = MotionTimelineMode::Camera,
-                .grouped = false
-            };
-            cameraGroup.keyFrames = CollectFrames(cameraGroup.rows);
-            groups.emplace_back(std::move(cameraGroup));
-        }
-        for (const auto& [name, boneIndices, morphIndices] : model.skeletonData.displayFrames) {
-            MotionTimelineGroup group{
-                .name = TextEncoding::Utf8ToWideOrEmpty(name)
-            };
-            group.rows.reserve(boneIndices.size() + morphIndices.size());
-            for (const uint32_t boneIndex : boneIndices) {
-                if (boneIndex >= model.skeletonData.GetNodes().size())
-                    continue;
-                const auto& node = model.skeletonData.GetNodes()[boneIndex];
-                if (!node)
-                    continue;
-                auto keys = nodeKeys[node.get()];
-				if (node->ikSolver) {
-					const auto& solverKeys = ikKeys[node->ikSolver];
-                    keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
-                }
-                NormalizeKeys(keys);
-                group.rows.push_back({
-                    .name = TextEncoding::Utf8ToWideOrEmpty(node->name),
-                    .curveNames = {
-                        Language::Text("interpolation.x"),
-                        Language::Text("interpolation.y"),
-                        Language::Text("interpolation.z"),
-                        Language::Text("interpolation.rotation")
-                    },
-                    .keys = std::move(keys),
-                    .expandable = true
-                });
-            }
-            for (const uint32_t morphIndex : morphIndices) {
-                if (morphIndex >= model.morphData.GetMorphs().size())
-                    continue;
-                const auto& morph = model.morphData.GetMorphs()[morphIndex];
-                if (!morph)
-                    continue;
-                auto keys = morphKeys[morph.get()];
-                NormalizeKeys(keys);
-                group.rows.push_back({
-                    .name = TextEncoding::Utf8ToWideOrEmpty(morph->name),
-                    .keys = std::move(keys)
-                });
-            }
-            if (group.rows.empty())
-                continue;
-            group.keyFrames = CollectFrames(group.rows);
-            groups.emplace_back(std::move(group));
-        }
-        if (groups.size() == (cameraKeys.empty() ? 0 : 1)) {
-            MotionTimelineGroup boneGroup{.name = Language::Text("motion.bones")};
-            for (const auto& node : model.skeletonData.GetNodes()) {
-                if (!node)
-                    continue;
-                auto keys = nodeKeys[node.get()];
-				if (node->ikSolver) {
-					const auto& solverKeys = ikKeys[node->ikSolver];
-                    keys.insert(keys.end(), solverKeys.begin(), solverKeys.end());
-                }
-                NormalizeKeys(keys);
-                boneGroup.rows.push_back({
-                    .name = TextEncoding::Utf8ToWideOrEmpty(node->name),
-                    .curveNames = {
-                        Language::Text("interpolation.x"),
-                        Language::Text("interpolation.y"),
-                        Language::Text("interpolation.z"),
-                        Language::Text("interpolation.rotation")
-                    },
-                    .keys = std::move(keys),
-                    .expandable = true
-                });
-            }
-            boneGroup.keyFrames = CollectFrames(boneGroup.rows);
-            if (!boneGroup.rows.empty())
-                groups.emplace_back(std::move(boneGroup));
-            MotionTimelineGroup morphGroup{.name = Language::Text("motion.morphs")};
-            for (const auto& morph : model.morphData.GetMorphs()) {
-                if (!morph)
-                    continue;
-                auto keys = morphKeys[morph.get()];
-                NormalizeKeys(keys);
-                morphGroup.rows.push_back({
-                    .name = TextEncoding::Utf8ToWideOrEmpty(morph->name),
-                    .keys = std::move(keys)
-                });
-            }
-            morphGroup.keyFrames = CollectFrames(morphGroup.rows);
-            if (!morphGroup.rows.empty())
-                groups.emplace_back(std::move(morphGroup));
-        }
-        std::wstring modelName = TextEncoding::Utf8ToWideOrEmpty(model.infoData.modelName);
-        if (modelName.empty() && modelIndex < panelManager.GetSceneConfig().modelConfigs.size())
-            modelName = panelManager.GetSceneConfig().modelConfigs[modelIndex].modelPath.filename().wstring();
-        panelManager.ApplyMotionTimeline(std::move(modelName), std::move(groups));
+        const auto& modelConfigs = panelManager.GetSceneConfig().modelConfigs;
+        const std::filesystem::path fallbackModelPath = modelIndex < modelConfigs.size()
+            ? modelConfigs[modelIndex].modelPath : std::filesystem::path{};
+        auto [name, groups] = MotionTimelineBuilder::BuildModel(
+            *instances[modelIndex], cameraManager.GetAnimationKeys(), fallbackModelPath);
+        panelManager.ApplyMotionTimeline(std::move(name), std::move(groups));
     }
 
     void Program::UpdateCameraMotionPanel() {
-		const auto cameraKeys = cameraManager.GetAnimationKeys();
-        std::vector<MotionTimelineGroup> groups;
-        if (!cameraKeys.empty()) {
-            MotionTimelineRow cameraRow{
-                .name = Language::Text("motion.camera"),
-                .curveNames = {
-                    Language::Text("interpolation.x"),
-                    Language::Text("interpolation.y"),
-                    Language::Text("interpolation.z"),
-                    Language::Text("interpolation.rotation"),
-                    Language::Text("interpolation.distance"),
-                    Language::Text("interpolation.fov")
-                },
-                .expandable = true
-            };
-            cameraRow.keys.reserve(cameraKeys.size());
-            for (const auto& [frame, interest, rotate, distance, fov
-                , ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier] : cameraKeys) {
-                cameraRow.keys.push_back({
-                    .frame = frame > static_cast<uint32_t>(std::numeric_limits<int>::max())
-                        ? std::numeric_limits<int>::max()
-                        : static_cast<int>(frame),
-                    .curves = {
-                        ixBezier.GetControlPoints(),
-                        iyBezier.GetControlPoints(),
-                        izBezier.GetControlPoints(),
-                        rotateBezier.GetControlPoints(),
-                        distanceBezier.GetControlPoints(),
-                        fovBezier.GetControlPoints()
-                    },
-                    .values = {
-                        interest.x,
-                        interest.y,
-                        interest.z,
-                        glm::degrees(glm::length(rotate)),
-                        distance,
-                        glm::degrees(fov)
-                    }
-                });
-            }
-            std::vector<int> keyFrames;
-            keyFrames.reserve(cameraRow.keys.size());
-            for (const auto& key : cameraRow.keys)
-                keyFrames.emplace_back(key.frame);
-            MotionTimelineGroup cameraGroup{
-                .name = Language::Text("motion.camera"),
-                .rows = {std::move(cameraRow)},
-                .keyFrames = std::move(keyFrames),
-                .mode = MotionTimelineMode::Camera,
-                .grouped = false
-            };
-            groups.emplace_back(std::move(cameraGroup));
-        }
-        std::wstring name = panelManager.GetSceneConfig().cameraAnim.empty()
-            ? Language::Text("motion.camera")
-            : panelManager.GetSceneConfig().cameraAnim.filename().wstring();
-        panelManager.ApplyMotionTimeline(std::move(name), std::move(groups));
+		auto [name, groups] = MotionTimelineBuilder::BuildCamera(
+			cameraManager.GetAnimationKeys(), panelManager.GetSceneConfig().cameraAnim);
+		panelManager.ApplyMotionTimeline(std::move(name), std::move(groups));
     }
 
     void Program::UpdateShaderMotionPanel(const size_t shaderEffectIndex) {
@@ -934,65 +663,62 @@ namespace Chrivent {
         }
     }
 
-    bool Program::RunFrame(FrameTiming* timing, const bool pollGuiWindows) {
-        const auto frameStart = std::chrono::steady_clock::now();
-        glfwPollEvents();
-        if (pollGuiWindows)
-            panelManager.PollGuiWindows();
-        if (panelManager.ConsumeLanguageDirty()) {
-            panelManager.RefreshLanguage();
-            return true;
-        }
-        if (panelManager.ConsumeRendererDirty()) {
-            if (!ChangeRenderer(panelManager.GetRendererType()))
-                return false;
-            return true;
-        }
-        std::filesystem::path modelPath;
-        if (panelManager.ConsumeAddModelPath(modelPath)) {
-            SceneConfig sceneConfig = panelManager.GetSceneConfig();
-            sceneConfig.modelConfigs.emplace_back(ModelConfig{
-                .modelPath = std::move(modelPath),
-                .animPaths = {},
-                .scale = 1.0f
-            });
-            if (LoadScene(sceneConfig))
-                panelManager.CommitSceneConfig(sceneConfig);
-        }
-        if (panelManager.ConsumeSceneConfigDirty() && LoadScene(panelManager.GetSceneConfig())) {
-            panelManager.RefreshModelList();
-            UpdateCameraMotionPanel();
-        }
-        std::filesystem::path cameraMotionPath;
-        if (panelManager.ConsumeCameraMotionPath(cameraMotionPath)) {
-            SceneConfig sceneConfig = panelManager.GetSceneConfig();
-            sceneConfig.cameraAnim = std::move(cameraMotionPath);
-            if (LoadScene(sceneConfig)) {
-                panelManager.CommitSceneConfig(sceneConfig);
-                panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-                UpdateCameraMotionPanel();
-            }
-        }
-        if (panelManager.ConsumeDeleteCameraMotion()) {
-            SceneConfig sceneConfig = panelManager.GetSceneConfig();
-            sceneConfig.cameraAnim.clear();
-            if (LoadScene(sceneConfig)) {
-                panelManager.CommitSceneConfig(sceneConfig);
-                panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-                UpdateCameraMotionPanel();
-            }
-        }
-        size_t deleteModelIndex = 0;
+	Program::FrameRequestState Program::ProcessPanelRequests() {
+		if (panelManager.ConsumeLanguageDirty()) {
+			panelManager.RefreshLanguage();
+			return FrameRequestState::Skip;
+		}
+		if (panelManager.ConsumeRendererDirty())
+			return ChangeRenderer(panelManager.GetRendererType()) ? FrameRequestState::Skip : FrameRequestState::Failed;
+		std::filesystem::path modelPath;
+		if (panelManager.ConsumeAddModelPath(modelPath)) {
+			SceneConfig sceneConfig = panelManager.GetSceneConfig();
+			sceneConfig.modelConfigs.emplace_back(ModelConfig{
+				.modelPath = std::move(modelPath),
+				.animPaths = {},
+				.scale = 1.0f
+			});
+			if (LoadScene(sceneConfig))
+				panelManager.CommitSceneConfig(sceneConfig);
+		}
+		SceneConfig requestedSceneConfig;
+		std::filesystem::path requestedScenePath;
+		if (panelManager.ConsumeSceneConfigRequest(requestedSceneConfig, requestedScenePath)
+			&& LoadScene(requestedSceneConfig)) {
+			panelManager.CommitSceneConfig(requestedSceneConfig, requestedScenePath);
+			UpdateCameraMotionPanel();
+		}
+		std::filesystem::path cameraMotionPath;
+		if (panelManager.ConsumeCameraMotionPath(cameraMotionPath)) {
+			SceneConfig sceneConfig = panelManager.GetSceneConfig();
+			sceneConfig.cameraAnim = std::move(cameraMotionPath);
+			if (LoadScene(sceneConfig)) {
+				panelManager.CommitSceneConfig(sceneConfig);
+				panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+				UpdateCameraMotionPanel();
+			}
+		}
+		if (panelManager.ConsumeDeleteCameraMotion()) {
+			SceneConfig sceneConfig = panelManager.GetSceneConfig();
+			sceneConfig.cameraAnim.clear();
+			if (LoadScene(sceneConfig)) {
+				panelManager.CommitSceneConfig(sceneConfig);
+				panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+				UpdateCameraMotionPanel();
+			}
+		}
+		size_t deleteModelIndex = 0;
 		if (panelManager.ConsumeDeleteModelIndex(deleteModelIndex)) {
 			SceneConfig sceneConfig = panelManager.GetSceneConfig();
 			if (deleteModelIndex < sceneConfig.modelConfigs.size()) {
-				sceneConfig.modelConfigs.erase(sceneConfig.modelConfigs.begin() + static_cast<std::ptrdiff_t>(deleteModelIndex));
+				sceneConfig.modelConfigs.erase(
+					sceneConfig.modelConfigs.begin() + static_cast<std::ptrdiff_t>(deleteModelIndex));
 				if (LoadScene(sceneConfig)) {
-                    panelManager.CommitSceneConfig(sceneConfig);
-                    if (!sceneConfig.modelConfigs.empty())
-                        UpdateMotionPanel(std::min(deleteModelIndex, sceneConfig.modelConfigs.size() - 1));
-                    else
-                        UpdateCameraMotionPanel();
+					panelManager.CommitSceneConfig(sceneConfig);
+					if (!sceneConfig.modelConfigs.empty())
+						UpdateMotionPanel(std::min(deleteModelIndex, sceneConfig.modelConfigs.size() - 1));
+					else
+						UpdateCameraMotionPanel();
 				}
 			}
 		}
@@ -1001,7 +727,7 @@ namespace Chrivent {
 		if (panelManager.ConsumeModelMotionPath(motionModelIndex, modelMotionPath)) {
 			SceneConfig sceneConfig = panelManager.GetSceneConfig();
 			if (motionModelIndex < sceneConfig.modelConfigs.size()) {
-				sceneConfig.modelConfigs[motionModelIndex].animPaths = {std::move(modelMotionPath)};
+				sceneConfig.modelConfigs[motionModelIndex].animPaths = { std::move(modelMotionPath) };
 				if (LoadScene(sceneConfig)) {
 					panelManager.CommitSceneConfig(sceneConfig);
 					panelManager.ApplyMotionMode(MotionTimelineMode::Model);
@@ -1015,79 +741,258 @@ namespace Chrivent {
 			UpdateMotionPanel(selectedModelIndex);
 			UpdateModelInformation(selectedModelIndex);
 		}
-        if (panelManager.ConsumeCameraMotionSelected()) {
-            panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-            UpdateCameraMotionPanel();
-        }
+		if (panelManager.ConsumeCameraMotionSelected()) {
+			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+			UpdateCameraMotionPanel();
+		}
 		size_t selectedEffectIndex = 0;
-        bool selectedEffectEnabled = false;
-        if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex, selectedEffectEnabled)) {
-			if (selectedEffectIndex < shaderEffectEntries.size()
-				&& selectedEffectIndex < shaderEffectEnabled.size()) {
-				selectedShaderEffectIndex = selectedEffectIndex;
-				panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-				UpdateShaderEffectInformation(selectedShaderEffectIndex);
-				const bool previousEnabled = shaderEffectEnabled[selectedShaderEffectIndex];
-				shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
-				const auto applyResult = ApplyShaderEffects();
-				if (!applyResult) {
-					shaderEffectEnabled[selectedShaderEffectIndex] = previousEnabled;
-					UpdateShaderPanel();
-					PrintGraphicsError(applyResult.error());
-				} else {
-					UpdateShaderMotionPanel(selectedShaderEffectIndex);
+		bool selectedEffectEnabled = false;
+		if (panelManager.ConsumeSelectedShaderIndex(selectedEffectIndex, selectedEffectEnabled)
+			&& selectedEffectIndex < shaderEffectEntries.size()
+			&& selectedEffectIndex < shaderEffectEnabled.size()) {
+			selectedShaderEffectIndex = selectedEffectIndex;
+			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
+			UpdateShaderEffectInformation(selectedShaderEffectIndex);
+			const bool previousEnabled = shaderEffectEnabled[selectedShaderEffectIndex];
+			shaderEffectEnabled[selectedShaderEffectIndex] = selectedEffectEnabled;
+			const auto applyResult = ApplyShaderEffects();
+			if (!applyResult) {
+				shaderEffectEnabled[selectedShaderEffectIndex] = previousEnabled;
+				UpdateShaderPanel();
+				PrintGraphicsError(applyResult.error());
+			} else
+				UpdateShaderMotionPanel(selectedShaderEffectIndex);
+		}
+		BuiltInShaderToggle builtInShader;
+		bool builtInShaderEnabled = false;
+		SceneRenderState& scene = viewer->GetSceneRenderState();
+		if (panelManager.ConsumeBuiltInShaderToggle(builtInShader, builtInShaderEnabled)) {
+			switch (builtInShader) {
+			case BuiltInShaderToggle::Model:
+				scene.modelEnabled = builtInShaderEnabled;
+				break;
+			case BuiltInShaderToggle::Edge:
+				scene.edgeEnabled = builtInShaderEnabled;
+				break;
+			case BuiltInShaderToggle::GroundShadow:
+				scene.groundShadowEnabled = builtInShaderEnabled;
+				break;
+			}
+		}
+		return FrameRequestState::Continue;
+	}
+
+	void Program::ProcessPlaybackRequests() {
+		int seekFrame = 0;
+		bool seekFinished = false;
+		if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
+			cameraManager.SetPhysicsSkipped(!seekFinished);
+			cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
+			if (seekFinished) {
+				ResetPhysics(seekFrame);
+				cameraManager.SetPhysicsSkipped(false);
+			}
+		}
+		switch (panelManager.ConsumePlaybackCommand()) {
+		case PlaybackCommand::Play:
+			cameraManager.SetPhysicsSkipped(false);
+			if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
+				cameraManager.GetAnimationFrame() < start || cameraManager.GetAnimationFrame() >= end) {
+				cameraManager.SeekFrame(*viewer, music, start, saveTime);
+				ResetPhysics(start);
+			}
+			cameraManager.Play(music);
+			break;
+		case PlaybackCommand::Pause:
+			cameraManager.Pause(music);
+			break;
+		case PlaybackCommand::Stop:
+			cameraManager.SetPhysicsSkipped(false);
+			cameraManager.Stop(*viewer, music, saveTime);
+			cameraManager.SeekFrame(*viewer, music, 0, saveTime);
+			ResetPhysics(0);
+			break;
+		case PlaybackCommand::None:
+			break;
+		}
+	}
+
+	void Program::UpdatePlaybackState() {
+		if (benchmarkMode)
+			cameraManager.StepFixedTime(1.0f / 30.0f);
+		else
+			cameraManager.StepTime(music, saveTime);
+		const int endFrame = panelManager.GetPlaybackFrameRange().end;
+		const float playbackFrame = cameraManager.GetAnimationFrame();
+		if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
+			if (panelManager.IsPlaybackRepeatEnabled()) {
+				const int startFrame = panelManager.GetPlaybackFrameRange().start;
+				cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
+				ResetPhysics(startFrame);
+			} else {
+				cameraManager.SeekFrame(*viewer, music, endFrame, saveTime);
+				cameraManager.Pause(music);
+				ResetPhysics(endFrame);
+			}
+			cameraManager.SetPhysicsSkipped(false);
+		}
+		bool shouldResetPhysics = physicsResetRequested;
+		physicsResetRequested = false;
+		if (panelManager.ConsumePhysicsDirty())
+			shouldResetPhysics = true;
+		if (shouldResetPhysics) {
+			ResetPhysics(cameraManager.GetAnimationFrameIndex());
+			cameraManager.SetPhysicsSkipped(false);
+		}
+		panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
+		panelManager.SetPlaybackFrame(cameraManager.GetAnimationFrameIndex());
+		cameraManager.UpdateCamera(*viewer);
+		fpsOverlay.SetVisible(panelManager.IsFpsVisible());
+	}
+
+	Program::FrameUpdateTimes Program::UpdateInstances(const FrameTiming* timing) {
+		FrameUpdateTimes updateTimes;
+		updateTimes.animationStart = std::chrono::steady_clock::now();
+		if (timing) {
+			modelUpdateTimings.clear();
+			modelUpdateTimings.resize(instances.size());
+		}
+		const bool physicsEnabled = panelManager.IsPhysicsEnabled();
+		const InstanceUpdateState instanceUpdateState{
+			.animationFrame = cameraManager.GetAnimationFrame(),
+			.elapsed = cameraManager.GetElapsed(),
+			.velocityRequired = viewer->RequiresPostProcessVelocity(),
+			.physicsEnabled = physicsEnabled && !cameraManager.IsPhysicsSkipped()
+		};
+		taskExecutor.Run(instances.size(), [&](const std::size_t index) {
+			instances[index]->PrepareUpdate(instanceUpdateState, timing ? &modelUpdateTimings[index] : nullptr);
+		});
+		updateTimes.animationEnd = std::chrono::steady_clock::now();
+		skinningTaskOffsets.resize(instances.size() + 1);
+		skinningTaskOffsets[0] = 0;
+		for (std::size_t index = 0; index < instances.size(); index++) {
+			skinningTaskOffsets[index + 1] =
+				skinningTaskOffsets[index] + instances[index]->CalculateSkinningTaskCount();
+		}
+		taskExecutor.Run(skinningTaskOffsets.back(), [&](const std::size_t taskIndex) {
+			const auto offset = std::ranges::upper_bound(skinningTaskOffsets, taskIndex);
+			const std::size_t instanceIndex = std::distance(skinningTaskOffsets.begin(), offset) - 1;
+			instances[instanceIndex]->UpdateSkinning(taskIndex - skinningTaskOffsets[instanceIndex]);
+		});
+		updateTimes.skinningEnd = std::chrono::steady_clock::now();
+		return updateTimes;
+	}
+
+	bool Program::RenderScene(FrameTiming* timing, const std::chrono::steady_clock::time_point frameStart,
+		const FrameUpdateTimes& updateTimes) {
+		const auto frameBeginResult = viewer->BeginFrame();
+		if (!frameBeginResult) {
+			PrintGraphicsError(frameBeginResult.error());
+			return false;
+		}
+		if (*frameBeginResult == FrameBeginState::Skipped) {
+			TickFps();
+			return true;
+		}
+		const SceneDrawState drawState = viewer->ResolveSceneDrawState();
+		for (const auto& instance : instances) {
+			const auto uploadResult = instance->Upload();
+			if (!uploadResult) {
+				PrintGraphicsError(uploadResult.error());
+				return false;
+			}
+			instance->BeginDraw(drawState);
+		}
+		for (const auto& instance : instances) {
+			const auto drawResult = instance->DrawModelPass();
+			if (!drawResult) {
+				PrintGraphicsError(drawResult.error());
+				return false;
+			}
+		}
+		for (const auto& instance : instances) {
+			const auto drawResult = instance->DrawEdgePass();
+			if (!drawResult) {
+				PrintGraphicsError(drawResult.error());
+				return false;
+			}
+		}
+		for (const auto& instance : instances) {
+			const auto drawResult = instance->DrawGroundShadowPass();
+			if (!drawResult) {
+				PrintGraphicsError(drawResult.error());
+				return false;
+			}
+		}
+		const auto sceneInputResult = viewer->BeginPostProcessSceneInputPass();
+		if (!sceneInputResult) {
+			PrintGraphicsError(sceneInputResult.error());
+			return false;
+		}
+		if (*sceneInputResult == PostProcessSceneInputState::Ready) {
+			for (const auto& instance : instances) {
+				const auto drawResult = instance->DrawPostProcessSceneInputs();
+				if (!drawResult) {
+					PrintGraphicsError(drawResult.error());
+					return false;
 				}
 			}
-        }
-        BuiltInShaderToggle builtInShader;
-        bool builtInShaderEnabled = false;
-		SceneRenderState& scene = viewer->GetSceneRenderState();
-        if (panelManager.ConsumeBuiltInShaderToggle(builtInShader, builtInShaderEnabled)) {
-            switch (builtInShader) {
-                case BuiltInShaderToggle::Model:
-					scene.modelEnabled = builtInShaderEnabled;
-                    break;
-                case BuiltInShaderToggle::Edge:
-					scene.edgeEnabled = builtInShaderEnabled;
-                    break;
-                case BuiltInShaderToggle::GroundShadow:
-					scene.groundShadowEnabled = builtInShaderEnabled;
-                    break;
-            }
-        }
-        int seekFrame = 0;
-        bool seekFinished = false;
-        if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
-			cameraManager.SetPhysicsSkipped(!seekFinished);
-            cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
-            if (seekFinished) {
-                ResetPhysics(seekFrame);
-				cameraManager.SetPhysicsSkipped(false);
-            }
-        }
-        switch (panelManager.ConsumePlaybackCommand()) {
-            case PlaybackCommand::Play:
-				cameraManager.SetPhysicsSkipped(false);
-                if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
-					cameraManager.GetAnimationFrame() < start ||
-					cameraManager.GetAnimationFrame() >= end) {
-                    cameraManager.SeekFrame(*viewer, music, start, saveTime);
-                    ResetPhysics(start);
-                }
-                cameraManager.Play(music);
-                break;
-            case PlaybackCommand::Pause:
-                cameraManager.Pause(music);
-                break;
-            case PlaybackCommand::Stop:
-				cameraManager.SetPhysicsSkipped(false);
-                cameraManager.Stop(*viewer, music, saveTime);
-                cameraManager.SeekFrame(*viewer, music, 0, saveTime);
-                ResetPhysics(0);
-                break;
-            case PlaybackCommand::None:
-                break;
-        }
+			const auto sceneInputEndResult = viewer->EndPostProcessSceneInputPass();
+			if (!sceneInputEndResult) {
+				PrintGraphicsError(sceneInputEndResult.error());
+				return false;
+			}
+		}
+		const auto uploadDrawEnd = std::chrono::steady_clock::now();
+		const auto frameEndResult = viewer->EndFrame();
+		if (!frameEndResult) {
+			PrintGraphicsError(frameEndResult.error());
+			return false;
+		}
+		const auto frameEnd = std::chrono::steady_clock::now();
+		if (timing) {
+			const auto Milliseconds = [](const auto start, const auto end) {
+				return std::chrono::duration<double, std::milli>(end - start).count();
+			};
+			timing->animationMilliseconds = Milliseconds(updateTimes.animationStart, updateTimes.animationEnd);
+			for (const auto& [initializeMilliseconds
+				, animationEvaluateMilliseconds
+				, morphMilliseconds
+				, beforePhysicsPoseMilliseconds
+				, physicsMilliseconds
+				, afterPhysicsPoseMilliseconds
+				, transformMilliseconds] : modelUpdateTimings) {
+				timing->initializeCpuMilliseconds += initializeMilliseconds;
+				timing->animationEvaluateCpuMilliseconds += animationEvaluateMilliseconds;
+				timing->morphCpuMilliseconds += morphMilliseconds;
+				timing->beforePhysicsPoseCpuMilliseconds += beforePhysicsPoseMilliseconds;
+				timing->physicsCpuMilliseconds += physicsMilliseconds;
+				timing->afterPhysicsPoseCpuMilliseconds += afterPhysicsPoseMilliseconds;
+				timing->transformCpuMilliseconds += transformMilliseconds;
+			}
+			timing->skinningMilliseconds = Milliseconds(updateTimes.animationEnd, updateTimes.skinningEnd);
+			timing->uploadDrawMilliseconds = Milliseconds(updateTimes.skinningEnd, uploadDrawEnd);
+			timing->presentMilliseconds = Milliseconds(uploadDrawEnd, frameEnd);
+			timing->totalMilliseconds = Milliseconds(frameStart, frameEnd);
+		}
+		TickFps();
+		return true;
+	}
+
+    bool Program::RunFrame(FrameTiming* timing, const bool pollGuiWindows) {
+        const auto frameStart = std::chrono::steady_clock::now();
+        glfwPollEvents();
+        if (pollGuiWindows)
+            panelManager.PollGuiWindows();
+		switch (ProcessPanelRequests()) {
+		case FrameRequestState::Continue:
+			break;
+		case FrameRequestState::Skip:
+			return true;
+		case FrameRequestState::Failed:
+			return false;
+		}
+		ProcessPlaybackRequests();
         cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
         cameraManager.HandleInput(inputManager, music);
@@ -1103,156 +1008,9 @@ namespace Chrivent {
             case FramebufferUpdateState::Ready:
                 break;
         }
-        if (benchmarkMode) {
-			cameraManager.StepFixedTime(1.0f / 30.0f);
-        } else
-            cameraManager.StepTime(music, saveTime);
-        const int endFrame = panelManager.GetPlaybackFrameRange().end;
-		const float playbackFrame = cameraManager.GetAnimationFrame();
-        if (cameraManager.IsPlaying() && playbackFrame >= endFrame) {
-            if (panelManager.IsPlaybackRepeatEnabled()) {
-                const int startFrame = panelManager.GetPlaybackFrameRange().start;
-                cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
-                ResetPhysics(startFrame);
-            } else {
-                cameraManager.SeekFrame(*viewer, music, endFrame, saveTime);
-                cameraManager.Pause(music);
-                ResetPhysics(endFrame);
-            }
-			cameraManager.SetPhysicsSkipped(false);
-        }
-        bool shouldResetPhysics = physicsResetRequested;
-        physicsResetRequested = false;
-        if (panelManager.ConsumePhysicsDirty())
-            shouldResetPhysics = true;
-        if (shouldResetPhysics) {
-			ResetPhysics(cameraManager.GetAnimationFrameIndex());
-			cameraManager.SetPhysicsSkipped(false);
-        }
-        panelManager.ApplyPlaybackState(cameraManager.IsPlaying());
-		panelManager.SetPlaybackFrame(cameraManager.GetAnimationFrameIndex());
-        cameraManager.UpdateCamera(*viewer);
-        fpsOverlay.SetVisible(panelManager.IsFpsVisible());
-        const auto animationStart = std::chrono::steady_clock::now();
-        if (timing) {
-            modelUpdateTimings.clear();
-            modelUpdateTimings.resize(instances.size());
-        }
-        const bool physicsEnabled = panelManager.IsPhysicsEnabled();
-		const InstanceUpdateState instanceUpdateState{
-			.animationFrame = cameraManager.GetAnimationFrame(),
-			.elapsed = cameraManager.GetElapsed(),
-			.velocityRequired = viewer->RequiresPostProcessVelocity(),
-			.physicsEnabled = physicsEnabled && !cameraManager.IsPhysicsSkipped()
-		};
-        taskExecutor.Run(instances.size(), [&](const std::size_t index) {
-			instances[index]->PrepareUpdate(instanceUpdateState, timing ? &modelUpdateTimings[index] : nullptr);
-        });
-        const auto animationEnd = std::chrono::steady_clock::now();
-        skinningTaskOffsets.resize(instances.size() + 1);
-        skinningTaskOffsets[0] = 0;
-        for (std::size_t index = 0; index < instances.size(); index++) {
-            skinningTaskOffsets[index + 1] =
-                skinningTaskOffsets[index] + instances[index]->CalculateSkinningTaskCount();
-        }
-        taskExecutor.Run(skinningTaskOffsets.back(), [&](const std::size_t taskIndex) {
-            const auto offset = std::ranges::upper_bound(skinningTaskOffsets, taskIndex);
-            const std::size_t instanceIndex = std::distance(skinningTaskOffsets.begin(), offset) - 1;
-            instances[instanceIndex]->UpdateSkinning(taskIndex - skinningTaskOffsets[instanceIndex]);
-        });
-        const auto skinningEnd = std::chrono::steady_clock::now();
-        const auto frameBeginResult = viewer->BeginFrame();
-        if (!frameBeginResult) {
-			PrintGraphicsError(frameBeginResult.error());
-            return false;
-		}
-        if (*frameBeginResult == FrameBeginState::Skipped) {
-            TickFps();
-            return true;
-        }
-        const SceneDrawState drawState = viewer->ResolveSceneDrawState();
-        for (const auto& instance : instances) {
-			const auto uploadResult = instance->Upload();
-            if (!uploadResult) {
-				PrintGraphicsError(uploadResult.error());
-                return false;
-			}
-            instance->BeginDraw(drawState);
-        }
-        for (const auto& instance : instances) {
-			const auto drawResult = instance->DrawModelPass();
-            if (!drawResult) {
-				PrintGraphicsError(drawResult.error());
-                return false;
-			}
-        }
-        for (const auto& instance : instances) {
-			const auto drawResult = instance->DrawEdgePass();
-            if (!drawResult) {
-				PrintGraphicsError(drawResult.error());
-                return false;
-			}
-        }
-        for (const auto& instance : instances) {
-			const auto drawResult = instance->DrawGroundShadowPass();
-            if (!drawResult) {
-				PrintGraphicsError(drawResult.error());
-                return false;
-			}
-        }
-        const auto sceneInputResult = viewer->BeginPostProcessSceneInputPass();
-        if (!sceneInputResult) {
-			PrintGraphicsError(sceneInputResult.error());
-            return false;
-		}
-        if (*sceneInputResult == PostProcessSceneInputState::Ready) {
-            for (const auto& instance : instances) {
-				const auto drawResult = instance->DrawPostProcessSceneInputs();
-                if (!drawResult) {
-					PrintGraphicsError(drawResult.error());
-                    return false;
-				}
-            }
-            const auto sceneInputEndResult = viewer->EndPostProcessSceneInputPass();
-            if (!sceneInputEndResult) {
-				PrintGraphicsError(sceneInputEndResult.error());
-                return false;
-			}
-        }
-        const auto uploadDrawEnd = std::chrono::steady_clock::now();
-        const auto frameEndResult = viewer->EndFrame();
-        if (!frameEndResult) {
-			PrintGraphicsError(frameEndResult.error());
-            return false;
-		}
-        const auto frameEnd = std::chrono::steady_clock::now();
-        if (timing) {
-            const auto Milliseconds = [](const auto start, const auto end) {
-                return std::chrono::duration<double, std::milli>(end - start).count();
-            };
-            timing->animationMilliseconds = Milliseconds(animationStart, animationEnd);
-            for (const auto& [initializeMilliseconds
-                , animationEvaluateMilliseconds
-                , morphMilliseconds
-                , beforePhysicsPoseMilliseconds
-                , physicsMilliseconds
-                , afterPhysicsPoseMilliseconds
-                , transformMilliseconds] : modelUpdateTimings) {
-                timing->initializeCpuMilliseconds += initializeMilliseconds;
-                timing->animationEvaluateCpuMilliseconds += animationEvaluateMilliseconds;
-                timing->morphCpuMilliseconds += morphMilliseconds;
-                timing->beforePhysicsPoseCpuMilliseconds += beforePhysicsPoseMilliseconds;
-                timing->physicsCpuMilliseconds += physicsMilliseconds;
-                timing->afterPhysicsPoseCpuMilliseconds += afterPhysicsPoseMilliseconds;
-                timing->transformCpuMilliseconds += transformMilliseconds;
-            }
-            timing->skinningMilliseconds = Milliseconds(animationEnd, skinningEnd);
-            timing->uploadDrawMilliseconds = Milliseconds(skinningEnd, uploadDrawEnd);
-            timing->presentMilliseconds = Milliseconds(uploadDrawEnd, frameEnd);
-            timing->totalMilliseconds = Milliseconds(frameStart, frameEnd);
-        }
-        TickFps();
-        return true;
+		UpdatePlaybackState();
+		const FrameUpdateTimes updateTimes = UpdateInstances(timing);
+		return RenderScene(timing, frameStart, updateTimes);
     }
 
     int Program::RunBenchmark(const std::size_t warmupFrames, const std::size_t benchmarkFrames) {
@@ -1349,7 +1107,7 @@ namespace Chrivent {
         cameraManager.Reset();
         inputManager.Reset();
         panelManager.Reset();
-        panelManager.ApplySceneConfig(cfg);
+		panelManager.CommitSceneConfig(cfg, options.scenePath);
         panelManager.SetRendererType(options.rendererType);
         if (!InitializeViewer()) {
             std::cerr << "프로그램 실행 중 오류가 발생했습니다.\n";
@@ -1357,7 +1115,11 @@ namespace Chrivent {
         }
         DiscoverShaderPackages();
         panelManager.BindSound(music);
-        panelManager.OpenGuiWindows();
+		if (!panelManager.OpenGuiWindows()) {
+			std::cerr << "설정 창을 생성하지 못했습니다.\n";
+			Shutdown();
+			return 1;
+		}
         panelManager.SetInteractionFinishedCallback([this] {
             RequestPhysicsReset();
         });

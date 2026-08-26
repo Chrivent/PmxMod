@@ -8,54 +8,6 @@
 #include <string>
 
 namespace Chrivent {
-	LRESULT CALLBACK PlaybackPanel::WindowProc(const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
-		auto* panel = reinterpret_cast<PlaybackPanel*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-		if (msg == WM_NCCREATE) {
-			const auto* create = reinterpret_cast<CREATESTRUCTW*>(lParam);
-			panel = static_cast<PlaybackPanel*>(create->lpCreateParams);
-			SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(panel));
-			panel->panelWindow = hwnd;
-		}
-		if (!panel)
-			return DefWindowProcW(hwnd, msg, wParam, lParam);
-		switch (msg) {
-		case WM_CTLCOLORBTN:
-		case WM_CTLCOLOREDIT:
-		case WM_CTLCOLORSTATIC:
-			return GuiTheme::HandleControlColor(msg, wParam, lParam);
-		case WM_CREATE:
-			panel->CreateContent(hwnd);
-			return 0;
-		case WM_SIZE: {
-			RECT client{};
-			GetClientRect(hwnd, &client);
-			panel->Resize(client);
-			return 0;
-		}
-		case WM_COMMAND:
-			if (panel->HandleCommand(LOWORD(wParam), HIWORD(wParam)))
-				return 0;
-			break;
-		case WM_CLOSE:
-			ShowWindow(hwnd, SW_HIDE);
-			return 0;
-		case WM_DESTROY:
-			panel->panelWindow = nullptr;
-			panel->playButton = nullptr;
-			panel->pauseButton = nullptr;
-			panel->stopButton = nullptr;
-			panel->startFrameEdit = nullptr;
-			panel->rangeSeparatorText = nullptr;
-			panel->endFrameEdit = nullptr;
-			panel->resetRangeButton = nullptr;
-			panel->repeatCheck = nullptr;
-			return 0;
-		default:
-			break;
-		}
-		return DefWindowProcW(hwnd, msg, wParam, lParam);
-	}
-
 	LRESULT CALLBACK PlaybackPanel::EditWindowProc(
 		const HWND hwnd, const UINT msg, const WPARAM wParam, const LPARAM lParam, const UINT_PTR subclassId, const DWORD_PTR data) {
 		if (msg == WM_KEYDOWN && wParam == VK_RETURN) {
@@ -194,43 +146,6 @@ namespace Chrivent {
 			ApplyFrameRange(frameRange, true);
 	}
 
-	void PlaybackPanel::Show() {
-		if (panelWindow) {
-			ShowWindow(panelWindow, SW_SHOWNORMAL);
-			SetForegroundWindow(panelWindow);
-			return;
-		}
-		const HINSTANCE instance = GetModuleHandleW(nullptr);
-		WNDCLASSEXW wc{};
-		wc.cbSize = sizeof(wc);
-		wc.lpfnWndProc = WindowProc;
-		wc.hInstance = instance;
-		wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-		wc.hbrBackground = GuiTheme::GetBackgroundBrush();
-		wc.lpszClassName = L"PmxModPlaybackPanel";
-		RegisterClassExW(&wc);
-		panelWindow = CreateWindowExW(
-			0, L"PmxModPlaybackPanel", Language::Text("panel.playback").c_str(),
-			WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, 440, 110,
-			nullptr, nullptr, instance, this);
-		if (!panelWindow)
-			return;
-		GuiTheme::ApplyWindow(panelWindow);
-		ShowWindow(panelWindow, SW_SHOWNORMAL);
-		UpdateWindow(panelWindow);
-	}
-
-	void PlaybackPanel::Poll() const {
-		if (!panelWindow)
-			return;
-		MSG msg{};
-		while (PeekMessageW(&msg, panelWindow, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
-		}
-	}
-
 	void PlaybackPanel::Resize(const RECT& clientRect) {
 		constexpr int buttonWidth = 72;
 		constexpr int buttonHeight = 28;
@@ -301,8 +216,6 @@ namespace Chrivent {
 	}
 
 	void PlaybackPanel::Destroy() {
-		if (panelWindow)
-			DestroyWindow(panelWindow);
 		if (playButton)
 			DestroyWindow(playButton);
 		if (pauseButton)
@@ -319,7 +232,6 @@ namespace Chrivent {
 			DestroyWindow(resetRangeButton);
 		if (repeatCheck)
 			DestroyWindow(repeatCheck);
-		panelWindow = nullptr;
 		playButton = nullptr;
 		pauseButton = nullptr;
 		stopButton = nullptr;

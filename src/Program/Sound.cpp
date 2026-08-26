@@ -5,38 +5,38 @@
 
 #include <algorithm>
 #include <limits>
+#include <utility>
 
 namespace Chrivent {
     void Sound::UnInit() {
         waveform.minimums.clear();
         waveform.maximums.clear();
-        if (!hasSound)
-            return;
-        ma_sound_uninit(sound.get());
-        ma_engine_uninit(engine.get());
+		if (hasSound) {
+			ma_sound_uninit(sound.get());
+			ma_engine_uninit(engine.get());
+		}
         hasSound = false;
         playing = false;
         prevTimeSec = 0.0;
         lengthSec = 0.0;
         engine.reset();
         sound.reset();
-        engine = std::make_unique<ma_engine>();
-        sound = std::make_unique<ma_sound>();
     }
 
-    void Sound::BuildWaveform(const std::filesystem::path& path) {
+    AudioWaveform Sound::BuildWaveform(const std::filesystem::path& path) {
         constexpr ma_uint32 timelineFrameRate = 30;
         constexpr ma_uint32 waveformSamplesPerFrame = 48;
         constexpr ma_uint32 sourceSamplesPerPeak = 10;
         constexpr ma_uint32 waveformSampleRate = timelineFrameRate * waveformSamplesPerFrame * sourceSamplesPerPeak;
         constexpr ma_uint64 samplesPerPeak = sourceSamplesPerPeak;
         constexpr ma_uint64 bufferFrameCount = 4096;
+		AudioWaveform loadedWaveform;
         ma_decoder decoder{};
         const ma_decoder_config decoderConfig = ma_decoder_config_init(ma_format_f32, 1, waveformSampleRate);
         if (ma_decoder_init_file_w(path.c_str(), &decoderConfig, &decoder) != MA_SUCCESS)
-            return;
+			return loadedWaveform;
         float samples[bufferFrameCount]{};
-        waveform.samplesPerFrame = waveformSamplesPerFrame;
+		loadedWaveform.samplesPerFrame = waveformSamplesPerFrame;
         ma_uint64 peakSampleCount = 0;
         float minimum = 1.0f;
         float maximum = -1.0f;
@@ -51,28 +51,53 @@ namespace Chrivent {
                 peakSampleCount++;
                 if (peakSampleCount < samplesPerPeak)
                     continue;
-                waveform.minimums.emplace_back(std::clamp(minimum, -1.0f, 1.0f));
-                waveform.maximums.emplace_back(std::clamp(maximum, -1.0f, 1.0f));
+				loadedWaveform.minimums.emplace_back(std::clamp(minimum, -1.0f, 1.0f));
+				loadedWaveform.maximums.emplace_back(std::clamp(maximum, -1.0f, 1.0f));
                 peakSampleCount = 0;
                 minimum = 1.0f;
                 maximum = -1.0f;
             }
         }
         if (peakSampleCount > 0) {
-            waveform.minimums.emplace_back(std::clamp(minimum, -1.0f, 1.0f));
-            waveform.maximums.emplace_back(std::clamp(maximum, -1.0f, 1.0f));
+			loadedWaveform.minimums.emplace_back(std::clamp(minimum, -1.0f, 1.0f));
+			loadedWaveform.maximums.emplace_back(std::clamp(maximum, -1.0f, 1.0f));
         }
         ma_decoder_uninit(&decoder);
+		return loadedWaveform;
     }
 
-    Sound::Sound() {
-        engine = std::make_unique<ma_engine>();
-        sound = std::make_unique<ma_sound>();
+	void Sound::MoveFrom(Sound& source) {
+		volume = source.volume;
+		lengthSec = source.lengthSec;
+		engine = std::move(source.engine);
+		sound = std::move(source.sound);
+		prevTimeSec = source.prevTimeSec;
+		playing = source.playing;
+		hasSound = source.hasSound;
+		waveform = std::move(source.waveform);
+		source.lengthSec = 0.0;
+		source.prevTimeSec = 0.0;
+		source.playing = false;
+		source.hasSound = false;
     }
+
+	Sound::Sound() = default;
 
     Sound::~Sound() {
         UnInit();
     }
+
+	Sound::Sound(Sound&& other) noexcept {
+		MoveFrom(other);
+	}
+
+	Sound& Sound::operator=(Sound&& other) noexcept {
+		if (this != &other) {
+			UnInit();
+			MoveFrom(other);
+		}
+		return *this;
+	}
 
     void Sound::ApplyVolume(const float value) {
         volume = std::clamp(value, 0.0f, 1.0f);
@@ -81,28 +106,34 @@ namespace Chrivent {
     }
 
     bool Sound::Init(const std::filesystem::path& path, const bool loop) {
-        UnInit();
         if (path.empty())
             return false;
-        if (ma_engine_init(nullptr, engine.get()) != MA_SUCCESS)
+		auto loadedEngine = std::make_unique<ma_engine>();
+		auto loadedSound = std::make_unique<ma_sound>();
+		if (ma_engine_init(nullptr, loadedEngine.get()) != MA_SUCCESS)
             return false;
-        if (ma_sound_init_from_file_w(engine.get(), path.wstring().c_str(),
-            0, nullptr, nullptr, sound.get()) != MA_SUCCESS) {
-            ma_engine_uninit(engine.get());
+		if (ma_sound_init_from_file_w(loadedEngine.get(), path.wstring().c_str(),
+			0, nullptr, nullptr, loadedSound.get()) != MA_SUCCESS) {
+			ma_engine_uninit(loadedEngine.get());
             return false;
-            }
+		}
         ma_uint64 lengthFrames = 0;
-        if (ma_sound_get_length_in_pcm_frames(sound.get(), &lengthFrames) == MA_SUCCESS) {
-            const double sr = ma_engine_get_sample_rate(engine.get());
-            lengthSec = sr > 0.0 ? lengthFrames / sr : 0.0;
-        } else
-            lengthSec = 0.0;
-        ma_sound_set_looping(sound.get(), loop ? MA_TRUE : MA_FALSE);
-        ma_sound_set_volume(sound.get(), volume);
+		double loadedLengthSec = 0.0;
+		if (ma_sound_get_length_in_pcm_frames(loadedSound.get(), &lengthFrames) == MA_SUCCESS) {
+			const double sampleRate = ma_engine_get_sample_rate(loadedEngine.get());
+			loadedLengthSec = sampleRate > 0.0 ? lengthFrames / sampleRate : 0.0;
+		}
+		ma_sound_set_looping(loadedSound.get(), loop ? MA_TRUE : MA_FALSE);
+		ma_sound_set_volume(loadedSound.get(), volume);
+		AudioWaveform loadedWaveform = BuildWaveform(path);
+		UnInit();
+		engine = std::move(loadedEngine);
+		sound = std::move(loadedSound);
+		lengthSec = loadedLengthSec;
+		waveform = std::move(loadedWaveform);
         hasSound = true;
         playing = false;
         prevTimeSec = 0.0;
-        BuildWaveform(path);
         return true;
     }
 
@@ -167,5 +198,4 @@ namespace Chrivent {
                 ma_sound_start(sound.get());
         }
     }
-
 }

@@ -175,8 +175,10 @@ namespace Chrivent {
 			}
 		}
 		ASSERT_FALSE(programs.empty());
-		for (const auto& program : programs)
+		for (const auto& program : programs) {
+			SCOPED_TRACE(program.shaderPath.string());
 			ExpectPostProcessProgramCompiles(program);
+		}
 	}
 
 	TEST_F(ShaderCompilerContractTest, RejectsIncludeOutsidePackageRoot) {

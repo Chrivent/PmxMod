@@ -86,7 +86,7 @@ namespace Chrivent {
 		// 패널과 제목, 배치 영역을 패널 창에 등록한다.
 		void RegisterPanel(Panel& panel, std::string titleKey, PanelWindowArea area, bool visible = true);
 		// 패널 창과 등록된 패널 컨트롤을 생성해 표시한다.
-		void Show();
+		bool Show();
 		// 패널 프레임과 내부 컨트롤의 표시 상태를 갱신한다.
 		void UpdatePanelVisibility(const Panel& panel, bool visible);
 		// 패널 창에 쌓인 Win32 메시지를 처리한다.

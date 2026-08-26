@@ -1,5 +1,6 @@
 ﻿target_sources(PmxMod PRIVATE
         Program.h Program.cpp
+        MotionTimelineBuilder.h MotionTimelineBuilder.cpp
         ResourceDirectories.h ResourceDirectories.cpp
         Shader/ShaderPackage.h Shader/ShaderPackage.cpp
         Shader/InternalShaderCatalog.h Shader/InternalShaderCatalog.cpp

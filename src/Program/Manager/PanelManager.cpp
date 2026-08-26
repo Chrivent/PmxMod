@@ -73,19 +73,15 @@ namespace Chrivent {
 		panelWindow.UpdatePanelVisibility(informationPanel, false);
 	}
 
-	PanelManager::~PanelManager() {
-		DestroyGui();
-	}
-
-	void PanelManager::ApplySceneConfig(const SceneConfig& cfg) {
-		menuBar.ApplySceneConfig(cfg);
+	void PanelManager::CommitSceneConfig(const SceneConfig& cfg) {
 		sceneConfigStorage = cfg;
 		ApplyCameraMotionPath(sceneConfigStorage.cameraAnim);
 		UpdateModelPanel();
 	}
 
-	void PanelManager::CommitSceneConfig(const SceneConfig& cfg) {
+	void PanelManager::CommitSceneConfig(const SceneConfig& cfg, const std::filesystem::path& sourcePath) {
 		sceneConfigStorage = cfg;
+		menuBar.CommitSceneSource(sourcePath);
 		ApplyCameraMotionPath(sceneConfigStorage.cameraAnim);
 		UpdateModelPanel();
 	}
@@ -96,8 +92,7 @@ namespace Chrivent {
 	}
 
 	bool PanelManager::OpenGuiWindows() {
-		panelWindow.Show();
-		return true;
+		return panelWindow.Show();
 	}
 
 	void PanelManager::PollGuiWindows() {

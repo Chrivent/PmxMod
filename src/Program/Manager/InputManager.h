@@ -24,8 +24,6 @@ namespace Chrivent {
 
 	// 렌더러 창의 입력 이벤트를 수집하고 프레임별 상태로 변환한다.
 	class InputManager {
-		inline static InputManager* activeManager = nullptr;
-
 		InputState state;
 		bool prevSpaceDown = false;
 		bool prevRightMouseDown = false;
@@ -34,7 +32,7 @@ namespace Chrivent {
 		double pendingWheelDelta = 0.0;
 
 		// GLFW 스크롤 입력을 다음 입력 갱신까지 누적한다.
-		static void ScrollCallback(GLFWwindow*, double, double yOffset);
+		static void ScrollCallback(GLFWwindow* sourceWindow, double, double yOffset);
 
 	public:
 		const InputState& GetState() const { return state; }

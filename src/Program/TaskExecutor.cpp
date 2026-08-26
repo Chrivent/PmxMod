@@ -54,6 +54,10 @@ namespace Chrivent {
 	void TaskExecutor::Run(const std::size_t count, std::function<void(std::size_t)> task) {
 		if (count == 0)
 			return;
+		if (count == 1) {
+			task(0);
+			return;
+		}
 		const auto batch = std::make_shared<TaskBatch>(count, workers.size(), std::move(task));
 		{
 			const std::lock_guard lock(mutex);

@@ -510,7 +510,7 @@ namespace Chrivent {
 			return false;
 		}
 		loaded.author = json.value("author", std::string{});
-		loaded.rootPath = std::filesystem::weakly_canonical(manifestPath.parent_path());
+		const std::filesystem::path packageRoot = std::filesystem::weakly_canonical(manifestPath.parent_path());
 		const auto effectArray = json.find("effects");
 		if (effectArray == json.end() || !effectArray->is_array() || effectArray->empty()) {
 			error = "패키지에는 하나 이상의 효과가 필요합니다: " + manifestPath.string();
@@ -524,10 +524,10 @@ namespace Chrivent {
 				return false;
 			}
 			std::filesystem::path effectManifestPath;
-			if (!ResolvePackagePath(loaded.rootPath, effectPathJson.get<std::string>(), effectManifestPath, error))
+			if (!ResolvePackagePath(packageRoot, effectPathJson.get<std::string>(), effectManifestPath, error))
 				return false;
 			EffectDefinition effect;
-			if (!LoadEffect(loaded.rootPath, effectManifestPath, effect, error))
+			if (!LoadEffect(packageRoot, effectManifestPath, effect, error))
 				return false;
 			if (!effectIds.emplace(effect.id).second) {
 				error = "패키지 효과 id가 중복되었습니다: " + effect.id + " / " + manifestPath.string();

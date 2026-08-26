@@ -4,7 +4,9 @@
 #include <memory>
 #include <vector>
 
+// ReSharper disable once CppInconsistentNaming
 struct ma_engine;
+// ReSharper disable once CppInconsistentNaming
 struct ma_sound;
 
 namespace Chrivent {
@@ -29,7 +31,9 @@ namespace Chrivent {
         // MiniAudio 엔진과 사운드 객체를 해제한다.
         void UnInit();
         // 오디오 파일을 30fps 타임라인용 단일 채널 피크 데이터로 변환한다.
-        void BuildWaveform(const std::filesystem::path& path);
+        static AudioWaveform BuildWaveform(const std::filesystem::path& path);
+        // 다른 사운드 객체의 MiniAudio 리소스와 재생 상태를 가져온다.
+        void MoveFrom(Sound& source);
     
     public:
         Sound();
@@ -37,8 +41,8 @@ namespace Chrivent {
     
         Sound(const Sound&) = delete;
         Sound& operator=(const Sound&) = delete;
-        Sound(Sound&&) = delete;
-        Sound& operator=(Sound&&) = delete;
+        Sound(Sound&& other) noexcept;
+        Sound& operator=(Sound&& other) noexcept;
         
         bool HasSound() const { return hasSound; }
         float GetVolume() const { return volume; }
@@ -57,7 +61,7 @@ namespace Chrivent {
         void Resume();
         // 사운드 재생 위치를 지정한 초로 이동한다.
         void SeekSeconds(float seconds);
-        // 사운드를 정지하고 재생 위치를 초기화한다.
-        void Stop() { UnInit(); }
+        // 사운드와 디코딩한 파형을 메모리에서 해제한다.
+        void Unload() { UnInit(); }
     };
 }

@@ -6,16 +6,16 @@
 #include <GLFW/glfw3.h>
 
 namespace Chrivent {
-	void InputManager::ScrollCallback(GLFWwindow*, const double, const double yOffset) {
-		if (activeManager)
-			activeManager->pendingWheelDelta += yOffset;
+	void InputManager::ScrollCallback(GLFWwindow* sourceWindow, const double, const double yOffset) {
+		if (auto* inputManager = static_cast<InputManager*>(glfwGetWindowUserPointer(sourceWindow)))
+			inputManager->pendingWheelDelta += yOffset;
 	}
 
 	void InputManager::AttachWindow(GLFWwindow* sourceWindow) {
-		activeManager = this;
 		pendingWheelDelta = 0.0;
 		if (!sourceWindow)
 			return;
+		glfwSetWindowUserPointer(sourceWindow, this);
 		glfwSetScrollCallback(sourceWindow, ScrollCallback);
 	}
 

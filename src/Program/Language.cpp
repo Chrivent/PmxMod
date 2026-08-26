@@ -85,11 +85,10 @@ namespace Chrivent {
 	}
 
 	std::wstring Language::Text(const std::string& key) {
-		const std::string ownedKey(key);
-		if (const auto current = currentTexts.find(ownedKey); current != currentTexts.end())
+		if (const auto current = currentTexts.find(key); current != currentTexts.end())
 			return current->second;
-		if (const auto fallback = fallbackTexts.find(ownedKey); fallback != fallbackTexts.end())
+		if (const auto fallback = fallbackTexts.find(key); fallback != fallbackTexts.end())
 			return fallback->second;
-		return TextEncoding::Utf8ToWideOrEmpty(ownedKey);
+		return TextEncoding::Utf8ToWideOrEmpty(key);
 	}
 }

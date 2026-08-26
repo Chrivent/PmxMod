@@ -38,6 +38,10 @@ namespace Chrivent {
 	public:
 		CameraManager();
 		~CameraManager();
+		CameraManager(const CameraManager&) = delete;
+		CameraManager& operator=(const CameraManager&) = delete;
+		CameraManager(CameraManager&& other) noexcept;
+		CameraManager& operator=(CameraManager&& other) noexcept;
 
 		bool IsPlaying() const { return !paused; }
 		float GetElapsed() const { return playbackState.elapsed; }
@@ -56,7 +60,7 @@ namespace Chrivent {
 		// 카메라와 재생 상태를 기본값으로 초기화한다.
 		void Reset();
 		// 카메라 VMD 파일을 읽어 모션 카메라 애니메이션을 준비한다.
-		void LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
+		bool LoadCameraAnim(const std::filesystem::path& cameraAnimPath);
 		// 일시정지와 사운드 동기화를 반영해 애니메이션 시간을 갱신한다.
 		void StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime);
 		// 외부 시간이 고정된 실행에서 재생 시간을 지정한 간격만큼 진행한다.

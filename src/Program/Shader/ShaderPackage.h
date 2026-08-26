@@ -50,7 +50,6 @@ namespace Chrivent {
 		std::string name;
 		std::string version;
 		std::string author;
-		std::filesystem::path rootPath;
 		std::vector<EffectDefinition> effects;
 	};
 

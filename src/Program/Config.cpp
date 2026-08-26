@@ -1,5 +1,6 @@
 ﻿#include "Program/Config.h"
 
+#include <charconv>
 #include <fstream>
 #include <string>
 #include <utility>
@@ -8,6 +9,7 @@
 
 namespace Chrivent {
 	bool SceneConfig::Load(const std::filesystem::path& filepath) {
+		constexpr size_t maximumEntryCount = 100000;
 		std::ifstream in(filepath, std::ios::binary);
 		if (!in)
 			return false;
@@ -31,6 +33,20 @@ namespace Chrivent {
 			path = std::move(*decodedPath);
 			return true;
 		};
+		const auto ParseCount = [](const std::string& text, size_t& value) {
+			if (text.empty())
+				return false;
+			const char* const end = text.data() + text.size();
+			const auto [parsedEnd, errorCode] = std::from_chars(text.data(), end, value);
+			return errorCode == std::errc{} && parsedEnd == end;
+		};
+		const auto ParseScale = [](const std::string& text, float& value) {
+			if (text.empty())
+				return false;
+			const char* const end = text.data() + text.size();
+			const auto [parsedEnd, errorCode] = std::from_chars(text.data(), end, value);
+			return errorCode == std::errc{} && parsedEnd == end && std::isfinite(value);
+		};
 		if (!ReadLine())
 			return false;
 		size_t tab = line.find('\t');
@@ -50,7 +66,10 @@ namespace Chrivent {
 		tab = line.find('\t');
 		if (tab == std::string::npos || line.substr(0, tab) != "models")
 			return false;
-		const size_t modelCount = std::stoull(line.substr(tab + 1));
+		size_t modelCount = 0;
+		if (!ParseCount(line.substr(tab + 1), modelCount) || modelCount > maximumEntryCount)
+			return false;
+		size_t entryCount = modelCount;
 		loaded.modelConfigs.reserve(modelCount);
 		for (size_t i = 0; i < modelCount; i++) {
 			ModelConfig model;
@@ -62,8 +81,13 @@ namespace Chrivent {
 			if (tab1 == std::string::npos || tab2 == std::string::npos || tab3 == std::string::npos ||
 				line.substr(0, tab1) != "model")
 				return false;
-			model.scale = std::stof(line.substr(tab1 + 1, tab2 - tab1 - 1));
-			const size_t animCount = std::stoull(line.substr(tab2 + 1, tab3 - tab2 - 1));
+			if (!ParseScale(line.substr(tab1 + 1, tab2 - tab1 - 1), model.scale))
+				return false;
+			size_t animCount = 0;
+			if (!ParseCount(line.substr(tab2 + 1, tab3 - tab2 - 1), animCount)
+				|| animCount > maximumEntryCount - entryCount)
+				return false;
+			entryCount += animCount;
 			if (!DecodePath(line.substr(tab3 + 1), model.modelPath))
 				return false;
 			model.animPaths.reserve(animCount);
@@ -80,7 +104,7 @@ namespace Chrivent {
 			}
 			loaded.modelConfigs.emplace_back(std::move(model));
 		}
-		*this = loaded;
+		*this = std::move(loaded);
 		return true;
 	}
 

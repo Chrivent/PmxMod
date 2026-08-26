@@ -25,6 +25,13 @@ namespace Chrivent {
             Skipped
         };
 
+		// 패널 요청 처리 결과를 계속 실행, 현재 프레임 건너뛰기와 실패로 구분한다.
+		enum class FrameRequestState {
+			Continue,
+			Skip,
+			Failed
+		};
+
         // 명령행에서 받은 씬, 렌더러와 벤치마크 옵션을 보관한다.
         struct ProgramOptions {
             std::filesystem::path scenePath;
@@ -48,6 +55,13 @@ namespace Chrivent {
             double presentMilliseconds = 0.0;
             double totalMilliseconds = 0.0;
         };
+
+		// 모델 애니메이션과 스키닝 단계의 측정 시각을 보관한다.
+		struct FrameUpdateTimes {
+			std::chrono::steady_clock::time_point animationStart;
+			std::chrono::steady_clock::time_point animationEnd;
+			std::chrono::steady_clock::time_point skinningEnd;
+		};
 
         // 패널 항목이 참조하는 패키지와 이펙트 인덱스를 보관한다.
         struct ShaderEffectEntry {
@@ -101,8 +115,6 @@ namespace Chrivent {
         void CreateViewer(RendererType rendererType);
         // GLFW 윈도우와 렌더러별 리소스를 초기화한다.
         bool InitializeViewer();
-        // 확장된 오른쪽 모니터가 있으면 렌더링 창을 해당 작업 영역 중앙에 배치한다.
-        static void PositionViewerOnRightMonitor(GLFWwindow* window);
         // 렌더러 창 조작 종료를 감지할 Win32 subclass를 설치한다.
 		void InstallViewerWindowSubclass(GLFWwindow* window);
         // 렌더러 창에 설치한 Win32 subclass를 해제한다.
@@ -111,6 +123,8 @@ namespace Chrivent {
         void RequestPhysicsReset();
         // 메뉴바 모달 루프 중 렌더링 프레임을 한 번 처리한다.
         bool RunMenuFrame();
+        // 확장된 오른쪽 모니터가 있으면 렌더링 창을 해당 작업 영역 중앙에 배치한다.
+        static void PositionViewerOnRightMonitor(GLFWwindow* window);
         // 선택한 렌더러로 뷰어 창과 렌더 리소스를 다시 생성한다.
         bool ChangeRenderer(RendererType rendererType);
         // 현재 씬 리소스와 윈도우 리소스를 정리한다.
@@ -149,6 +163,17 @@ namespace Chrivent {
         GraphicsError::Result<FramebufferUpdateState> UpdateFramebufferSize() const;
         // FPS 표시 시간을 갱신한다.
         void TickFps();
+		// 패널에서 들어온 씬, 렌더러와 셰이더 요청을 처리한다.
+		FrameRequestState ProcessPanelRequests();
+		// 프레임 탐색과 재생 제어 요청을 카메라와 음악에 반영한다.
+		void ProcessPlaybackRequests();
+		// 재생 시간, 물리 초기화와 카메라 상태를 이번 프레임에 맞춰 갱신한다.
+		void UpdatePlaybackState();
+		// 모델 애니메이션과 스키닝을 병렬 갱신하고 단계별 측정 시각을 반환한다.
+		FrameUpdateTimes UpdateInstances(const FrameTiming* timing);
+		// 갱신된 인스턴스를 모든 장면 패스에 그려 한 프레임을 완료한다.
+		bool RenderScene(FrameTiming* timing, std::chrono::steady_clock::time_point frameStart,
+			const FrameUpdateTimes& updateTimes);
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.
         bool RunFrame(FrameTiming* timing = nullptr, bool pollGuiWindows = true);
         // 지정한 프레임 수만큼 고정 시간으로 실행하고 구간별 성능 결과를 출력한다.

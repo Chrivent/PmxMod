@@ -4,6 +4,7 @@
 #include "Program/Language.h"
 #include "Program/RendererType.h"
 
+#include <optional>
 #include <windows.h>
 
 namespace Chrivent {
@@ -24,9 +25,10 @@ namespace Chrivent {
 		static constexpr int kJapaneseLanguageId = 1302;
 		static constexpr int kChineseLanguageId = 1303;
 
-		SceneConfig& sceneConfig;
+		const SceneConfig& sceneConfig;
 		std::filesystem::path sceneFilePath;
-		bool sceneConfigDirty = false;
+		std::optional<SceneConfig> pendingSceneConfig;
+		std::filesystem::path pendingSceneFilePath;
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
 		bool physicsEnabled = true;
@@ -57,7 +59,7 @@ namespace Chrivent {
 		void SelectLanguage(LanguageType type);
 
 	public:
-		explicit MenuBar(SceneConfig& config);
+		explicit MenuBar(const SceneConfig& config);
 
 		RendererType GetRendererType() const { return rendererType; }
 		bool IsPhysicsEnabled() const { return physicsEnabled; }
@@ -72,12 +74,12 @@ namespace Chrivent {
 		void AddMenu(HMENU menu) const;
 		// 메뉴 명령을 처리한다.
 		bool HandleCommand(int commandId);
-		// 외부에서 전달된 씬 설정을 메뉴 상태에 반영한다.
-		void ApplySceneConfig(const SceneConfig& cfg);
+		// 성공적으로 불러온 씬의 원본 파일 경로를 현재 메뉴 상태로 확정한다.
+		void CommitSceneSource(const std::filesystem::path& sourcePath);
 		// 씬 변경 플래그를 초기화한다.
 		void Reset();
-		// 씬 설정 변경 플래그를 반환하고 초기화한다.
-		bool ConsumeSceneConfigDirty();
+		// 대기 중인 씬 설정과 원본 파일 경로를 반환하고 요청을 초기화한다.
+		bool ConsumeSceneConfigRequest(SceneConfig& config, std::filesystem::path& sourcePath);
 		// 렌더러 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeRendererDirty();
 		// 물리 활성화 변경 플래그를 반환하고 초기화한다.

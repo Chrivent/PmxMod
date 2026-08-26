@@ -58,9 +58,8 @@ namespace Chrivent {
 
 	public:
 		PanelManager();
-		~PanelManager();
 
-		SceneConfig& GetSceneConfig() { return sceneConfigStorage; }
+		const SceneConfig& GetSceneConfig() const { return sceneConfigStorage; }
 		RendererType GetRendererType() const { return menuBar.GetRendererType(); }
 		bool IsPhysicsEnabled() const { return menuBar.IsPhysicsEnabled(); }
 		bool IsCameraMode() const { return motionPanel.GetMode() == MotionTimelineMode::Camera; }
@@ -88,12 +87,14 @@ namespace Chrivent {
 			motionPanel.ApplyPlaybackState(playing);
 		}
 
-		// 외부에서 전달된 씬 설정을 메뉴와 내부 저장소에 반영한다.
-		void ApplySceneConfig(const SceneConfig& cfg);
 		// 성공적으로 로드한 씬 설정을 내부 저장소와 모델 목록에 확정한다.
 		void CommitSceneConfig(const SceneConfig& cfg);
-		// 씬 설정 변경 여부를 반환하고 내부 플래그를 초기화한다.
-		bool ConsumeSceneConfigDirty() { return menuBar.ConsumeSceneConfigDirty(); }
+		// 파일에서 성공적으로 로드한 씬 설정과 원본 경로를 확정한다.
+		void CommitSceneConfig(const SceneConfig& cfg, const std::filesystem::path& sourcePath);
+		// 메뉴에서 요청한 씬 설정과 원본 파일 경로를 반환한다.
+		bool ConsumeSceneConfigRequest(SceneConfig& config, std::filesystem::path& sourcePath) {
+			return menuBar.ConsumeSceneConfigRequest(config, sourcePath);
+		}
 		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
 		// 물리 활성화 변경 여부를 반환하고 내부 플래그를 초기화한다.

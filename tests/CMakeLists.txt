@@ -48,6 +48,25 @@ add_custom_command(TARGET PmxModViewerApiTests POST_BUILD
 
 gtest_discover_tests(PmxModViewerApiTests)
 
+add_executable(PmxModProgramTests
+        Program/ConfigTest.cpp
+        Program/TaskExecutorTest.cpp
+        ${PROJECT_SOURCE_DIR}/src/Program/Config.h
+        ${PROJECT_SOURCE_DIR}/src/Program/Config.cpp
+        ${PROJECT_SOURCE_DIR}/src/Program/TaskExecutor.h
+        ${PROJECT_SOURCE_DIR}/src/Program/TaskExecutor.cpp
+)
+
+target_compile_features(PmxModProgramTests PRIVATE cxx_std_23)
+
+target_link_libraries(PmxModProgramTests PRIVATE
+        PmxMod::ProjectWarnings
+        PmxMod::Core
+        GTest::gtest_main
+)
+
+gtest_discover_tests(PmxModProgramTests)
+
 add_executable(PmxModCoreTests
         Core/BinaryReaderTest.cpp
         Core/TextEncodingTest.cpp

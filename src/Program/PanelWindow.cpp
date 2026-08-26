@@ -342,11 +342,6 @@ namespace Chrivent {
 
 	void PanelWindow::AttachMenuBar(MenuBar& menu) {
 		menuBar = &menu;
-		menuBar->SetOwnerWindow(window);
-		const HMENU menuHandle = CreateMenu();
-		menuBar->AddMenu(menuHandle);
-		SetMenu(window, menuHandle);
-		DrawMenuBar(window);
 	}
 
 	void PanelWindow::RegisterPanel(
@@ -354,7 +349,12 @@ namespace Chrivent {
 		panels.push_back({ &panel, std::move(titleKey), area, nullptr, {}, visible });
 	}
 
-	void PanelWindow::Show() {
+	bool PanelWindow::Show() {
+		if (window) {
+			ShowWindow(window, SW_MAXIMIZE);
+			SetForegroundWindow(window);
+			return true;
+		}
 		closeRequested = false;
 		layoutSettings = Settings::LoadPanelLayout();
 		const HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -371,11 +371,21 @@ namespace Chrivent {
 			WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
 			CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
 			nullptr, nullptr, instance, this);
+		if (!window)
+			return false;
 		if (menuBar) {
-			menuBar->SetOwnerWindow(window);
 			const HMENU menuHandle = CreateMenu();
+			if (!menuHandle) {
+				Destroy();
+				return false;
+			}
+			menuBar->SetOwnerWindow(window);
 			menuBar->AddMenu(menuHandle);
-			SetMenu(window, menuHandle);
+			if (!SetMenu(window, menuHandle)) {
+				DestroyMenu(menuHandle);
+				Destroy();
+				return false;
+			}
 			DrawMenuBar(window);
 		}
 		CreatePanelControls();
@@ -383,6 +393,7 @@ namespace Chrivent {
 		LayoutPanels();
 		ShowWindow(window, SW_MAXIMIZE);
 		UpdateWindow(window);
+		return true;
 	}
 
 	void PanelWindow::UpdatePanelVisibility(const Panel& panel, const bool visible) {
@@ -438,8 +449,17 @@ namespace Chrivent {
 				entry.panel->Destroy();
 			entry.frame = nullptr;
 		}
-		if (window)
+		if (window) {
+			const HMENU menuHandle = GetMenu(window);
+			if (menuHandle)
+				SetMenu(window, nullptr);
 			DestroyWindow(window);
+			if (menuHandle)
+				DestroyMenu(menuHandle);
+		}
+		if (menuBar)
+			menuBar->SetOwnerWindow(nullptr);
+		window = nullptr;
 		closeRequested = false;
 	}
 }

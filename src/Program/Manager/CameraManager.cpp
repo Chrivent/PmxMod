@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <limits>
+#include <utility>
 
 namespace Chrivent {
 	void CameraManager::ResetFreeCamera() {
@@ -34,6 +35,8 @@ namespace Chrivent {
 	}
 
 	CameraManager::~CameraManager() = default;
+	CameraManager::CameraManager(CameraManager&& other) noexcept = default;
+	CameraManager& CameraManager::operator=(CameraManager&& other) noexcept = default;
 
 	int CameraManager::CalculateLastFrame() const {
 		if (!cameraAnim)
@@ -74,24 +77,27 @@ namespace Chrivent {
 		cameraAnim.reset();
 	}
 
-	void CameraManager::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {
-		cameraAnim.reset();
-		useMotionCamera = true;
-		ResetFreeCamera();
+	bool CameraManager::LoadCameraAnim(const std::filesystem::path& cameraAnimPath) {
+		std::unique_ptr<CameraAnimation> loadedCameraAnimation;
 		if (cameraAnimPath.empty()) {
-			std::cout << "No camera VMD file.\n";
-			return;
+			cameraAnim.reset();
+			useMotionCamera = true;
+			ResetFreeCamera();
+			return true;
 		}
 		VmdParser camVmd;
 		const auto parseResult = camVmd.ReadFile(cameraAnimPath);
 		if (!parseResult) {
 			std::cerr << "카메라 VMD를 읽지 못했습니다: "
 				<< BinaryReader::FormatParseError(parseResult.error()) << '\n';
-			return;
+			return false;
 		}
-		if (!camVmd.GetData().cameras.empty()) {
-			cameraAnim = CameraAnimationBuilder::Build(camVmd.GetData());
-		}
+		if (!camVmd.GetData().cameras.empty())
+			loadedCameraAnimation = CameraAnimationBuilder::Build(camVmd.GetData());
+		cameraAnim = std::move(loadedCameraAnimation);
+		useMotionCamera = true;
+		ResetFreeCamera();
+		return true;
 	}
 
 	void CameraManager::StepTime(Sound& music, std::chrono::steady_clock::time_point& saveTime) {

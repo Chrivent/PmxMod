@@ -1,6 +1,7 @@
 ﻿#include "Program/MenuBar.h"
 
 #include <iostream>
+#include <utility>
 
 namespace Chrivent {
 	bool MenuBar::SaveSceneConfig(const std::filesystem::path& filepath) const {
@@ -8,17 +9,17 @@ namespace Chrivent {
 	}
 
 	bool MenuBar::LoadSceneConfig(const std::filesystem::path& filepath) {
-		if (!sceneConfig.Load(filepath))
+		SceneConfig loadedSceneConfig;
+		if (!loadedSceneConfig.Load(filepath))
 			return false;
-		sceneFilePath = filepath;
-		sceneConfigDirty = true;
+		pendingSceneConfig = std::move(loadedSceneConfig);
+		pendingSceneFilePath = filepath;
 		return true;
 	}
 
 	void MenuBar::CreateNewScene() {
-		sceneConfig = {};
-		sceneFilePath.clear();
-		sceneConfigDirty = true;
+		pendingSceneConfig.emplace();
+		pendingSceneFilePath.clear();
 	}
 
 	void MenuBar::ShowOpenSceneDialog() {
@@ -41,9 +42,7 @@ namespace Chrivent {
 		ofn.lpstrDefExt = L"pmscene";
 		if (!GetOpenFileNameW(&ofn))
 			return;
-		if (LoadSceneConfig(filename.data()))
-			std::cout << "Scene config loaded.\n";
-		else
+		if (!LoadSceneConfig(filename.data()))
 			std::cerr << "장면 설정을 불러오지 못했습니다.\n";
 	}
 
@@ -135,7 +134,7 @@ namespace Chrivent {
 		UpdateLanguageMenuCheck();
 	}
 
-	MenuBar::MenuBar(SceneConfig& config) : sceneConfig(config) {}
+	MenuBar::MenuBar(const SceneConfig& config) : sceneConfig(config) {}
 
 	void MenuBar::ApplyPlaybackState(const bool isPlaying) {
 		if (playing == isPlaying)
@@ -264,24 +263,29 @@ namespace Chrivent {
 		}
 	}
 
-	void MenuBar::ApplySceneConfig(const SceneConfig& cfg) {
-		sceneConfig = cfg;
-		sceneFilePath.clear();
-		sceneConfigDirty = false;
+	void MenuBar::CommitSceneSource(const std::filesystem::path& sourcePath) {
+		sceneFilePath = sourcePath;
+		pendingSceneConfig.reset();
+		pendingSceneFilePath.clear();
 	}
 
 	void MenuBar::Reset() {
-		sceneConfigDirty = false;
+		pendingSceneConfig.reset();
+		pendingSceneFilePath.clear();
 		rendererDirty = false;
 		physicsDirty = false;
 		languageDirty = false;
 		panelLayoutResetRequested = false;
 	}
 
-	bool MenuBar::ConsumeSceneConfigDirty() {
-		const bool dirty = sceneConfigDirty;
-		sceneConfigDirty = false;
-		return dirty;
+	bool MenuBar::ConsumeSceneConfigRequest(SceneConfig& config, std::filesystem::path& sourcePath) {
+		if (!pendingSceneConfig)
+			return false;
+		config = std::move(*pendingSceneConfig);
+		sourcePath = std::move(pendingSceneFilePath);
+		pendingSceneConfig.reset();
+		pendingSceneFilePath.clear();
+		return true;
 	}
 
 	bool MenuBar::ConsumeRendererDirty() {
