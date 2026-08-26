@@ -82,16 +82,34 @@
       "resolution": "eighth"
     },
     {
-      "name": "bokeh_broad",
+      "name": "bokeh_broad_background",
       "lifetime": "transient",
       "format": "rgba16_float",
       "resolution": "quarter"
     },
     {
-      "name": "bokeh_refine",
+      "name": "bokeh_broad_foreground",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "quarter"
+    },
+    {
+      "name": "bokeh_refine_background",
       "lifetime": "transient",
       "format": "rgba16_float",
       "resolution": "half"
+    },
+    {
+      "name": "bokeh_refine_foreground",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "half"
+    },
+    {
+      "name": "bokeh_gather",
+      "lifetime": "transient",
+      "format": "rgba16_float",
+      "resolution": "full"
     }
   ],
   "passes": [
@@ -160,7 +178,6 @@
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "reads": [
-        { "slot": 0, "resource": "bokeh_background" },
         { "slot": 1, "resource": "scene_depth" },
         { "slot": 2, "resource": "focus.read" },
         { "slot": 3, "resource": "effect_input" }
@@ -185,7 +202,6 @@
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "reads": [
-        { "slot": 0, "resource": "bokeh_background_eighth" },
         { "slot": 1, "resource": "scene_depth" },
         { "slot": 2, "resource": "focus.read" },
         { "slot": 3, "resource": "effect_input" }
@@ -193,7 +209,20 @@
       "output": "bokeh_foreground_eighth"
     },
     {
-      "name": "bokeh-broad-combine",
+      "name": "bokeh-broad-background",
+      "shader": "effects/depth-of-field/bokeh-broad-combine.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "bokeh_background_eighth" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "bokeh_background" }
+      ],
+      "output": "bokeh_broad_background"
+    },
+    {
+      "name": "bokeh-broad-foreground",
       "shader": "effects/depth-of-field/bokeh-broad-combine.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
@@ -203,20 +232,46 @@
         { "slot": 2, "resource": "focus.read" },
         { "slot": 3, "resource": "bokeh_foreground" }
       ],
-      "output": "bokeh_broad"
+      "output": "bokeh_broad_foreground"
     },
     {
-      "name": "bokeh-refine-half",
+      "name": "bokeh-refine-background",
       "shader": "effects/depth-of-field/bokeh-refine.hlsl",
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "reads": [
-        { "slot": 0, "resource": "bokeh_broad" },
+        { "slot": 0, "resource": "bokeh_broad_background" },
         { "slot": 1, "resource": "scene_depth" },
         { "slot": 2, "resource": "focus.read" },
         { "slot": 3, "resource": "effect_input" }
       ],
-      "output": "bokeh_refine"
+      "output": "bokeh_refine_background"
+    },
+    {
+      "name": "bokeh-refine-foreground",
+      "shader": "effects/depth-of-field/bokeh-refine-foreground.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "bokeh_broad_foreground" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "effect_input" }
+      ],
+      "output": "bokeh_refine_foreground"
+    },
+    {
+      "name": "bokeh-gather",
+      "shader": "effects/depth-of-field/bokeh-gather.hlsl",
+      "vertexEntry": "VSMain",
+      "pixelEntry": "PSMain",
+      "reads": [
+        { "slot": 0, "resource": "bokeh_refine_background" },
+        { "slot": 1, "resource": "scene_depth" },
+        { "slot": 2, "resource": "focus.read" },
+        { "slot": 3, "resource": "bokeh_refine_foreground" }
+      ],
+      "output": "bokeh_gather"
     },
     {
       "name": "composite",
@@ -224,7 +279,7 @@
       "vertexEntry": "VSMain",
       "pixelEntry": "PSMain",
       "reads": [
-        { "slot": 0, "resource": "bokeh_refine" },
+        { "slot": 0, "resource": "bokeh_gather" },
         { "slot": 1, "resource": "scene_depth" },
         { "slot": 2, "resource": "focus.read" },
         { "slot": 3, "resource": "effect_input" }

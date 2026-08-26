@@ -11,11 +11,10 @@ SamplerState LinearClamp : register(s0);
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float2 quarterResolutionTexelSize = InverseViewportSize / BokehQuarterResolutionScale;
     float quarterResolutionMaxRadius = QuarterBlurPixels * BokehQuarterResolutionScale;
-    float2 kernelRotation = CalculateBokehKernelRotation(input.position.xy);
     float3 backgroundColor = 0.0;
     float backgroundColorWeight = 0.0;
     for (int index = 0; index < BroadBokehSampleCount; index++) {
-        float2 sampleOffset = TransformBokehKernelOffset(BroadBokehKernel[index], kernelRotation);
+        float2 sampleOffset = TransformBokehKernelOffset(BroadBokehKernel[index]);
         float normalizedDistance = length(sampleOffset);
         float2 sampleUv = input.uv + sampleOffset * quarterResolutionTexelSize * quarterResolutionMaxRadius;
         float4 sampleData = SceneColor.Sample(LinearClamp, sampleUv);
@@ -24,16 +23,15 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         float sampleDistance = normalizedDistance * quarterResolutionMaxRadius;
         float support = saturate(sampleRadius - sampleDistance + 1.0);
         float brightnessWeight = CalculateCircleOfConfusionBrightness(sampleRadius);
+        float layerWeight = CalculateMiddleBokehLayerWeight(signedCocPixels);
         float centerWeight = index == 0 ? 1.5 : 1.0;
-        float colorWeight = support * brightnessWeight * centerWeight * CalculateBokehHighlightWeight(sampleData.rgb);
+        float colorWeight = support * brightnessWeight * layerWeight * centerWeight
+            * CalculateBokehHighlightWeight(sampleData.rgb);
         if (signedCocPixels >= 0.0) {
             backgroundColor += sampleData.rgb * colorWeight;
             backgroundColorWeight += colorWeight;
         }
     }
 
-    float3 centerColor = SceneColor.Sample(LinearClamp, input.uv).rgb;
-    float3 resolvedBackground = backgroundColorWeight > BokehColorEpsilon
-        ? backgroundColor / backgroundColorWeight : centerColor;
-    return float4(resolvedBackground, 0.0);
+    return float4(backgroundColor, backgroundColorWeight);
 }

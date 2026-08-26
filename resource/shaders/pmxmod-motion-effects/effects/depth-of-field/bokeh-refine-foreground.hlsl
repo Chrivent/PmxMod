@@ -1,5 +1,5 @@
-// DOF 반해상도 중간 후경 보케 보정 패스 입력:
-// t0 = 1/4 해상도 광역 후경 Bokeh, t1 = SceneDepth, t2 = FocusHistory,
+// DOF 반해상도 중간 전경 보케 보정 패스 입력:
+// t0 = 1/4 해상도 광역 전경 Bokeh, t1 = SceneDepth, t2 = FocusHistory,
 // t3 = EffectSourceColor, s0 = LinearClamp.
 Texture2D SceneColor : register(t0);
 Texture2D SceneDepth : register(t1);
@@ -25,8 +25,8 @@ float4 ResolveBroadBokeh(float2 uv) {
 
 float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float focusDistance = ReadDelayedFocusDistance();
-    float3 backgroundColor = 0.0;
-    float backgroundColorWeight = 0.0;
+    float3 foregroundColor = 0.0;
+    float foregroundColorWeight = 0.0;
     for (int index = 0; index < MediumBokehSampleCount; index++) {
         float2 sampleOffset = TransformBokehKernelOffset(MediumBokehKernel[index]);
         float sampleDistance = length(sampleOffset) * MediumBlurPixels;
@@ -41,13 +41,13 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
         float centerWeight = index == 0 ? 1.5 : 1.0;
         float colorWeight = support * brightnessWeight * layerWeight * centerWeight
             * CalculateBokehHighlightWeight(sampleColor);
-        if (signedCocPixels >= 0.0) {
-            backgroundColor += sampleColor * colorWeight;
-            backgroundColorWeight += colorWeight;
+        if (signedCocPixels < 0.0) {
+            foregroundColor += sampleColor * colorWeight;
+            foregroundColorWeight += colorWeight;
         }
     }
 
-    float4 mediumBokeh = float4(backgroundColor, backgroundColorWeight);
+    float4 mediumBokeh = float4(foregroundColor, foregroundColorWeight);
     float4 broadBokeh = ResolveBroadBokeh(input.uv);
     return mediumBokeh + broadBokeh;
 }

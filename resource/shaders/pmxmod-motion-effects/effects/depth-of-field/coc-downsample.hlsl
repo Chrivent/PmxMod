@@ -18,17 +18,11 @@ float4 PSMain(FullscreenVertexOutput input) : SV_Target {
     float coc1 = DecodeCircleOfConfusion(sample1.a);
     float coc2 = DecodeCircleOfConfusion(sample2.a);
     float coc3 = DecodeCircleOfConfusion(sample3.a);
-    float signedCoc = ResolveDominantCircleOfConfusion(coc0, coc1, coc2, coc3);
-    float weight0 = CalculateDownsampleLayerWeight(coc0, signedCoc);
-    float weight1 = CalculateDownsampleLayerWeight(coc1, signedCoc);
-    float weight2 = CalculateDownsampleLayerWeight(coc2, signedCoc);
-    float weight3 = CalculateDownsampleLayerWeight(coc3, signedCoc);
-    if (abs(signedCoc) > BokehColorEpsilon) {
-        weight0 *= CalculateBokehHighlightWeight(sample0.rgb);
-        weight1 *= CalculateBokehHighlightWeight(sample1.rgb);
-        weight2 *= CalculateBokehHighlightWeight(sample2.rgb);
-        weight3 *= CalculateBokehHighlightWeight(sample3.rgb);
-    }
+    float signedCoc = ResolveDownsampledCircleOfConfusion(coc0, coc1, coc2, coc3);
+    float weight0 = CalculateCircleOfConfusionDownsampleWeight(coc0);
+    float weight1 = CalculateCircleOfConfusionDownsampleWeight(coc1);
+    float weight2 = CalculateCircleOfConfusionDownsampleWeight(coc2);
+    float weight3 = CalculateCircleOfConfusionDownsampleWeight(coc3);
     float totalWeight = weight0 + weight1 + weight2 + weight3;
     float3 color = totalWeight > BokehColorEpsilon
         ? (sample0.rgb * weight0 + sample1.rgb * weight1 + sample2.rgb * weight2 + sample3.rgb * weight3)

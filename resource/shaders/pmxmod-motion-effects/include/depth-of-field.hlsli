@@ -105,14 +105,14 @@ static const float EmphasizeRateScale = 2.0;
 // CoC 밝기 보정이 발산하지 않도록 보장하는 최소 반경이다.
 static const float MinimumCoCRadius = 1.0;
 
-// 서로 다른 깊이의 보케가 업샘플 과정에서 섞이지 않도록 감쇠하는 강도다.
-static const float DepthEdgeFalloff = 32.0;
+// ikBokeh 최종 합성에서 전경 보케 누적값에 적용하는 배율이다.
+static const float ForegroundBokehWeightScale = 4.0;
 
-// 광역 전경 보케의 커버리지를 0~1 범위로 정규화하는 커널 가중치다.
-static const float ForegroundCoverageNormalization = 16.0;
+// CoC가 매우 클 때에도 원본 색상이 완전히 사라지지 않게 하는 최소 가중치다.
+static const float BokehWeightCompensation = 1.0 / (MaxBlurPixels * MaxBlurPixels);
 
-// 축소 과정에서 전경으로 확장할 최소 CoC 반경이다.
-static const float ForegroundDilationPixels = 0.5;
+// 초점면과 전경에서 후경 보케가 새어 나오지 않게 하는 ikBokeh의 경계 여유값이다.
+static const float FocusBokehMarginPixels = 1.0;
 
 // 원형 보케에 8각 조리개 형태를 섞는 비율이다.
 static const float ApertureShapeStrength = 0.25;
@@ -349,44 +349,32 @@ float DecodeCircleOfConfusion(float encodedCoc) {
     return clamp(encodedCoc, -1.0, 1.0) * MaxBlurPixels;
 }
 
-// 2x2 축소 영역에서 전경을 먼저 확장하고, 전경이 없으면 가장 강한 후경 CoC를 선택한다.
-float ResolveDominantCircleOfConfusion(float coc0, float coc1, float coc2, float coc3) {
-    float foregroundMagnitude = max(max(-coc0, -coc1), max(-coc2, -coc3));
-    float backgroundMagnitude = max(max(coc0, coc1), max(coc2, coc3));
-    return foregroundMagnitude > ForegroundDilationPixels ? -foregroundMagnitude : max(backgroundMagnitude, 0.0);
+// 축소 과정에서 CoC가 큰 표본에 더 높은 가중치를 부여한다.
+float CalculateCircleOfConfusionDownsampleWeight(float coc) {
+    return abs(coc);
 }
 
-// 지배적인 CoC와 같은 깊이 층의 색상만 축소 필터에 참여시킨다.
-float CalculateDownsampleLayerWeight(float coc, float dominantCoc) {
-    if (abs(dominantCoc) <= BokehColorEpsilon)
-        return 1.0;
-    if (dominantCoc < 0.0)
-        return coc < 0.0 ? abs(coc) : 0.0;
-    return coc >= 0.0 ? abs(coc) : 0.0;
+// ikBokeh처럼 부호 있는 CoC를 절댓값 가중 평균해 전경을 블록 단위로 확장하지 않는다.
+float ResolveDownsampledCircleOfConfusion(float coc0, float coc1, float coc2, float coc3) {
+    float weight0 = CalculateCircleOfConfusionDownsampleWeight(coc0);
+    float weight1 = CalculateCircleOfConfusionDownsampleWeight(coc1);
+    float weight2 = CalculateCircleOfConfusionDownsampleWeight(coc2);
+    float weight3 = CalculateCircleOfConfusionDownsampleWeight(coc3);
+    float totalWeight = weight0 + weight1 + weight2 + weight3;
+    if (totalWeight <= BokehColorEpsilon)
+        return 0.0;
+    return (coc0 * weight0 + coc1 * weight1 + coc2 * weight2 + coc3 * weight3) / totalWeight;
 }
 
-// 픽셀에 고정된 8단계 회전값으로 샘플 무늬를 분산하면서 프레임 간 깜빡임을 막는다.
-float2 CalculateBokehKernelRotation(float2 pixelPosition) {
-    float noise = frac(52.9829189 * frac(dot(floor(pixelPosition), float2(0.06711056, 0.00583715))));
-    float angle = floor(noise * 8.0) * 0.7853981634;
-    float sine;
-    float cosine;
-    sincos(angle, sine, cosine);
-    return float2(cosine, sine);
-}
-
-// 원판 샘플에 둥근 8각 조리개 형태와 픽셀별 회전을 적용한다.
-float2 TransformBokehKernelOffset(float2 offset, float2 rotation) {
+// 원판 샘플에 둥근 8각 조리개 형태를 적용한다.
+float2 TransformBokehKernelOffset(float2 offset) {
     float radius = length(offset);
     if (radius <= BokehColorEpsilon)
         return 0.0;
     float2 direction = abs(offset) / radius;
     float octagonMetric = max(max(direction.x, direction.y), (direction.x + direction.y) * 0.7071067812);
     float apertureScale = 0.9238795325 / max(octagonMetric, BokehColorEpsilon);
-    float2 shapedOffset = offset * lerp(1.0, apertureScale, ApertureShapeStrength);
-    float rotatedX = shapedOffset.x * rotation.x - shapedOffset.y * rotation.y;
-    float rotatedY = shapedOffset.x * rotation.y + shapedOffset.y * rotation.x;
-    return float2(rotatedX, rotatedY);
+    return offset * lerp(1.0, apertureScale, ApertureShapeStrength);
 }
 
 // 보케 색에 적용할 강조 지수를 계산한다.
@@ -424,19 +412,31 @@ float CalculateCircleOfConfusionBrightness(float cocPixels) {
     return saturate(1.0 / (radius * radius));
 }
 
+// 반해상도 단계가 8픽셀 이하의 CoC를 담당하게 한다.
+float CalculateFirstBokehLayerWeight(float cocPixels) {
+    float radius = abs(cocPixels);
+    return 1.0 - smoothstep(MediumBlurPixels - 1.0, MediumBlurPixels, radius);
+}
+
+// 1/4 해상도 단계가 반해상도와 1/8 해상도 사이의 CoC를 담당하게 한다.
+float CalculateMiddleBokehLayerWeight(float cocPixels) {
+    float radius = abs(cocPixels);
+    float lowerWeight = smoothstep(MediumBlurPixels - 1.0, MediumBlurPixels, radius);
+    float upperWeight = 1.0 - smoothstep(QuarterBlurPixels * 0.875, QuarterBlurPixels, radius);
+    return lowerWeight * upperWeight;
+}
+
+// 1/8 해상도 단계가 32픽셀에 가까운 큰 CoC를 담당하게 한다.
+float CalculateLastBokehLayerWeight(float cocPixels) {
+    float radius = abs(cocPixels);
+    return smoothstep(QuarterBlurPixels * 0.875, QuarterBlurPixels, radius);
+}
+
 // 선형 색상에서 밝은 점광원을 찾아 보케 누적 시 더 오래 보존한다.
 float CalculateBokehHighlightWeight(float3 color) {
     float luminance = dot(color, float3(0.2126, 0.7152, 0.0722));
     float highlight = smoothstep(BokehHighlightThreshold, 1.0, luminance);
     return 1.0 + highlight * BokehHighlightBias;
-}
-
-// 같은 표면은 유지하고 전경 보케만 깊이 경계를 넘어 후경 위로 번질 수 있게 한다.
-float CalculateDepthAwareUpsampleWeight(float centerDistance, float sampleDistance, float foregroundCoverage) {
-    float minimumDistance = max(min(centerDistance, sampleDistance), MinFocusDistance);
-    float relativeDifference = abs(centerDistance - sampleDistance) / minimumDistance;
-    float depthSimilarity = exp2(-relativeDifference * DepthEdgeFalloff);
-    return max(depthSimilarity, saturate(foregroundCoverage));
 }
 
 #endif
