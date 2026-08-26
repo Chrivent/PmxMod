@@ -20,12 +20,6 @@
 // 이 값보다 느린 화면 이동에는 블러를 적용하지 않는다.
 #define VelocityUnderCut ReadEffectParameter(4)
 
-// 카메라가 이 거리보다 크게 이동하면 MotionBlur3처럼 장면 전환으로 판정한다.
-#define SceneChangePositionThreshold ReadEffectParameter(5)
-
-// 카메라 방향 변화가 이 각도를 넘으면 장면 전환으로 판정한다.
-#define SceneChangeAngleThreshold ReadEffectParameter(6)
-
 // 첫 번째 방향 블러가 사용하는 MotionBlur3의 패스 배율이다.
 static const float FirstDirectionalRate = 0.7;
 
@@ -77,13 +71,26 @@ float CalculateMotionJitter(float2 pixelPosition) {
     return noise - 0.5;
 }
 
-// 카메라 컷이나 히스토리 초기화 프레임에서는 이전 장면의 잔상을 사용하지 않는다.
-bool IsMotionSceneChange() {
-    float directionDot = dot(normalize(CameraWorldDirection.xyz), normalize(PreviousCameraWorldDirection.xyz));
-    float positionDelta = distance(CameraWorldPosition.xyz, PreviousCameraWorldPosition.xyz);
-    float directionThreshold = cos(SceneChangeAngleThreshold * 0.017453292519943295);
-    return FrameHistoryReset > 0.5 || positionDelta > SceneChangePositionThreshold
-        || directionDot < directionThreshold;
+// UV 벡터를 화면 높이 기준의 정사각형 모션 공간으로 변환한다.
+float2 ConvertToMotionSpace(float2 uvVector) {
+    float aspectRatio = max(ViewportSize.x, 1.0) / max(ViewportSize.y, 1.0);
+    return float2(uvVector.x * aspectRatio, uvVector.y);
+}
+
+// 정사각형 모션 공간의 벡터를 텍스처 샘플링용 UV 공간으로 되돌린다.
+float2 ConvertToUvSpace(float2 motionVector) {
+    float aspectRatio = max(ViewportSize.x, 1.0) / max(ViewportSize.y, 1.0);
+    return float2(motionVector.x / aspectRatio, motionVector.y);
+}
+
+// 화면 종횡비에 영향을 받지 않는 모션 속력을 계산한다.
+float CalculateMotionSpeed(float2 velocity) {
+    return length(ConvertToMotionSpace(velocity));
+}
+
+// 범용 히스토리 정책이 초기화를 요청한 프레임에서는 이전 장면의 잔상을 사용하지 않는다.
+bool IsMotionHistoryReset() {
+    return FrameHistoryReset > 0.5;
 }
 
 // 속도 입력의 비정상값과 미세 움직임을 제거하고 최대 길이를 제한한다.
@@ -95,11 +102,12 @@ float2 PrepareVelocity(float2 velocity) {
     velocity *= shutterScale;
     if (!all(abs(velocity) < 1.0e8))
         return 0.0;
-    float speed = length(velocity);
+    float2 motionVelocity = ConvertToMotionSpace(velocity);
+    float speed = length(motionVelocity);
     if (speed <= VelocityUnderCut)
         return 0.0;
     float limitedSpeed = min(speed - VelocityUnderCut, VelocityLimit);
-    return velocity / max(speed, MotionEpsilon) * limitedSpeed;
+    return ConvertToUvSpace(motionVelocity / max(speed, MotionEpsilon) * limitedSpeed);
 }
 
 // 하드웨어 깊이를 모션 경계 판정에 사용할 뷰 공간 거리로 변환한다.
@@ -111,7 +119,7 @@ float LinearizeMotionDepth(float depth) {
 // 정규화된 속도, 깊이, 속력 정보를 하나의 값으로 묶는다.
 float4 PackMotion(float2 velocity, float depth) {
     float2 preparedVelocity = PrepareVelocity(velocity);
-    return float4(preparedVelocity, saturate(depth), length(preparedVelocity));
+    return float4(preparedVelocity, saturate(depth), CalculateMotionSpeed(preparedVelocity));
 }
 
 // 속력이 크고 깊이가 가까운 모션 후보를 선택한다.
@@ -134,26 +142,29 @@ float GaussianMotionWeight(float sampleRate, float sigma) {
 
 // 두 속도 벡터가 같은 방향으로 움직이는 정도를 계산한다.
 float CalculateDirectionAlignment(float2 referenceVelocity, float2 sampleVelocity) {
-    float referenceSpeed = length(referenceVelocity);
-    float sampleSpeed = length(sampleVelocity);
+    float2 referenceMotion = ConvertToMotionSpace(referenceVelocity);
+    float2 sampleMotion = ConvertToMotionSpace(sampleVelocity);
+    float referenceSpeed = length(referenceMotion);
+    float sampleSpeed = length(sampleMotion);
     if (referenceSpeed <= MotionEpsilon || sampleSpeed <= MotionEpsilon)
         return 0.0;
-    float alignment = dot(referenceVelocity / referenceSpeed, sampleVelocity / sampleSpeed);
+    float alignment = dot(referenceMotion / referenceSpeed, sampleMotion / sampleSpeed);
     return smoothstep(0.2, 0.9, alignment);
 }
 
 // 한 픽셀의 이동 선분이 대상 화면 위치를 덮는 비율을 계산한다.
 float CalculateMotionSegmentCoverage(float2 sourceUv, float2 targetUv, float2 velocity, float lengthScale) {
-    float speed = length(velocity);
+    float2 motionVelocity = ConvertToMotionSpace(velocity);
+    float speed = length(motionVelocity);
     if (speed <= MotionEpsilon)
         return 0.0;
-    float2 direction = velocity / speed;
-    float2 offset = targetUv - sourceUv;
+    float2 direction = motionVelocity / speed;
+    float2 offset = ConvertToMotionSpace(targetUv - sourceUv);
     float alongDistance = abs(dot(offset, direction));
     float acrossDistance = abs(offset.x * direction.y - offset.y * direction.x);
-    float maximumDistance = max(speed * lengthScale, max(InverseViewportSize.x, InverseViewportSize.y));
-    float lineWidth = max(max(InverseViewportSize.x, InverseViewportSize.y) * LineWidthPixels,
-        maximumDistance * 0.025);
+    float pixelSize = 1.0 / max(ViewportSize.y, 1.0);
+    float maximumDistance = max(speed * lengthScale, pixelSize);
+    float lineWidth = max(pixelSize * LineWidthPixels, maximumDistance * 0.025);
     float alongCoverage = saturate(1.0 - alongDistance / max(maximumDistance, MotionEpsilon));
     float acrossCoverage = saturate(1.0 - acrossDistance / max(lineWidth, MotionEpsilon));
     return alongCoverage * acrossCoverage;

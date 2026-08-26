@@ -9,9 +9,7 @@
     { "id": "line_blur_length", "name": "Line Blur Length", "slot": 1, "default": 2.5, "min": 0.0, "max": 10.0 },
     { "id": "line_blur_strength", "name": "Line Blur Strength", "slot": 2, "default": 1.5, "min": 0.0, "max": 10.0 },
     { "id": "velocity_limit", "name": "Velocity Limit", "slot": 3, "default": 0.15, "min": 0.0, "max": 3.0 },
-    { "id": "velocity_under_cut", "name": "Velocity Under Cut", "slot": 4, "default": 0.002, "min": 0.0, "max": 3.0 },
-    { "id": "scene_change_position_threshold", "name": "Scene Change Position Threshold", "slot": 5, "default": 20.0, "min": 0.0, "max": 100.0 },
-    { "id": "scene_change_angle_threshold", "name": "Scene Change Angle Threshold", "slot": 6, "default": 25.0, "min": 0.0, "max": 100.0 }
+    { "id": "velocity_under_cut", "name": "Velocity Under Cut", "slot": 4, "default": 0.002, "min": 0.0, "max": 3.0 }
   ],
   "resources": [
     {

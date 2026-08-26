@@ -6,7 +6,7 @@ SamplerState LinearClamp : register(s0);
 
 float4 PSLineComposite(FullscreenVertexOutput input) : SV_Target0 {
     float4 baseColor = DirectionalColor.SampleLevel(LinearClamp, input.uv, 0.0);
-    if (FrameHistoryReset > 0.5)
+    if (IsMotionHistoryReset())
         return baseColor;
     float4 lineSample = LineBlur.SampleLevel(LinearClamp, input.uv, 0.0);
     float coverage = saturate(lineSample.a * 1.3 * LineBlurStrength);

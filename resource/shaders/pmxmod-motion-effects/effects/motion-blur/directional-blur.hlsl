@@ -20,7 +20,7 @@ float2 ReadDominantVelocity(float2 uv) {
     for (int index = 0; index < 5; index++) {
         float4 candidate = LoadMotionTexture(
             NeighborhoodMotion, uv + offsets[index] * tileTexelSize);
-        candidate.w = length(candidate.xy);
+        candidate.w = CalculateMotionSpeed(candidate.xy);
         dominantMotion = SelectDominantMotion(dominantMotion, candidate);
     }
     return dominantMotion.xy;
@@ -28,12 +28,12 @@ float2 ReadDominantVelocity(float2 uv) {
 
 float4 ResolveDirectionalBlur(float2 uv, float passRate, int sampleRadius) {
     float4 centerColor = PassColor.SampleLevel(LinearClamp, uv, 0.0);
-    if (IsMotionSceneChange())
+    if (IsMotionHistoryReset())
         return centerColor;
     float2 centerVelocity = ReadVelocity(uv);
     float2 dominantVelocity = ReadDominantVelocity(uv);
-    float2 blurVelocity = length(centerVelocity) > MotionEpsilon ? centerVelocity : dominantVelocity;
-    if (length(blurVelocity) <= MotionEpsilon)
+    float2 blurVelocity = CalculateMotionSpeed(centerVelocity) > MotionEpsilon ? centerVelocity : dominantVelocity;
+    if (CalculateMotionSpeed(blurVelocity) <= MotionEpsilon)
         return centerColor;
     float centerDepth = LoadMotionTexture(SceneDepth, uv).r;
     float4 colorSum = 0.0;

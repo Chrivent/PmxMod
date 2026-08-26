@@ -9,7 +9,7 @@ float4 PSNeighborMax(FullscreenVertexOutput input) : SV_Target0 {
         for (int x = -1; x <= 1; x++) {
             float2 sampleUv = saturate(input.uv + float2(x, y) * tileTexelSize);
             float4 candidateMotion = LoadMotionTexture(TileMotion, sampleUv);
-            candidateMotion.w = length(candidateMotion.xy);
+            candidateMotion.w = CalculateMotionSpeed(candidateMotion.xy);
             dominantMotion = SelectDominantMotion(dominantMotion, candidateMotion);
         }
     }

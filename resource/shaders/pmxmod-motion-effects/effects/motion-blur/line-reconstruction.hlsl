@@ -12,16 +12,16 @@ float2 ReadVelocity(float2 uv) {
 
 float2 ReadLineVelocity(float2 uv) {
     float2 centerVelocity = ReadVelocity(uv);
-    if (length(centerVelocity) > MotionEpsilon)
+    if (CalculateMotionSpeed(centerVelocity) > MotionEpsilon)
         return centerVelocity;
     return LoadMotionTexture(NeighborhoodMotion, uv).xy;
 }
 
 float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
-    if (IsMotionSceneChange())
+    if (IsMotionHistoryReset())
         return 0.0;
     float2 lineVelocity = ReadLineVelocity(input.uv);
-    float lineSpeed = length(lineVelocity);
+    float lineSpeed = CalculateMotionSpeed(lineVelocity);
     if (lineSpeed <= MotionEpsilon)
         return 0.0;
     float centerDepth = LoadMotionTexture(SceneDepth, input.uv).r;
@@ -34,7 +34,7 @@ float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
         float sampleRate = clamp(((float)sampleIndex + jitter) / max((float)LineSampleRadius, 1.0), -1.0, 1.0);
         float2 sampleUv = saturate(input.uv - lineVelocity * LineBlurLength * sampleRate);
         float2 sampleVelocity = ReadVelocity(sampleUv);
-        float sampleSpeed = length(sampleVelocity);
+        float sampleSpeed = CalculateMotionSpeed(sampleVelocity);
         float alignment = CalculateDirectionAlignment(lineVelocity, sampleVelocity);
         float centerCoverage = CalculateMotionSegmentCoverage(
             input.uv, sampleUv, lineVelocity, LineBlurLength);
