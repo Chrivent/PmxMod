@@ -1,5 +1,4 @@
-// 포스트 프로세스 입력 규격:
-// t0 = SceneColor, t1 = SceneDepth, s0 = LinearClamp.
+// t0 = effect_input, s0 = LinearClamp.
 Texture2D SceneColor : register(t0);
 SamplerState LinearClamp : register(s0);
 

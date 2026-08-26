@@ -2,96 +2,102 @@
 
 [English](./README.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | **[中文](./README.zh.md)**
 
-PmxMod 是面向 Windows、使用 C++23 编写的 PMX/VMD 查看器与动作播放程序。OpenGL、Direct3D 11、Direct3D 12 和 Vulkan 使用统一的 HLSL 着色器包契约。
+PmxMod 是一款面向 Windows、使用 C++23 编写的应用程序，可加载 PMX 模型、播放 VMD 模型／相机动作并应用 HLSL 后处理效果。OpenGL、Direct3D 11、Direct3D 12 和 Vulkan 使用同一套场景与着色器包契约。
 
 ## 主要功能
 
-- 加载 PMX 模型以及 VMD 模型／相机动作
-- 运行时切换四种渲染 API
-- 内置 model、edge 和 ground-shadow 渲染
-- 使用 depth、velocity、中间和 history 资源的有序后处理链
-- 可安装的 HLSL 着色器包，包含景深、运动模糊和灰度示例
+- 加载 PMX 模型并播放 VMD 模型／相机动作
+- 运行时切换 OpenGL、Direct3D 11、Direct3D 12 和 Vulkan
+- 开关内置 model、edge 和 ground shadow
+- 使用 depth、velocity、中间资源与 temporal history 的有序后处理
+- 基于文件夹的 HLSL 着色器包
 - 加载和保存 `.pmscene` 场景
+- 时间轴、插值曲线、音频波形、信息和播放面板
 
-## 需求
+## 基本用法
 
-- Windows
-- Visual Studio C++ toolchain
+1. 将 `PmxMod.exe` 与 `resource` 目录放在同一位置并运行程序。
+2. 使用 **File > New** 或 **File > Open** 准备场景。
+3. 在 Model 面板中添加 PMX 模型，并从各模型行指定 VMD 动作。
+4. 在 Camera 面板中添加相机 VMD，并勾选需要的后处理效果。
+5. 从 Renderer 菜单选择 API，并在 Playback 面板控制播放。
+
+首次启动时，界面语言跟随 Windows 显示语言，可从 **View > Language** 更改。
+
+## 支持的文件
+
+| 文件 | 用途 |
+| --- | --- |
+| `.pmx` | MMD 模型 |
+| `.vmd` | 模型或相机动作 |
+| `.pmscene` | 保存模型、动作、相机、音乐路径及模型缩放的 PmxMod 场景 |
+
+`.pmscene` 只保存外部资源路径，不会嵌入文件本身。请确保原始文件仍可从保存的路径读取。
+
+## 着色器包
+
+将完整的着色器包目录放到以下位置，然后重新启动 PmxMod：
+
+```text
+PmxMod.exe
+resource/
+└─ shaders/
+   └─ package-directory/
+      └─ package.json
+```
+
+包中的每个有效 effect 都会在 Camera 面板中显示为独立的一行。可以同时启用多个 effect，并按列表顺序应用。随附包包含景深、depth 可视化、运动模糊和灰度效果。
+
+`resource/internal/shaders` 中的 model、edge 和 ground-shadow 着色器属于引擎资源，不是可安装包。schema 与 HLSL binding 请参阅[着色器包契约（韩文）](./resource/shaders/README.ko.md)。
+
+## 渲染器要求
+
+| 渲染器 | 最低要求 | 着色器路径 |
+| --- | --- | --- |
+| OpenGL | 4.6 Core Profile | HLSL Shader Model 6.0 → SPIR-V → GLSL 4.60 |
+| Direct3D 11 | Feature Level 11.0 | HLSL Shader Model 5.0 |
+| Direct3D 12 | Feature Level 11.0 | 支持时使用 Shader Model 6.0，否则使用 5.1 |
+| Vulkan | 1.3 | HLSL Shader Model 6.0 → SPIR-V |
+
+## 从源码构建
+
+需要：
+
+- Windows 与 Visual Studio C++ toolchain
 - CMake 4.1.2 或更新版本
 - vcpkg
 - Vulkan SDK
-- 支持下列至少一种渲染器的 GPU 与驱动程序
 
-## 渲染器支持
-
-| 渲染器 | 所需版本 | 着色器路径 |
-| --- | --- | --- |
-| OpenGL | 4.6 Core Profile | HLSL Shader Model 6.0 → SPIR-V → GLSL 4.60 |
-| Direct3D 11 | Feature Level 11.0，可用时使用 11.1 | HLSL Shader Model 5.0 |
-| Direct3D 12 | 最低 Feature Level 11.0，可检测至 12.2 | Shader Model 6.0，提供 5.1 后备路径 |
-| Vulkan | 1.3 | HLSL Shader Model 6.0 → SPIR-V |
-
-## 依赖项
-
-项目使用仓库根目录中的 `vcpkg.json` manifest。你不需要逐个安装库；在 CMake configure 时指定 vcpkg toolchain 文件后，vcpkg 会根据所选 triplet 自动安装 manifest 中的依赖项。
-
-请先安装 Vulkan SDK：
+安装 Vulkan SDK 后，请打开新的 **Developer PowerShell for Visual Studio**，以同时加载 MSVC 与 SDK 环境。
 
 ```powershell
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
-安装 Vulkan SDK 后，请打开新的 PowerShell 窗口，让 CMake 能够读取 SDK 的环境变量。
-
-## 构建
-
-如果 vcpkg 安装在 `C:/vcpkg`：
+根目录 `vcpkg.json` 中声明的依赖项会在 CMake configure 时安装。请指定 vcpkg toolchain，并按需要替换 `C:/vcpkg`。
 
 ```powershell
 cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build cmake-build-release --target PmxMod
 ```
 
-如果 vcpkg 位于其他目录，请替换 toolchain 路径：
+构建会把 `resource`、GLFW 运行时和 `dxcompiler.dll` 复制到可执行文件旁。在 JetBrains Rider 中，请将同一个 `CMAKE_TOOLCHAIN_FILE` 选项加入当前 CMake 配置，并选择 `PmxMod` 目标。
 
-```powershell
-cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build cmake-build-release --target PmxMod
-```
-
-使用 JetBrains Rider 时：
-
-1. 打开 `Settings | Build, Execution, Deployment | CMake`。
-2. 在所选配置的 CMake 选项中添加 vcpkg toolchain 路径。
-3. 重新加载 CMake 项目并构建 `PmxMod` 目标。
-
-示例 CMake 选项：
+## 命令行
 
 ```text
--DCMAKE_TOOLCHAIN_FILE=D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
+PmxMod [--scene <file.pmscene>] [--renderer <opengl|dx11|dx12|vulkan>]
+       [--benchmark <frames>] [--warmup <frames>]
 ```
 
-## 着色器包
-
-运行时着色器包从 `resource/shaders/` 加载。一个包由 `package.json` manifest 和一个或多个 HLSL effect 组成。内置的 model、edge 和 ground-shadow 着色器不是包，而是位于 `resource/internal/shaders` 的独立引擎资源。
-
-后处理示例或模板可以作为单独的包放在 `resource/shaders/` 下。运行时资源由 `SyncResources` 目标从 `resource/` 复制到 CMake 构建目录。
+使用 `PmxMod --help` 查看语法。benchmark 选项会按指定帧数固定运行，并将性能结果输出到控制台。
 
 ## 测试
 
-Viewer 契约测试使用 GoogleTest，普通应用程序构建默认不启用。可使用以下命令启用并运行：
+GoogleTest 会验证 Core 解析与运行时行为、Program 契约、与 API 无关的渲染规划、API descriptor，以及四个后端的 HLSL 编译。
 
 ```powershell
 cmake -S . -B cmake-build-test -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DPMXMOD_BUILD_TESTS=ON
 cmake --build cmake-build-test
 ctest --test-dir cmake-build-test --output-on-failure
 ```
-
-首批测试不会创建设备，而是验证与 API 无关的后处理规划、参数校验、资源路由、分辨率规则以及 temporal history 状态。
-
-## 备注
-
-- GLFW、GLAD、GLM、Bullet、GoogleTest、miniaudio、nlohmann-json、SPIRV-Cross 和 stb 依赖项声明在 `vcpkg.json` 中。
-- Vulkan 和 DXC 通过已安装的 Vulkan SDK 查找。
-- OpenGL 作为视觉参考渲染器。DirectX 11、DirectX 12 和 Vulkan 会在 API 允许的范围内尽量匹配 model、edge、ground shadow、texture、depth、stencil、blend 和 MSAA 行为。
-- DirectX 12 和 Vulkan 使用显式 MSAA render target，然后 resolve 到 swapchain image。它们与 OpenGL default framebuffer 的实现路径不同，但遵循相同的 sample count 策略和最终视觉结果目标。

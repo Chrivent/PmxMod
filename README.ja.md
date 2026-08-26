@@ -2,96 +2,102 @@
 
 [English](./README.md) | [한국어](./README.ko.md) | **[日本語](./README.ja.md)** | [中文](./README.zh.md)
 
-PmxMod は Windows 向けの C++23 PMX/VMD ビューアーおよびモーション再生アプリケーションです。OpenGL、Direct3D 11、Direct3D 12、Vulkan で共通の HLSL シェーダーパッケージ契約を使用します。
+PmxMod は PMX モデルを読み込み、VMD のモデル／カメラモーションを再生し、HLSL ポストプロセス効果を適用する Windows 向け C++23 アプリケーションです。同じシーンおよびシェーダーパッケージ契約を OpenGL、Direct3D 11、Direct3D 12、Vulkan で使用します。
 
 ## 主な機能
 
-- PMX モデルと VMD モデル／カメラモーションの読み込み
-- 4 種類のレンダリング API の実行時切り替え
-- 内蔵の model、edge、ground-shadow レンダリング
-- depth、velocity、中間、history リソースを使用する順序付きポストプロセスチェーン
-- 被写界深度、モーションブラー、グレースケールの例を含むインストール可能な HLSL シェーダーパッケージ
+- PMX モデルの読み込みと VMD モデル／カメラモーションの再生
+- OpenGL、Direct3D 11、Direct3D 12、Vulkan の実行時切り替え
+- 内蔵 model、edge、ground shadow のオン／オフ
+- depth、velocity、中間リソース、temporal history を使用する順序付きポストプロセス
+- フォルダー単位の HLSL シェーダーパッケージ
 - `.pmscene` シーンの読み込みと保存
+- タイムライン、補間曲線、音声波形、情報、再生パネル
 
-## 必要環境
+## 基本的な使い方
 
-- Windows
-- Visual Studio C++ toolchain
+1. `PmxMod.exe` と `resource` フォルダーを同じ場所に置いて実行します。
+2. **File > New** または **File > Open** でシーンを用意します。
+3. Model パネルで PMX モデルを追加し、各モデル行から VMD モーションを指定します。
+4. Camera パネルでカメラ VMD を追加し、使用するポストプロセス効果を選択します。
+5. Renderer メニューで API を選び、Playback パネルで再生を操作します。
+
+初回起動時の言語は Windows の表示言語に従います。**View > Language** から変更できます。
+
+## 対応ファイル
+
+| ファイル | 用途 |
+| --- | --- |
+| `.pmx` | MMD モデル |
+| `.vmd` | モデルまたはカメラモーション |
+| `.pmscene` | モデル、モーション、カメラ、音楽のパスとモデル倍率を保存する PmxMod シーン |
+
+`.pmscene` は外部アセットのパスだけを保存し、ファイル自体は埋め込みません。保存されたパスから元のファイルを読み込める状態にしてください。
+
+## シェーダーパッケージ
+
+シェーダーパッケージのフォルダー全体を次の場所に配置し、PmxMod を再起動します。
+
+```text
+PmxMod.exe
+resource/
+└─ shaders/
+   └─ package-directory/
+      └─ package.json
+```
+
+有効な各 effect は Camera パネルに 1 行ずつ表示されます。複数の effect を同時に有効にでき、一覧の順番で適用されます。付属パッケージには被写界深度、depth 表示、モーションブラー、グレースケールが含まれます。
+
+`resource/internal/shaders` の model、edge、ground-shadow シェーダーは、インストール可能なパッケージではなくエンジンリソースです。schema と HLSL binding は [シェーダーパッケージ契約（韓国語）](./resource/shaders/README.ko.md)を参照してください。
+
+## レンダラー要件
+
+| レンダラー | 最小要件 | シェーダー経路 |
+| --- | --- | --- |
+| OpenGL | 4.6 Core Profile | HLSL Shader Model 6.0 → SPIR-V → GLSL 4.60 |
+| Direct3D 11 | Feature Level 11.0 | HLSL Shader Model 5.0 |
+| Direct3D 12 | Feature Level 11.0 | 対応時は Shader Model 6.0、それ以外は 5.1 |
+| Vulkan | 1.3 | HLSL Shader Model 6.0 → SPIR-V |
+
+## ソースからのビルド
+
+必要なもの:
+
+- Windows と Visual Studio C++ toolchain
 - CMake 4.1.2 以降
 - vcpkg
 - Vulkan SDK
-- 下記レンダラーのうち 1 つ以上をサポートする GPU とドライバー
 
-## レンダラー対応
-
-| レンダラー | 必要バージョン | シェーダー経路 |
-| --- | --- | --- |
-| OpenGL | 4.6 Core Profile | HLSL Shader Model 6.0 → SPIR-V → GLSL 4.60 |
-| Direct3D 11 | Feature Level 11.0、利用可能な場合は 11.1 | HLSL Shader Model 5.0 |
-| Direct3D 12 | 最小 Feature Level 11.0、最大 12.2 まで検出 | Shader Model 6.0、5.1 フォールバック |
-| Vulkan | 1.3 | HLSL Shader Model 6.0 → SPIR-V |
-
-## 依存関係
-
-リポジトリ直下の `vcpkg.json` manifest を使用します。ライブラリを個別にインストールする必要はありません。CMake の configure 時に vcpkg toolchain ファイルを指定すると、選択された triplet 用の依存関係が自動でインストールされます。
-
-先に Vulkan SDK をインストールしてください。
+Vulkan SDK をインストールした後、MSVC と SDK の環境を利用できる新しい **Developer PowerShell for Visual Studio** を開きます。
 
 ```powershell
 winget install --id KhronosGroup.VulkanSDK -e
 ```
 
-Vulkan SDK をインストールした後は、新しい PowerShell ウィンドウを開いて CMake が SDK の環境変数を認識できるようにしてください。
-
-## ビルド
-
-vcpkg が `C:/vcpkg` にある場合:
+リポジトリ直下の `vcpkg.json` に宣言された依存関係は CMake configure 時にインストールされます。vcpkg toolchain を指定し、必要に応じて `C:/vcpkg` を変更してください。
 
 ```powershell
 cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 cmake --build cmake-build-release --target PmxMod
 ```
 
-vcpkg が別の場所にある場合は、toolchain のパスを置き換えてください。
+ビルド時に `resource`、GLFW ランタイム、`dxcompiler.dll` が実行ファイルの横へコピーされます。JetBrains Rider では、同じ `CMAKE_TOOLCHAIN_FILE` オプションを有効な CMake プロファイルに追加し、`PmxMod` ターゲットを選択します。
 
-```powershell
-cmake -S . -B cmake-build-release -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
-cmake --build cmake-build-release --target PmxMod
-```
-
-JetBrains Rider を使う場合:
-
-1. `Settings | Build, Execution, Deployment | CMake` を開きます。
-2. 使用するプロファイルの CMake オプションに vcpkg toolchain のパスを追加します。
-3. CMake プロジェクトを再読み込みし、`PmxMod` ターゲットをビルドします。
-
-CMake オプションの例:
+## コマンドライン
 
 ```text
--DCMAKE_TOOLCHAIN_FILE=D:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake
+PmxMod [--scene <file.pmscene>] [--renderer <opengl|dx11|dx12|vulkan>]
+       [--benchmark <frames>] [--warmup <frames>]
 ```
 
-## シェーダーパッケージ
-
-実行時のシェーダーパッケージは `resource/shaders/` から読み込まれます。パッケージは `package.json` manifest と 1 つ以上の HLSL effect で構成されます。内蔵の model、edge、ground-shadow シェーダーはパッケージではなく、単独のエンジンリソースとして `resource/internal/shaders` にあります。
-
-ポストプロセスのサンプルや雛形は、`resource/shaders/` 以下に別パッケージとして追加できます。実行時リソースは `SyncResources` ターゲットによって `resource/` から CMake のビルドディレクトリへコピーされます。
+`PmxMod --help` で構文を確認できます。benchmark オプションは指定フレーム数の固定実行結果をコンソールへ出力します。
 
 ## テスト
 
-Viewer 契約テストは GoogleTest を使用し、通常のアプリケーションビルドでは無効です。次のコマンドで有効化して実行できます。
+GoogleTest は Core の解析とランタイム動作、Program 契約、API 非依存の描画計画、API descriptor、4 バックエンド向け HLSL コンパイルを検証します。
 
 ```powershell
 cmake -S . -B cmake-build-test -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DPMXMOD_BUILD_TESTS=ON
 cmake --build cmake-build-test
 ctest --test-dir cmake-build-test --output-on-failure
 ```
-
-最初のテストスイートは GPU デバイスを生成せず、API 非依存のポストプロセス計画、パラメータ検証、リソース経路、解像度規則、temporal history 状態を検証します。
-
-## メモ
-
-- GLFW、GLAD、GLM、Bullet、GoogleTest、miniaudio、nlohmann-json、SPIRV-Cross、stb は `vcpkg.json` に宣言されています。
-- Vulkan と DXC はインストール済みの Vulkan SDK から検出します。
-- OpenGL を表示基準のレンダラーとして使います。DirectX 11、DirectX 12、Vulkan は API が許す範囲で model、edge、ground shadow、texture、depth、stencil、blend、MSAA の挙動を OpenGL に合わせます。
-- DirectX 12 と Vulkan は明示的な MSAA render target に描画し、swapchain image に resolve します。OpenGL の default framebuffer とは実装経路が異なりますが、sample count 方針と最終表示結果を合わせる方向です。

@@ -26,7 +26,7 @@ namespace Chrivent {
 		std::string Format() const;
 	};
 
-	// UI와 모션 키에 노출할 효과 파라미터의 이름, 범위와 기본값을 보관한다.
+	// 효과 파라미터의 식별자, 표시 이름, 슬롯, 범위와 기본값을 보관한다.
 	struct EffectParameterMetadata {
 		std::string id;
 		std::string name;
@@ -120,7 +120,7 @@ namespace Chrivent {
 		// 개별 이펙트 정의 파일을 읽는다.
 		static bool LoadEffect(const std::filesystem::path& packageRoot,
 			const std::filesystem::path& manifestPath, EffectDefinition& effect, std::string& error);
-		// 패키지 manifest를 기존 파서 단계에 전달하고 출력 객체를 완성한다.
+		// 패키지 manifest와 참조된 효과를 읽어 패키지 객체를 완성한다.
 		static bool LoadPackage(const std::filesystem::path& manifestPath,
 			ShaderPackage& package, std::string& error);
 

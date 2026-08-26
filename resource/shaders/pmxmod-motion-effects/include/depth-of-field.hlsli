@@ -6,8 +6,7 @@
 #include "fullscreen.hlsli"
 #include "depth-of-field-kernels.hlsli"
 
-// ikBokeh 계열 DOF에서 각 패스가 공유하는 임시 파라미터다.
-// 나중에 UI와 모션 파라미터 시스템이 생기면 상수 버퍼나 패키지 파라미터로 교체한다.
+// ikBokeh 계열 DOF의 모든 패스가 b1에서 읽는 패키지 파라미터다.
 
 // 보케를 강하게 만드는 ikBokeh의 "Bokeh+" 값이다.
 #define BokehPlus ReadEffectParameter(0)
@@ -72,7 +71,7 @@
 // 초점면을 지정 축과 평행하게 기울이는 ikBokeh 틸트 다운 값이다.
 #define TiltFocusDown ReadEffectParameter(22)
 
-// 틸트 초점면의 기준 축이다. UI가 생기기 전에는 월드 위쪽을 사용한다.
+// 틸트 초점면의 기준 축이다. 영벡터이면 카메라의 월드 위쪽 축을 사용한다.
 #define TiltFocusDirection float3(ReadEffectParameter(23), ReadEffectParameter(24), ReadEffectParameter(25))
 
 // 현재 반해상도, 1/4 해상도와 1/8 해상도 피라미드가 안정적으로 처리할 최대 CoC 반경이다.
