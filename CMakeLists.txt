@@ -10,7 +10,7 @@ add_library(PmxModProjectWarnings INTERFACE)
 add_library(PmxMod::ProjectWarnings ALIAS PmxModProjectWarnings)
 
 target_compile_options(PmxModProjectWarnings INTERFACE
-        $<$<CXX_COMPILER_ID:MSVC>:/W4>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4;/utf-8>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall;-Wextra;-Wpedantic>
 )
 
