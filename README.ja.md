@@ -2,6 +2,8 @@
 
 [English](./README.md) | [한국어](./README.ko.md) | **[日本語](./README.ja.md)** | [中文](./README.zh.md)
 
+[![Windows CI](https://github.com/Chrivent/PmxMod/actions/workflows/windows-ci.yml/badge.svg?branch=main)](https://github.com/Chrivent/PmxMod/actions/workflows/windows-ci.yml)
+
 PmxMod は PMX モデルを読み込み、VMD のモデル／カメラモーションを再生し、HLSL ポストプロセス効果を適用する Windows 向け C++23 アプリケーションです。同じシーンおよびシェーダーパッケージ契約を OpenGL、Direct3D 11、Direct3D 12、Vulkan で使用します。
 
 ## 主な機能

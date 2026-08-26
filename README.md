@@ -2,6 +2,8 @@
 
 **[English](./README.md)** | [한국어](./README.ko.md) | [日本語](./README.ja.md) | [中文](./README.zh.md)
 
+[![Windows CI](https://github.com/Chrivent/PmxMod/actions/workflows/windows-ci.yml/badge.svg?branch=main)](https://github.com/Chrivent/PmxMod/actions/workflows/windows-ci.yml)
+
 PmxMod is a Windows C++23 application for loading PMX models, playing VMD model and camera motions, and applying HLSL post-process effects. The same scene and shader package contract runs on OpenGL, Direct3D 11, Direct3D 12, and Vulkan.
 
 ## Features

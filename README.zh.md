@@ -2,6 +2,8 @@
 
 [English](./README.md) | [한국어](./README.ko.md) | [日本語](./README.ja.md) | **[中文](./README.zh.md)**
 
+[![Windows CI](https://github.com/Chrivent/PmxMod/actions/workflows/windows-ci.yml/badge.svg?branch=main)](https://github.com/Chrivent/PmxMod/actions/workflows/windows-ci.yml)
+
 PmxMod 是一款面向 Windows、使用 C++23 编写的应用程序，可加载 PMX 模型、播放 VMD 模型／相机动作并应用 HLSL 后处理效果。OpenGL、Direct3D 11、Direct3D 12 和 Vulkan 使用同一套场景与着色器包契约。
 
 ## 主要功能
