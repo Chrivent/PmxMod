@@ -1,27 +1,10 @@
 ﻿#pragma once
 
 #include <windows.h>
-#include <CommCtrl.h>
 
 namespace Chrivent {
-	// 프로그램 패널의 공통 생성, 입력 차단과 그리기 동작을 정의한다.
+	// 프로그램 패널의 공통 생성과 그리기 동작을 정의한다.
 	class Panel {
-		bool inputLocked = false;
-
-	protected:
-		// 입력 잠금 중 컨트롤에 전달하지 않을 마우스와 키보드 메시지인지 확인한다.
-		static bool IsInputLockMessage(UINT msg);
-		// 입력 잠금 대상 컨트롤의 Win32 메시지를 처리한다.
-		static LRESULT CALLBACK InputLockedControlWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam,
-			UINT_PTR subclassId, DWORD_PTR data);
-		// 입력 잠금 대상 컨트롤에 공통 subclass를 연결한다.
-		void AttachInputLockedControl(const HWND control, const UINT_PTR subclassId) {
-			SetWindowSubclass(control, InputLockedControlWindowProc, subclassId, reinterpret_cast<DWORD_PTR>(this));
-		}
-		// 패널이 소유한 입력 잠금 컨트롤들의 잠금 상태를 갱신하고 변경 여부를 반환한다.
-		bool ApplyInputLock(bool locked);
-		bool IsInputLocked() const { return inputLocked; }
-
 	public:
 		virtual ~Panel() = default;
 

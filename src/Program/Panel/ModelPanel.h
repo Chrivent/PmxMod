@@ -19,6 +19,7 @@ namespace Chrivent {
 		int pendingDeleteModelIndex = -1;
 		int pendingModelMotionIndex = -1;
 		bool updatingModelList = false;
+		bool playing = false;
 		HWND parentWindow = nullptr;
 		HWND addButton = nullptr;
 		HWND deleteButton = nullptr;
@@ -35,8 +36,6 @@ namespace Chrivent {
 		void RefreshModelList();
 		// 현재 선택된 모델 행을 리스트뷰에 반영한다.
 		void ApplyModelSelection();
-		// 재생 중 입력 잠금 상태에 맞춰 모델 리스트 색을 갱신한다.
-		void ApplyModelListTheme() const;
 		// 모델 모션 열을 버튼처럼 직접 그린다.
 		void DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const;
 
@@ -58,7 +57,7 @@ namespace Chrivent {
 		void UpdateLanguage() override;
 		// 모델 패널의 버튼과 목록 표시 상태를 갱신한다.
 		void UpdateVisibility(bool visible) const override;
-		// 재생 상태에 따라 모델 추가/삭제와 모션 선택을 잠근다.
+		// 재생 상태에 따라 모델 추가/삭제와 모션 교체를 잠근다.
 		void ApplyPlaybackState(bool isPlaying);
 		// Add 버튼 명령을 처리해 모델 파일 선택 요청을 만든다.
 		bool HandleCommand(UINT_PTR commandId, int) override;

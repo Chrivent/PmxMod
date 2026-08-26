@@ -21,7 +21,7 @@
         Manager/InputManager.h Manager/InputManager.cpp
         Manager/PanelManager.h Manager/PanelManager.cpp
 
-        Panel/Panel.h Panel/Panel.cpp
+		Panel/Panel.h
         Panel/CameraPanel.h Panel/CameraPanel.cpp
         Panel/InformationPanel.h Panel/InformationPanel.cpp
         Panel/InterpolationCurvePanel.h Panel/InterpolationCurvePanel.cpp
@@ -44,6 +44,7 @@ target_link_libraries(PmxMod PRIVATE
         comctl32
         dwmapi
         nlohmann_json::nlohmann_json
+		shell32
         uxtheme
 )
 

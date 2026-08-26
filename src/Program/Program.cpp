@@ -19,6 +19,7 @@
 #include "Program/Language.h"
 
 #include <CommCtrl.h>
+#include <shellapi.h>
 #include <GLFW/glfw3native.h>
 #include <algorithm>
 #include <cwchar>
@@ -79,6 +80,10 @@ namespace Chrivent {
     }
 
     bool Program::ParseArguments(const int argumentCount, wchar_t* arguments[], ProgramOptions& options) {
+		if (argumentCount == 2 && std::wstring(arguments[1]) == L"--help") {
+			options.showHelp = true;
+			return true;
+		}
         for (int index = 1; index < argumentCount; index++) {
             const std::wstring argument = arguments[index];
             if (index + 1 >= argumentCount)
@@ -100,6 +105,16 @@ namespace Chrivent {
         }
         return true;
     }
+
+	bool Program::ParseCommandLine(ProgramOptions& options) {
+		int argumentCount = 0;
+		wchar_t** arguments = CommandLineToArgvW(GetCommandLineW(), &argumentCount);
+		if (!arguments)
+			return false;
+		const bool parsed = ParseArguments(argumentCount, arguments, options);
+		LocalFree(arguments);
+		return parsed;
+	}
 
     const char* Program::ResolveRendererName(const RendererType rendererType) {
         switch (rendererType) {
@@ -1082,16 +1097,21 @@ namespace Chrivent {
     Program::Program() = default;
     Program::~Program() = default;
 
-    int Program::Run(const int argumentCount, wchar_t* arguments[]) {
-        if (argumentCount == 2 && std::wstring(arguments[1]) == L"--help") {
-            PrintUsage();
-            return 0;
-        }
+    int Program::Run() {
         ProgramOptions options;
-        if (!ParseArguments(argumentCount, arguments, options)) {
+		if (!ParseCommandLine(options)) {
             PrintUsage();
             return 1;
         }
+		if (options.showHelp) {
+			PrintUsage();
+			return 0;
+		}
+		Program program;
+		return program.Execute(options);
+	}
+
+	int Program::Execute(const ProgramOptions& options) {
         Language::Initialize();
 		if (!resourceDirectories.Initialize()) {
 			std::cerr << "리소스 디렉터리 경로를 확인하지 못했습니다.\n";

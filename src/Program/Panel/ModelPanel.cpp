@@ -88,27 +88,14 @@ namespace Chrivent {
 		updatingModelList = false;
 	}
 
-	void ModelPanel::ApplyModelListTheme() const {
-		if (!modelList)
-			return;
-		const bool locked = IsInputLocked();
-		const COLORREF backgroundColor = locked ? GuiTheme::disabledControlColor : GuiTheme::controlColor;
-		const COLORREF textColor = locked ? GuiTheme::disabledTextColor : GuiTheme::textColor;
-		ListView_SetBkColor(modelList, backgroundColor);
-		ListView_SetTextBkColor(modelList, backgroundColor);
-		ListView_SetTextColor(modelList, textColor);
-		InvalidateRect(modelList, nullptr, TRUE);
-	}
-
 	void ModelPanel::DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const {
 		if (!modelList || customDraw.iSubItem != kMotionColumn)
 			return;
 		RECT buttonRect{};
 		ListView_GetSubItemRect(modelList, static_cast<int>(customDraw.nmcd.dwItemSpec), kMotionColumn, LVIR_BOUNDS, &buttonRect);
 		InflateRect(&buttonRect, -4, -3);
-		const bool locked = IsInputLocked();
-		const COLORREF fillColor = locked ? GuiTheme::disabledControlColor : RGB(47, 53, 64);
-		const COLORREF borderColor = locked ? RGB(72, 78, 90) : GuiTheme::borderColor;
+		const COLORREF fillColor = playing ? GuiTheme::disabledControlColor : RGB(47, 53, 64);
+		const COLORREF borderColor = playing ? RGB(72, 78, 90) : GuiTheme::borderColor;
 		const HBRUSH fillBrush = CreateSolidBrush(fillColor);
 		FillRect(customDraw.nmcd.hdc, &buttonRect, fillBrush);
 		DeleteObject(fillBrush);
@@ -120,7 +107,7 @@ namespace Chrivent {
 		SelectObject(customDraw.nmcd.hdc, previousPen);
 		DeleteObject(borderPen);
 		SetBkMode(customDraw.nmcd.hdc, TRANSPARENT);
-		SetTextColor(customDraw.nmcd.hdc, locked ? GuiTheme::disabledTextColor : GuiTheme::textColor);
+		SetTextColor(customDraw.nmcd.hdc, playing ? GuiTheme::disabledTextColor : GuiTheme::textColor);
 		DrawTextW(customDraw.nmcd.hdc, Language::Text("model.motion").c_str(), -1, &buttonRect,
 			DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 	}
@@ -144,9 +131,7 @@ namespace Chrivent {
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_NOCOLUMNHEADER,
 			0, 0, 0, 0,
 			parent, reinterpret_cast<HMENU>(modelListId), GetModuleHandleW(nullptr), nullptr);
-		AttachInputLockedControl(modelList, modelListId);
 		ListView_SetExtendedListViewStyle(modelList, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
-		ApplyModelListTheme();
 		LVCOLUMNW modelColumn{};
 		modelColumn.mask = LVCF_WIDTH;
 		ListView_InsertColumn(modelList, 0, &modelColumn);
@@ -199,14 +184,16 @@ namespace Chrivent {
 	}
 
 	void ModelPanel::ApplyPlaybackState(const bool isPlaying) {
-		if (!ApplyInputLock(isPlaying))
+		if (playing == isPlaying)
 			return;
+		playing = isPlaying;
 		const BOOL enabled = isPlaying ? FALSE : TRUE;
 		if (addButton)
 			EnableWindow(addButton, enabled);
 		if (deleteButton)
 			EnableWindow(deleteButton, enabled);
-		ApplyModelListTheme();
+		if (modelList)
+			InvalidateRect(modelList, nullptr, FALSE);
 	}
 
 	bool ModelPanel::HandleCommand(const UINT_PTR commandId, const int) {
@@ -262,7 +249,8 @@ namespace Chrivent {
 				selectedModelIndex = click.iItem;
 				pendingSelectedModelIndex = selectedModelIndex;
 				ApplyModelSelection();
-				ShowOpenModelMotionDialog(click.iItem);
+				if (!playing)
+					ShowOpenModelMotionDialog(click.iItem);
 				return true;
 			}
 		}
@@ -286,7 +274,7 @@ namespace Chrivent {
 		pendingSelectedModelIndex = -1;
 		pendingDeleteModelIndex = -1;
 		pendingModelMotionIndex = -1;
-		ApplyInputLock(false);
+		playing = false;
 	}
 
 	bool ModelPanel::ConsumeAddModelPath(std::filesystem::path& modelPath) {

@@ -32,12 +32,13 @@ namespace Chrivent {
 			Failed
 		};
 
-        // 명령행에서 받은 씬, 렌더러와 벤치마크 옵션을 보관한다.
+        // 명령행에서 받은 씬, 렌더러, 벤치마크와 도움말 옵션을 보관한다.
         struct ProgramOptions {
             std::filesystem::path scenePath;
             RendererType rendererType = RendererType::OpenGL;
             std::size_t benchmarkFrames = 0;
             std::size_t warmupFrames = 60;
+			bool showHelp = false;
         };
 
         // 한 프레임의 갱신 및 렌더링 단계별 시간을 보관한다.
@@ -109,6 +110,8 @@ namespace Chrivent {
         static bool ParseCount(const wchar_t* value, std::size_t& count);
         // 명령행 인자를 프로그램 실행 옵션으로 구성한다.
         static bool ParseArguments(int argumentCount, wchar_t* arguments[], ProgramOptions& options);
+		// Windows 유니코드 명령행을 읽어 프로그램 실행 옵션으로 구성한다.
+		static bool ParseCommandLine(ProgramOptions& options);
         // 렌더러 형식을 성능 결과에 사용할 짧은 이름으로 변환한다.
         static const char* ResolveRendererName(RendererType rendererType);
         // 실행할 렌더러를 선택해 생성한다.
@@ -176,14 +179,16 @@ namespace Chrivent {
 			const FrameUpdateTimes& updateTimes);
         // 한 프레임의 입력, 시간, 카메라, 렌더링을 처리한다.
         bool RunFrame(FrameTiming* timing = nullptr, bool pollGuiWindows = true);
-        // 지정한 프레임 수만큼 고정 시간으로 실행하고 구간별 성능 결과를 출력한다.
+		// 지정한 프레임 수만큼 고정 시간으로 실행하고 구간별 성능 결과를 출력한다.
         int RunBenchmark(std::size_t warmupFrames, std::size_t benchmarkFrames);
+		// 해석된 명령행 옵션으로 프로그램 수명 주기를 실행한다.
+		int Execute(const ProgramOptions& options);
         
     public:
         Program();
         ~Program();
         
         // 명령행 옵션으로 씬과 렌더러를 구성하고 프로그램을 실행한다.
-        int Run(int argumentCount, wchar_t* arguments[]);
+		static int Run();
     };
 }
