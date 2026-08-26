@@ -7,7 +7,7 @@ SamplerState LinearClamp : register(s0);
 #include "../../include/motion-blur.hlsli"
 
 float2 ReadVelocity(float2 uv) {
-    return PrepareVelocity(SceneVelocity.SampleLevel(LinearClamp, saturate(uv), 0.0).xy);
+    return PrepareVelocity(LoadMotionTexture(SceneVelocity, uv).xy);
 }
 
 float2 ReadDominantVelocity(float2 uv) {
@@ -18,9 +18,8 @@ float2 ReadDominantVelocity(float2 uv) {
         float2(0.0, -0.5), float2(0.0, 0.5)
     };
     for (int index = 0; index < 5; index++) {
-        float4 candidate = NeighborhoodMotion.SampleLevel(
-            LinearClamp, saturate(uv + offsets[index] * tileTexelSize), 0.0);
-        candidate.xy = PrepareVelocity(candidate.xy);
+        float4 candidate = LoadMotionTexture(
+            NeighborhoodMotion, uv + offsets[index] * tileTexelSize);
         candidate.w = length(candidate.xy);
         dominantMotion = SelectDominantMotion(dominantMotion, candidate);
     }
@@ -36,7 +35,7 @@ float4 ResolveDirectionalBlur(float2 uv, float passRate, int sampleRadius) {
     float2 blurVelocity = length(centerVelocity) > MotionEpsilon ? centerVelocity : dominantVelocity;
     if (length(blurVelocity) <= MotionEpsilon)
         return centerColor;
-    float centerDepth = SceneDepth.SampleLevel(LinearClamp, uv, 0.0).r;
+    float centerDepth = LoadMotionTexture(SceneDepth, uv).r;
     float4 colorSum = 0.0;
     float weightSum = 0.0;
     for (int sampleIndex = -sampleRadius; sampleIndex <= sampleRadius; sampleIndex++) {
@@ -51,7 +50,7 @@ float4 ResolveDirectionalBlur(float2 uv, float passRate, int sampleRadius) {
         float motionCoverage = max(centerCoverage, sampleCoverage);
         if (sampleIndex == 0)
             motionCoverage = 1.0;
-        float sampleDepth = SceneDepth.SampleLevel(LinearClamp, sampleUv, 0.0).r;
+        float sampleDepth = LoadMotionTexture(SceneDepth, sampleUv).r;
         float depthWeight = CalculateDirectionalDepthWeight(
             centerDepth, sampleDepth, centerCoverage, sampleCoverage);
         float weight = GaussianMotionWeight(sampleRate, 0.5) * motionCoverage * depthWeight;

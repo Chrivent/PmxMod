@@ -7,15 +7,14 @@ SamplerState LinearClamp : register(s0);
 #include "../../include/motion-blur.hlsli"
 
 float2 ReadVelocity(float2 uv) {
-    return PrepareVelocity(SceneVelocity.SampleLevel(LinearClamp, saturate(uv), 0.0).xy);
+    return PrepareVelocity(LoadMotionTexture(SceneVelocity, uv).xy);
 }
 
 float2 ReadLineVelocity(float2 uv) {
     float2 centerVelocity = ReadVelocity(uv);
     if (length(centerVelocity) > MotionEpsilon)
         return centerVelocity;
-    float4 neighborMotion = NeighborhoodMotion.SampleLevel(LinearClamp, uv, 0.0);
-    return PrepareVelocity(neighborMotion.xy);
+    return LoadMotionTexture(NeighborhoodMotion, uv).xy;
 }
 
 float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
@@ -25,7 +24,7 @@ float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
     float lineSpeed = length(lineVelocity);
     if (lineSpeed <= MotionEpsilon)
         return 0.0;
-    float centerDepth = SceneDepth.SampleLevel(LinearClamp, input.uv, 0.0).r;
+    float centerDepth = LoadMotionTexture(SceneDepth, input.uv).r;
     float3 colorSum = 0.0;
     float weightSum = 0.0;
     float maximumCoverage = 0.0;
@@ -42,7 +41,7 @@ float4 PSLineReconstruction(FullscreenVertexOutput input) : SV_Target0 {
         float sampleCoverage = CalculateMotionSegmentCoverage(
             sampleUv, input.uv, sampleVelocity, LineBlurLength) * alignment;
         float segmentCoverage = max(centerCoverage, sampleCoverage);
-        float sampleDepth = SceneDepth.SampleLevel(LinearClamp, sampleUv, 0.0).r;
+        float sampleDepth = LoadMotionTexture(SceneDepth, sampleUv).r;
         float depthWeight = CalculateTrailDepthWeight(centerDepth, sampleDepth);
         float taper = pow(saturate(1.0 - abs(sampleRate)), 0.7);
         float speedWeight = saturate(sampleSpeed / max(VelocityUnderCut * 6.0, MotionEpsilon));

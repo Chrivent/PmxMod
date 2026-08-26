@@ -14,6 +14,7 @@ namespace Chrivent {
 			options.version = 460;
 			options.es = false;
 			compiler.set_common_options(options);
+			compiler.build_dummy_sampler_for_combined_images();
 			compiler.build_combined_image_samplers();
 			for (const auto& sampler : compiler.get_combined_image_samplers()) {
 				if (!compiler.has_decoration(sampler.image_id, spv::DecorationBinding))

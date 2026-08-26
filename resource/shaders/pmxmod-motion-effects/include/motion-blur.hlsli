@@ -36,7 +36,7 @@ static const float FinalDirectionalRate = 0.4;
 static const int DirectionalSampleRadius = 9;
 
 // 최종 방향 보정의 중심 양쪽 샘플 수다.
-static const int FinalDirectionalSampleRadius = 6;
+static const int FinalDirectionalSampleRadius = 9;
 
 // 라인 잔상 재구성의 중심 양쪽 샘플 수다.
 static const int LineSampleRadius = 9;
@@ -60,6 +60,16 @@ static const float VelocityTileScale = 4.0;
 static const float ReferenceShutterTime = 1.0 / 30.0;
 
 static const float MotionEpsilon = 1.0e-5;
+
+// 불연속적인 depth와 velocity가 물체 경계에서 보간되지 않도록 가장 가까운 texel을 읽는다.
+float4 LoadMotionTexture(Texture2D textureInput, float2 uv) {
+    uint width;
+    uint height;
+    textureInput.GetDimensions(width, height);
+    int2 maximumTexel = int2(max(width, 1u), max(height, 1u)) - 1;
+    int2 texel = clamp(int2(saturate(uv) * float2(width, height)), int2(0, 0), maximumTexel);
+    return textureInput.Load(int3(texel, 0));
+}
 
 // 픽셀마다 고정된 분산값을 만들어 라인 샘플의 규칙적인 띠를 줄인다.
 float CalculateMotionJitter(float2 pixelPosition) {
