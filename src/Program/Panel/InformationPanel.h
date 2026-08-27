@@ -12,7 +12,7 @@ namespace Chrivent {
 		std::wstring value;
 	};
 
-	// 현재 선택된 모델이나 이펙트의 정보를 읽기 전용 텍스트로 표시한다.
+	// 현재 선택된 모델이나 이펙트의 정보를 상시 유지되는 읽기 전용 영역에 표시한다.
 	class InformationPanel final : public Panel {
 		HWND informationText = nullptr;
 		std::vector<InformationField> fields;

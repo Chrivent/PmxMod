@@ -139,7 +139,7 @@ namespace Chrivent {
 		}
 		// 선택한 모델이나 이펙트의 정보 필드를 좌측 정보 패널에 표시한다.
 		void ApplyInformation(std::vector<InformationField> fields);
-		// 선택 정보가 없을 때 정보 패널을 비우고 숨긴다.
+		// 선택 정보가 없을 때 항상 표시되는 정보 패널의 내용을 비운다.
 		void ClearInformation();
 		// 현재 씬의 카메라 모션 경로를 카메라 패널에 반영한다.
 		void ApplyCameraMotionPath(const std::filesystem::path& motionPath) {

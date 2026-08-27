@@ -51,7 +51,7 @@ namespace Chrivent {
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);
 		panelWindow.RegisterPanel(cameraPanel, "panel.camera", PanelWindowArea::Model);
-		panelWindow.RegisterPanel(informationPanel, "panel.information", PanelWindowArea::Information, false);
+		panelWindow.RegisterPanel(informationPanel, "panel.information", PanelWindowArea::Information);
 		panelWindow.RegisterPanel(motionPanel, "panel.motion", PanelWindowArea::Motion);
 		panelWindow.RegisterPanel(interpolationCurvePanel, "panel.interpolation_curve", PanelWindowArea::InterpolationCurve);
 		panelWindow.RegisterPanel(playbackPanel, "panel.playback", PanelWindowArea::Bottom);
@@ -65,12 +65,10 @@ namespace Chrivent {
 			return;
 		}
 		informationPanel.ApplyFields(std::move(fields));
-		panelWindow.UpdatePanelVisibility(informationPanel, true);
 	}
 
 	void PanelManager::ClearInformation() {
 		informationPanel.Clear();
-		panelWindow.UpdatePanelVisibility(informationPanel, false);
 	}
 
 	void PanelManager::CommitSceneConfig(const SceneConfig& cfg) {
