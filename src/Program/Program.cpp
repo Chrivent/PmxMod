@@ -568,6 +568,13 @@ namespace Chrivent {
 			panelManager.CommitSceneConfig(requestedSceneConfig, requestedScenePath);
 			UpdateCameraMotionPanel();
 		}
+		std::filesystem::path musicPath;
+		if (panelManager.ConsumeMusicPath(musicPath)) {
+			SceneConfig sceneConfig = panelManager.GetSceneConfig();
+			sceneConfig.musicPath = std::move(musicPath);
+			if (LoadScene(sceneConfig))
+				panelManager.CommitSceneConfig(sceneConfig);
+		}
 		std::filesystem::path cameraMotionPath;
 		if (panelManager.ConsumeCameraMotionPath(cameraMotionPath)) {
 			SceneConfig sceneConfig = panelManager.GetSceneConfig();

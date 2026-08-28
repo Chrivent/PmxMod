@@ -78,6 +78,27 @@ namespace Chrivent {
 			std::cerr << "현재 장면 설정을 저장하지 못했습니다.\n";
 	}
 
+	void MenuBar::ShowOpenMusicDialog() {
+		std::vector filename(MAX_PATH, L'\0');
+		std::wstring filter = Language::Text("scene.dialog.audio");
+		filter.append(1, L'\0');
+		filter += L"*.wav;*.mp3;*.flac;*.ogg";
+		filter.append(1, L'\0');
+		filter += Language::Text("dialog.all_files");
+		filter.append(1, L'\0');
+		filter += L"*.*";
+		filter.append(2, L'\0');
+		OPENFILENAMEW ofn{};
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = ownerWindow;
+		ofn.lpstrFilter = filter.c_str();
+		ofn.lpstrFile = filename.data();
+		ofn.nMaxFile = MAX_PATH;
+		ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+		if (GetOpenFileNameW(&ofn))
+			pendingMusicPath = filename.data();
+	}
+
 	void MenuBar::SelectRenderer(const RendererType renderer) {
 		if (rendererType == renderer)
 			return;
@@ -161,6 +182,7 @@ namespace Chrivent {
 		HMENU fileMenu = CreatePopupMenu();
 		AppendMenuW(fileMenu, MF_STRING, kNewButtonId, Language::Text("menu.new").c_str());
 		AppendMenuW(fileMenu, MF_STRING, kOpenButtonId, Language::Text("menu.open").c_str());
+		AppendMenuW(fileMenu, MF_STRING, kOpenMusicButtonId, Language::Text("menu.open_music").c_str());
 		AppendMenuW(fileMenu, MF_STRING, kSaveButtonId, Language::Text("menu.save").c_str());
 		const UINT editableMenuState = MF_POPUP | (playing ? MF_GRAYED : MF_ENABLED);
 		AppendMenuW(menu, editableMenuState, reinterpret_cast<UINT_PTR>(fileMenu), Language::Text("menu.file").c_str());
@@ -213,6 +235,9 @@ namespace Chrivent {
 				return true;
 			case kSaveButtonId:
 				ShowSaveSceneDialog();
+				return true;
+			case kOpenMusicButtonId:
+				ShowOpenMusicDialog();
 				return true;
 			case kOpenGlRendererId:
 				SelectRenderer(RendererType::OpenGL);
@@ -272,6 +297,7 @@ namespace Chrivent {
 	void MenuBar::Reset() {
 		pendingSceneConfig.reset();
 		pendingSceneFilePath.clear();
+		pendingMusicPath.reset();
 		rendererDirty = false;
 		physicsDirty = false;
 		languageDirty = false;
@@ -285,6 +311,14 @@ namespace Chrivent {
 		sourcePath = std::move(pendingSceneFilePath);
 		pendingSceneConfig.reset();
 		pendingSceneFilePath.clear();
+		return true;
+	}
+
+	bool MenuBar::ConsumeMusicPath(std::filesystem::path& musicPath) {
+		if (!pendingMusicPath)
+			return false;
+		musicPath = std::move(*pendingMusicPath);
+		pendingMusicPath.reset();
 		return true;
 	}
 
@@ -311,5 +345,4 @@ namespace Chrivent {
 		panelLayoutResetRequested = false;
 		return requested;
 	}
-
 }

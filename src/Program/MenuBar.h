@@ -13,6 +13,7 @@ namespace Chrivent {
 		static constexpr int kNewButtonId = 999;
 		static constexpr int kOpenButtonId = 1000;
 		static constexpr int kSaveButtonId = 1001;
+		static constexpr int kOpenMusicButtonId = 1050;
 		static constexpr int kOpenGlRendererId = 1100;
 		static constexpr int kDirectX11RendererId = 1101;
 		static constexpr int kDirectX12RendererId = 1102;
@@ -29,6 +30,7 @@ namespace Chrivent {
 		std::filesystem::path sceneFilePath;
 		std::optional<SceneConfig> pendingSceneConfig;
 		std::filesystem::path pendingSceneFilePath;
+		std::optional<std::filesystem::path> pendingMusicPath;
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
 		bool physicsEnabled = true;
@@ -49,6 +51,8 @@ namespace Chrivent {
 		void ShowOpenSceneDialog();
 		// 씬 설정을 저장할 경로를 선택하는 대화상자를 표시한다.
 		void ShowSaveSceneDialog();
+		// 현재 씬에서 사용할 음악 파일을 선택하는 열기 대화상자를 표시한다.
+		void ShowOpenMusicDialog();
 		// 사용할 렌더러를 선택하고 변경 상태를 기록한다.
 		void SelectRenderer(RendererType renderer);
 		// 현재 렌더러에 맞춰 메뉴의 선택 표시를 갱신한다.
@@ -80,6 +84,8 @@ namespace Chrivent {
 		void Reset();
 		// 대기 중인 씬 설정과 원본 파일 경로를 반환하고 요청을 초기화한다.
 		bool ConsumeSceneConfigRequest(SceneConfig& config, std::filesystem::path& sourcePath);
+		// 파일 메뉴에서 선택한 음악 경로를 반환하고 요청을 초기화한다.
+		bool ConsumeMusicPath(std::filesystem::path& musicPath);
 		// 렌더러 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeRendererDirty();
 		// 물리 활성화 변경 플래그를 반환하고 초기화한다.
