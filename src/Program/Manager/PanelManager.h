@@ -32,8 +32,6 @@ namespace Chrivent {
 		static constexpr UINT_PTR kModelAddButtonId = 3001;
 		static constexpr UINT_PTR kModelDeleteButtonId = 3002;
 		static constexpr UINT_PTR kModelListId = 3003;
-		static constexpr UINT_PTR kCameraAddMotionButtonId = 5001;
-		static constexpr UINT_PTR kCameraDeleteMotionButtonId = 5002;
 		static constexpr UINT_PTR kCameraShaderListId = 5003;
 		static constexpr UINT_PTR kCameraModelShaderCheckId = 5004;
 		static constexpr UINT_PTR kCameraEdgeShaderCheckId = 5005;
@@ -127,8 +125,6 @@ namespace Chrivent {
 		bool ConsumeCameraMotionSelected() { return cameraPanel.ConsumeCameraMotionSelected(); }
 		// 카메라 패널에서 선택한 카메라 모션 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeCameraMotionPath(std::filesystem::path& motionPath) { return cameraPanel.ConsumeCameraMotionPath(motionPath); }
-		// 카메라 패널의 카메라 모션 삭제 요청을 반환하고 대기 요청을 초기화한다.
-		bool ConsumeDeleteCameraMotion() { return cameraPanel.ConsumeDeleteCameraMotion(); }
 		// 현재 씬 설정의 모델 목록을 패널에 다시 반영한다.
 		void RefreshModelList() { UpdateModelPanel(); }
 		// 검색된 셰이더 효과 이름과 현재 선택을 카메라 패널에 반영한다.

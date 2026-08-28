@@ -1,6 +1,7 @@
 PmxModScene
 camera	D:\예찬\MMD\motion\(17)Classic_camera.vmd
 music	D:\예찬\MMD\wav\17.wav
-models	1
+models	2
 model	1	1	D:\예찬\MMD\model\Hatsune Miku (Tda)\Hatsune Miku (Tda).pmx
 anim	D:\예찬\MMD\motion\(17)Classic.vmd
+model	1	0	D:\예찬\MMD\background\skura no ame\stage.pmx

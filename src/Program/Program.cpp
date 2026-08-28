@@ -419,7 +419,6 @@ namespace Chrivent {
 			music = std::move(loadedMusic);
 		cameraManager = std::move(loadedCameraManager);
         panelManager.BindSound(music);
-        panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
         saveTime = std::chrono::steady_clock::now();
         cameraManager.Stop(*viewer, music, saveTime);
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
@@ -566,6 +565,7 @@ namespace Chrivent {
 		if (panelManager.ConsumeSceneConfigRequest(requestedSceneConfig, requestedScenePath)
 			&& LoadScene(requestedSceneConfig)) {
 			panelManager.CommitSceneConfig(requestedSceneConfig, requestedScenePath);
+			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
 			UpdateCameraMotionPanel();
 		}
 		std::filesystem::path musicPath;
@@ -581,17 +581,8 @@ namespace Chrivent {
 			sceneConfig.cameraAnim = std::move(cameraMotionPath);
 			if (LoadScene(sceneConfig)) {
 				panelManager.CommitSceneConfig(sceneConfig);
-				panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-				UpdateCameraMotionPanel();
-			}
-		}
-		if (panelManager.ConsumeDeleteCameraMotion()) {
-			SceneConfig sceneConfig = panelManager.GetSceneConfig();
-			sceneConfig.cameraAnim.clear();
-			if (LoadScene(sceneConfig)) {
-				panelManager.CommitSceneConfig(sceneConfig);
-				panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
-				UpdateCameraMotionPanel();
+				if (panelManager.IsCameraMode())
+					UpdateCameraMotionPanel();
 			}
 		}
 		size_t deleteModelIndex = 0;
@@ -617,8 +608,8 @@ namespace Chrivent {
 				sceneConfig.modelConfigs[motionModelIndex].animPaths = { std::move(modelMotionPath) };
 				if (LoadScene(sceneConfig)) {
 					panelManager.CommitSceneConfig(sceneConfig);
-					panelManager.ApplyMotionMode(MotionTimelineMode::Model);
-					UpdateMotionPanel(motionModelIndex);
+					if (!panelManager.IsCameraMode())
+						UpdateMotionPanel(motionModelIndex);
 				}
 			}
 		}
@@ -999,6 +990,7 @@ namespace Chrivent {
             Shutdown();
             return 1;
         }
+		panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
         UpdateCameraMotionPanel();
         const auto loadEnd = std::chrono::steady_clock::now();
         if (benchmarkMode) {

@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <CommCtrl.h>
 
 namespace Chrivent {
 	// 카메라 패널에서 직접 켜고 끌 수 있는 내장 장면 셰이더를 구분한다.
@@ -19,9 +20,8 @@ namespace Chrivent {
 	class CameraPanel final : public Panel {
 		static constexpr int kCameraMotionRow = 0;
 		static constexpr int kShaderRowOffset = 1;
+		static constexpr int kMotionColumn = 1;
 
-		UINT_PTR addCameraButtonId = 0;
-		UINT_PTR deleteCameraButtonId = 0;
 		UINT_PTR shaderListId = 0;
 		UINT_PTR modelShaderCheckId = 0;
 		UINT_PTR edgeShaderCheckId = 0;
@@ -37,11 +37,8 @@ namespace Chrivent {
 		bool groundShadowShaderEnabled = true;
 		bool updatingShaderList = false;
 		bool playing = false;
-		bool pendingDeleteCameraMotion = false;
 		bool pendingCameraMotionSelected = false;
 		HWND parentWindow = nullptr;
-		HWND addCameraButton = nullptr;
-		HWND deleteCameraButton = nullptr;
 		HWND modelShaderCheck = nullptr;
 		HWND edgeShaderCheck = nullptr;
 		HWND groundShadowShaderCheck = nullptr;
@@ -59,6 +56,8 @@ namespace Chrivent {
 		void RefreshShaderList();
 		// 카메라 행과 셰이더 행의 선택/체크 상태를 리스트뷰에 반영한다.
 		void ApplyListState();
+		// 카메라 모션 열을 버튼처럼 직접 그린다.
+		void DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const;
 		// 셰이더 목록에서 선택하거나 체크한 항목을 대기 요청으로 기록한다.
 		void QueueShaderSelection(int shaderIndex, bool enabled);
 		// 내장 장면 셰이더 체크 상태를 대기 요청으로 기록한다.
@@ -69,11 +68,9 @@ namespace Chrivent {
 	public:
 		CameraPanel() = default;
 
-		// 카메라 모션 버튼과 셰이더 목록의 컨트롤 ID를 적용한다.
-		void ApplyControlIds(const UINT_PTR addId, const UINT_PTR deleteId, const UINT_PTR listId,
+		// 셰이더 목록과 내장 셰이더 체크박스의 컨트롤 ID를 적용한다.
+		void ApplyControlIds(const UINT_PTR listId,
 			const UINT_PTR modelCheckId, const UINT_PTR edgeCheckId, const UINT_PTR groundShadowCheckId) {
-			addCameraButtonId = addId;
-			deleteCameraButtonId = deleteId;
 			shaderListId = listId;
 			modelShaderCheckId = modelCheckId;
 			edgeShaderCheckId = edgeCheckId;
@@ -86,13 +83,13 @@ namespace Chrivent {
 		void Resize(const RECT& clientRect) override;
 		// 카메라 패널의 컨트롤 표시 상태를 갱신한다.
 		void UpdateVisibility(bool visible) const override;
-		// 재생 상태에 따라 카메라 모션 추가/삭제를 잠근다.
+		// 재생 상태에 따라 카메라 모션 교체 버튼 표시를 갱신한다.
 		void ApplyPlaybackState(bool isPlaying);
-		// 현재 언어에 맞춰 버튼 문구와 카메라 모션 표시를 갱신한다.
+		// 현재 언어에 맞춰 카메라 모션과 셰이더 표시를 갱신한다.
 		void UpdateLanguage() override;
-		// 카메라 모션 버튼과 셰이더 목록의 명령을 처리한다.
+		// 내장 셰이더 체크박스 명령을 처리한다.
 		bool HandleCommand(UINT_PTR commandId, int notificationCode) override;
-		// 셰이더 리스트뷰의 선택과 체크박스 변경 알림을 처리한다.
+		// 카메라 모션 열과 셰이더 리스트뷰 알림을 처리한다.
 		bool HandleNotify(const NMHDR& notifyHeader, LRESULT& result) override;
 		// 카메라 패널 컨트롤 핸들을 정리한다.
 		void Destroy() override;
@@ -104,8 +101,6 @@ namespace Chrivent {
 		bool ConsumeCameraMotionSelected();
 		// 추가한 카메라 모션 경로를 반환하고 대기 중인 요청을 초기화한다.
 		bool ConsumeCameraMotionPath(std::filesystem::path& motionPath);
-		// 카메라 모션 삭제 요청을 반환하고 내부 상태를 초기화한다.
-		bool ConsumeDeleteCameraMotion();
 		// 현재 씬의 카메라 모션 경로를 패널에 반영한다.
 		void UpdateCameraMotionPath(const std::filesystem::path& motionPath);
 		// 검색된 셰이더 이름과 현재 선택을 패널에 반영한다.

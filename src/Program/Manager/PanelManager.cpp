@@ -46,7 +46,7 @@ namespace Chrivent {
 		});
 		soundPanel.SetVolumeSliderId(kSoundVolumeSliderId);
 		modelPanel.ApplyControlIds(kModelAddButtonId, kModelDeleteButtonId, kModelListId);
-		cameraPanel.ApplyControlIds(kCameraAddMotionButtonId, kCameraDeleteMotionButtonId, kCameraShaderListId,
+		cameraPanel.ApplyControlIds(kCameraShaderListId,
 			kCameraModelShaderCheckId, kCameraEdgeShaderCheckId, kCameraGroundShadowShaderCheckId);
 		panelWindow.AttachMenuBar(menuBar);
 		panelWindow.RegisterPanel(modelPanel, "panel.model", PanelWindowArea::Model, false);

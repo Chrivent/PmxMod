@@ -4,7 +4,6 @@
 #include "Program/Language.h"
 
 #include <algorithm>
-#include <CommCtrl.h>
 #include <utility>
 
 namespace Chrivent {
@@ -81,6 +80,30 @@ namespace Chrivent {
 		updatingShaderList = false;
 	}
 
+	void CameraPanel::DrawMotionButton(const NMLVCUSTOMDRAW& customDraw) const {
+		if (!shaderList || customDraw.nmcd.dwItemSpec != kCameraMotionRow || customDraw.iSubItem != kMotionColumn)
+			return;
+		RECT buttonRect{};
+		ListView_GetSubItemRect(shaderList, kCameraMotionRow, kMotionColumn, LVIR_BOUNDS, &buttonRect);
+		InflateRect(&buttonRect, -4, -3);
+		const COLORREF fillColor = playing ? GuiTheme::disabledControlColor : RGB(47, 53, 64);
+		const COLORREF borderColor = playing ? RGB(72, 78, 90) : GuiTheme::borderColor;
+		const HBRUSH fillBrush = CreateSolidBrush(fillColor);
+		FillRect(customDraw.nmcd.hdc, &buttonRect, fillBrush);
+		DeleteObject(fillBrush);
+		const HPEN borderPen = CreatePen(PS_SOLID, 1, borderColor);
+		const HGDIOBJ previousPen = SelectObject(customDraw.nmcd.hdc, borderPen);
+		const HGDIOBJ previousBrush = SelectObject(customDraw.nmcd.hdc, GetStockObject(NULL_BRUSH));
+		Rectangle(customDraw.nmcd.hdc, buttonRect.left, buttonRect.top, buttonRect.right, buttonRect.bottom);
+		SelectObject(customDraw.nmcd.hdc, previousBrush);
+		SelectObject(customDraw.nmcd.hdc, previousPen);
+		DeleteObject(borderPen);
+		SetBkMode(customDraw.nmcd.hdc, TRANSPARENT);
+		SetTextColor(customDraw.nmcd.hdc, playing ? GuiTheme::disabledTextColor : GuiTheme::textColor);
+		DrawTextW(customDraw.nmcd.hdc, Language::Text("camera.motion").c_str(), -1, &buttonRect,
+			DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
+	}
+
 	void CameraPanel::QueueShaderSelection(const int shaderIndex, const bool enabled) {
 		if (shaderIndex < 0 || shaderIndex >= static_cast<int>(shaderNames.size()))
 			return;
@@ -120,16 +143,6 @@ namespace Chrivent {
 		if (shaderList)
 			return;
 		parentWindow = parent;
-		deleteCameraButton = CreateWindowExW(
-			0, L"BUTTON", Language::Text("camera.delete").c_str(),
-			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(deleteCameraButtonId), GetModuleHandleW(nullptr), nullptr);
-		addCameraButton = CreateWindowExW(
-			0, L"BUTTON", Language::Text("camera.add").c_str(),
-			WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-			0, 0, 0, 0,
-			parent, reinterpret_cast<HMENU>(addCameraButtonId), GetModuleHandleW(nullptr), nullptr);
 		modelShaderCheck = CreateWindowExW(0, L"BUTTON", Language::Text("camera.shader.model").c_str(),
 			WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, 0, 0, 0, 0, parent,
 			reinterpret_cast<HMENU>(modelShaderCheckId), GetModuleHandleW(nullptr), nullptr);
@@ -148,8 +161,9 @@ namespace Chrivent {
 		LVCOLUMNW column{};
 		column.mask = LVCF_WIDTH;
 		ListView_InsertColumn(shaderList, 0, &column);
-		GuiTheme::ApplyControl(deleteCameraButton);
-		GuiTheme::ApplyControl(addCameraButton);
+		LVCOLUMNW motionColumn{};
+		motionColumn.mask = LVCF_WIDTH;
+		ListView_InsertColumn(shaderList, kMotionColumn, &motionColumn);
 		GuiTheme::ApplyControl(modelShaderCheck);
 		GuiTheme::ApplyControl(edgeShaderCheck);
 		GuiTheme::ApplyControl(groundShadowShaderCheck);
@@ -162,32 +176,24 @@ namespace Chrivent {
 		if (!shaderList)
 			return;
 		constexpr int margin = 12;
-		constexpr int buttonWidth = 72;
-		constexpr int buttonHeight = 28;
 		constexpr int checkHeight = 22;
 		constexpr int gap = 8;
 		const int width = std::max(0, static_cast<int>(clientRect.right - clientRect.left - margin * 2));
-		const int deleteX = clientRect.right - margin - buttonWidth * 2 - gap;
-		const int addX = clientRect.right - margin - buttonWidth;
-		const int shaderTop = clientRect.top + margin + buttonHeight + gap;
+		const int shaderTop = clientRect.top + margin;
 		const int listTop = shaderTop + checkHeight + gap;
 		const int listHeight = std::max(0, static_cast<int>(clientRect.bottom - listTop - margin));
-		MoveWindow(deleteCameraButton, deleteX, clientRect.top + margin, buttonWidth, buttonHeight, TRUE);
-		MoveWindow(addCameraButton, addX, clientRect.top + margin, buttonWidth, buttonHeight, TRUE);
 		const int checkWidth = std::max(0, width / 3);
 		MoveWindow(modelShaderCheck, clientRect.left + margin, shaderTop, checkWidth, checkHeight, TRUE);
 		MoveWindow(edgeShaderCheck, clientRect.left + margin + checkWidth, shaderTop, checkWidth, checkHeight, TRUE);
 		MoveWindow(groundShadowShaderCheck, clientRect.left + margin + checkWidth * 2,
 			shaderTop, width - checkWidth * 2, checkHeight, TRUE);
 		MoveWindow(shaderList, clientRect.left + margin, listTop, width, listHeight, TRUE);
-		ListView_SetColumnWidth(shaderList, 0, width - 4);
+		const int motionColumnWidth = std::min(82, std::max(0, width / 3));
+		ListView_SetColumnWidth(shaderList, 0, std::max(0, width - motionColumnWidth - 4));
+		ListView_SetColumnWidth(shaderList, kMotionColumn, motionColumnWidth);
 	}
 
 	void CameraPanel::UpdateVisibility(const bool visible) const {
-		if (deleteCameraButton)
-			ShowWindow(deleteCameraButton, visible ? SW_SHOW : SW_HIDE);
-		if (addCameraButton)
-			ShowWindow(addCameraButton, visible ? SW_SHOW : SW_HIDE);
 		if (modelShaderCheck)
 			ShowWindow(modelShaderCheck, visible ? SW_SHOW : SW_HIDE);
 		if (edgeShaderCheck)
@@ -202,18 +208,11 @@ namespace Chrivent {
 		if (playing == isPlaying)
 			return;
 		playing = isPlaying;
-		const BOOL enabled = isPlaying ? FALSE : TRUE;
-		if (addCameraButton)
-			EnableWindow(addCameraButton, enabled);
-		if (deleteCameraButton)
-			EnableWindow(deleteCameraButton, enabled);
+		if (shaderList)
+			InvalidateRect(shaderList, nullptr, FALSE);
 	}
 
 	void CameraPanel::UpdateLanguage() {
-		if (deleteCameraButton)
-			SetWindowTextW(deleteCameraButton, Language::Text("camera.delete").c_str());
-		if (addCameraButton)
-			SetWindowTextW(addCameraButton, Language::Text("camera.add").c_str());
 		if (modelShaderCheck)
 			SetWindowTextW(modelShaderCheck, Language::Text("camera.shader.model").c_str());
 		if (edgeShaderCheck)
@@ -224,14 +223,6 @@ namespace Chrivent {
 	}
 
 	bool CameraPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
-		if (commandId == addCameraButtonId) {
-			ShowOpenCameraMotionDialog();
-			return true;
-		}
-		if (commandId == deleteCameraButtonId) {
-			pendingDeleteCameraMotion = true;
-			return true;
-		}
 		if (notificationCode == BN_CLICKED && commandId == modelShaderCheckId) {
 			QueueBuiltInShaderToggle(BuiltInShaderToggle::Model,
 				SendMessageW(modelShaderCheck, BM_GETCHECK, 0, 0) == BST_CHECKED);
@@ -254,37 +245,61 @@ namespace Chrivent {
 		result = 0;
 		if (!shaderList || notifyHeader.hwndFrom != shaderList || notifyHeader.idFrom != shaderListId)
 			return false;
-		if (notifyHeader.code != LVN_ITEMCHANGED)
-			return false;
 		if (updatingShaderList)
 			return true;
-		const auto& change = reinterpret_cast<const NMLISTVIEW&>(notifyHeader);
-		if (change.iItem < 0)
-			return true;
-		const bool selectionChanged = (change.uChanged & LVIF_STATE) != 0
-			&& ((change.uOldState ^ change.uNewState) & LVIS_SELECTED) != 0
-			&& (change.uNewState & LVIS_SELECTED) != 0;
-		const bool checkChanged = (change.uChanged & LVIF_STATE) != 0
-			&& ((change.uOldState ^ change.uNewState) & LVIS_STATEIMAGEMASK) != 0;
-		if (!selectionChanged && !checkChanged)
-			return true;
-		if (change.iItem == kCameraMotionRow) {
-			ListView_SetItemState(shaderList, kCameraMotionRow, INDEXTOSTATEIMAGEMASK(0), LVIS_STATEIMAGEMASK);
-			if (selectionChanged)
-				QueueCameraMotionSelection();
+		if (notifyHeader.code == NM_CUSTOMDRAW) {
+			const auto& customDraw = reinterpret_cast<const NMLVCUSTOMDRAW&>(notifyHeader);
+			if (customDraw.nmcd.dwDrawStage == CDDS_PREPAINT) {
+				result = CDRF_NOTIFYITEMDRAW;
+				return true;
+			}
+			if (customDraw.nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
+				result = CDRF_NOTIFYSUBITEMDRAW;
+				return true;
+			}
+			if (customDraw.nmcd.dwDrawStage == (CDDS_ITEMPREPAINT | CDDS_SUBITEM)
+				&& customDraw.nmcd.dwItemSpec == kCameraMotionRow && customDraw.iSubItem == kMotionColumn) {
+				DrawMotionButton(customDraw);
+				result = CDRF_SKIPDEFAULT;
+				return true;
+			}
+			return false;
+		}
+		if (notifyHeader.code == LVN_ITEMCHANGED) {
+			const auto& change = reinterpret_cast<const NMLISTVIEW&>(notifyHeader);
+			if (change.iItem < 0)
+				return true;
+			const bool selectionChanged = (change.uChanged & LVIF_STATE) != 0
+				&& ((change.uOldState ^ change.uNewState) & LVIS_SELECTED) != 0
+				&& (change.uNewState & LVIS_SELECTED) != 0;
+			const bool checkChanged = (change.uChanged & LVIF_STATE) != 0
+				&& ((change.uOldState ^ change.uNewState) & LVIS_STATEIMAGEMASK) != 0;
+			if (!selectionChanged && !checkChanged)
+				return true;
+			if (change.iItem == kCameraMotionRow) {
+				ListView_SetItemState(shaderList, kCameraMotionRow, INDEXTOSTATEIMAGEMASK(0), LVIS_STATEIMAGEMASK);
+				if (selectionChanged)
+					QueueCameraMotionSelection();
+				return true;
+			}
+			const int shaderIndex = change.iItem - kShaderRowOffset;
+			const bool checked = ListView_GetCheckState(shaderList, change.iItem);
+			QueueShaderSelection(shaderIndex, checked);
 			return true;
 		}
-		const int shaderIndex = change.iItem - kShaderRowOffset;
-		const bool checked = ListView_GetCheckState(shaderList, change.iItem);
-		QueueShaderSelection(shaderIndex, checked);
-		return true;
+		if (notifyHeader.code == NM_CLICK) {
+			const auto& click = reinterpret_cast<const NMITEMACTIVATE&>(notifyHeader);
+			if (click.iItem == kCameraMotionRow && click.iSubItem == kMotionColumn) {
+				QueueCameraMotionSelection();
+				if (!playing)
+					ShowOpenCameraMotionDialog();
+				return true;
+			}
+		}
+		return false;
 	}
 
 	void CameraPanel::Destroy() {
-		if (deleteCameraButton)
-			DestroyWindow(deleteCameraButton);
-		if (addCameraButton)
-			DestroyWindow(addCameraButton);
 		if (groundShadowShaderCheck)
 			DestroyWindow(groundShadowShaderCheck);
 		if (edgeShaderCheck)
@@ -294,14 +309,11 @@ namespace Chrivent {
 		if (shaderList)
 			DestroyWindow(shaderList);
 		parentWindow = nullptr;
-		deleteCameraButton = nullptr;
-		addCameraButton = nullptr;
 		modelShaderCheck = nullptr;
 		edgeShaderCheck = nullptr;
 		groundShadowShaderCheck = nullptr;
 		shaderList = nullptr;
 		pendingCameraMotionPath.clear();
-		pendingDeleteCameraMotion = false;
 		pendingCameraMotionSelected = false;
 		pendingSelectedShaderIndex = -1;
 		pendingBuiltInShaderToggle.reset();
@@ -340,13 +352,6 @@ namespace Chrivent {
 			return false;
 		motionPath = std::move(pendingCameraMotionPath);
 		pendingCameraMotionPath.clear();
-		return true;
-	}
-
-	bool CameraPanel::ConsumeDeleteCameraMotion() {
-		if (!pendingDeleteCameraMotion)
-			return false;
-		pendingDeleteCameraMotion = false;
 		return true;
 	}
 
