@@ -4,6 +4,7 @@
 #include "Viewer/PostProcess/PostProcessInputLayout.h"
 #include "Viewer/Buffer/BufferSize.h"
 #include "Viewer/Command/VulkanCommandContext.h"
+#include "Viewer/RenderTarget/VulkanMsaaDepthBuffer.h"
 
 #include <algorithm>
 #include <limits>
@@ -203,6 +204,7 @@ namespace Chrivent {
 		pipelines.Swap(other.pipelines);
 		std::swap(swapChainImageCount, other.swapChainImageCount);
 		std::swap(parameterDataStride, other.parameterDataStride);
+		std::swap(depthHasStencil, other.depthHasStencil);
 	}
 
 	GraphicsError::Result<void> VulkanPostProcess::InitializeTargets(
@@ -210,6 +212,7 @@ namespace Chrivent {
 		const VkFormat depthFormat) {
 		ResetTargets();
 		device = sourceDevice.GetDevice();
+		depthHasStencil = VulkanMsaaDepthBuffer::HasStencilComponent(depthFormat);
 		auto result = CreateSceneImages(sourceDevice, sourceSwapChain);
 		if (result && (RequiresDepth() || RequiresVelocity())) {
 			result = depthTarget.Initialize(
@@ -263,7 +266,6 @@ namespace Chrivent {
 				"Vulkan 후처리 장면 입력 target 또는 image index가 올바르지 않습니다"));
 		}
 		BeginImageStateFrame();
-		constexpr bool depthHasStencil = false;
 		const bool began = commandContext.BeginPostProcessSceneInputPass(imageIndex,
 			sceneTarget.TryGetImage(imageIndex), depthTarget.TryGetImage(imageIndex),
 			depthTarget.TryGetImageView(imageIndex),
@@ -289,7 +291,6 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "후처리 장면 입력 패스 종료",
 				"Vulkan 후처리 장면 입력 target 또는 image index가 올바르지 않습니다"));
 		}
-		constexpr bool depthHasStencil = false;
 		if (!commandContext.EndPostProcessSceneInputPass(
 			imageIndex, depthTarget.TryGetImage(imageIndex),
 			RequiresVelocity() ? velocityTarget.TryGetImage(imageIndex) : VK_NULL_HANDLE, depthHasStencil)) {
@@ -471,6 +472,7 @@ namespace Chrivent {
 	}
 
 	void VulkanPostProcess::ResetTargets() {
+		pipelines.Reset();
 		descriptors.Reset();
 		sceneTarget.Reset();
 		depthTarget.Reset();
@@ -480,13 +482,13 @@ namespace Chrivent {
 		parameterDataBuffers.clear();
 		swapChainImageCount = 0;
 		parameterDataStride = 0;
+		depthHasStencil = false;
 		targetExtent = {};
 		swapChainFormat = VK_FORMAT_UNDEFINED;
 		device = VK_NULL_HANDLE;
 	}
 
 	void VulkanPostProcess::ResetResources() {
-		pipelines.Reset();
 		ResetTargets();
 	}
 }

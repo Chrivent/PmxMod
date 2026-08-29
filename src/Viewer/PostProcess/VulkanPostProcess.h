@@ -31,6 +31,7 @@ namespace Chrivent {
 		VulkanPostProcessPipelines pipelines;
 		size_t swapChainImageCount = 0;
 		VkDeviceSize parameterDataStride = 0;
+		bool depthHasStencil = false;
 
 		// 스왑체인 이미지마다 장면 resolve와 sampling에 사용할 이미지를 생성한다.
 		GraphicsError::Result<void> CreateSceneImages(
@@ -92,7 +93,7 @@ namespace Chrivent {
 		void CommitImageStateFrame();
 		// 제출되지 않은 프레임의 Vulkan 이미지 상태 변경을 버린다.
 		void DiscardImageStateFrame();
-		// 크기에 종속된 Vulkan 후처리 target과 descriptor만 해제한다.
+		// 크기에 종속된 Vulkan 후처리 target, descriptor와 pipeline을 해제한다.
 		void ResetTargets();
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void ResetResources() override;

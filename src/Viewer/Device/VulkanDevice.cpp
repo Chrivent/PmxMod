@@ -125,6 +125,7 @@ namespace Chrivent {
 		vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 		vulkan13Features.dynamicRendering = VK_TRUE;
 		vulkan13Features.synchronization2 = VK_TRUE;
+		vulkan13Features.shaderDemoteToHelperInvocation = VK_TRUE;
 		VkDeviceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		createInfo.pNext = &vulkan13Features;
@@ -156,8 +157,11 @@ namespace Chrivent {
 		features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		features.pNext = &vulkan13Features;
 		vkGetPhysicalDeviceFeatures2(candidate, &features);
-		if (vulkan13Features.dynamicRendering != VK_TRUE || vulkan13Features.synchronization2 != VK_TRUE)
+		if (vulkan13Features.dynamicRendering != VK_TRUE
+			|| vulkan13Features.synchronization2 != VK_TRUE
+			|| vulkan13Features.shaderDemoteToHelperInvocation != VK_TRUE) {
 			return false;
+		}
 		uint32_t formatCount = 0;
 		uint32_t presentModeCount = 0;
 		if (vkGetPhysicalDeviceSurfaceFormatsKHR(candidate, surface, &formatCount, nullptr) != VK_SUCCESS
