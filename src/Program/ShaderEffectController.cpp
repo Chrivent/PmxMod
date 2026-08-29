@@ -136,12 +136,14 @@ namespace Chrivent {
 			panelManager.ApplyMotionMode(MotionTimelineMode::Camera);
 			ShowEffectInformation(panelManager, selectedEffectIndex);
 			const bool previousEnabled = effectEnabled[selectedEffectIndex];
-			effectEnabled[selectedEffectIndex] = enabled;
-			const auto applyResult = Apply(viewer);
-			if (!applyResult) {
-				effectEnabled[selectedEffectIndex] = previousEnabled;
-				RefreshPanel(panelManager, viewer);
-				return std::unexpected(applyResult.error());
+			if (previousEnabled != enabled) {
+				effectEnabled[selectedEffectIndex] = enabled;
+				const auto applyResult = Apply(viewer);
+				if (!applyResult) {
+					effectEnabled[selectedEffectIndex] = previousEnabled;
+					RefreshPanel(panelManager, viewer);
+					return std::unexpected(applyResult.error());
+				}
 			}
 			ShowEffectTimeline(panelManager, selectedEffectIndex);
 		}

@@ -71,8 +71,8 @@ namespace Chrivent {
 		void Pause(Sound& music);
 		// 재생 시간을 처음으로 되돌리고 일시정지한다.
 		void Stop(Viewer& viewer, Sound& music, std::chrono::steady_clock::time_point& saveTime);
-		// 입력 매니저가 정리한 조작 상태를 카메라와 재생 상태에 반영한다.
-		void HandleInput(const InputManager& inputManager, Sound& music);
+		// 입력 매니저가 정리한 이동과 회전 조작을 자유 카메라에 반영한다.
+		void HandleInput(const InputManager& inputManager);
 		// 현재 카메라 모드에 맞춰 뷰어의 view/projection 행렬을 갱신한다.
 		void UpdateCamera(Viewer& viewer) const;
 	};

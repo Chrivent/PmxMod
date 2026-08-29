@@ -76,6 +76,7 @@ namespace Chrivent {
 		~PanelWindow();
 
 		bool IsCloseRequested() const { return closeRequested; }
+		bool IsInputFocused() const { return window && GetForegroundWindow() == window; }
 
 		// 패널 창에서 사용할 메뉴바를 연결한다.
 		void AttachMenuBar(MenuBar& menu);

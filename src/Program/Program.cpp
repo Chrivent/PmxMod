@@ -629,18 +629,8 @@ namespace Chrivent {
 		return FrameRequestState::Continue;
 	}
 
-	void Program::ProcessPlaybackRequests() {
-		int seekFrame = 0;
-		bool seekFinished = false;
-		if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
-			cameraManager.SetPhysicsSkipped(!seekFinished);
-			cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
-			if (seekFinished) {
-				ResetPhysics(seekFrame);
-				cameraManager.SetPhysicsSkipped(false);
-			}
-		}
-		switch (panelManager.ConsumePlaybackCommand()) {
+	void Program::ApplyPlaybackCommand(const PlaybackCommand command) {
+		switch (command) {
 		case PlaybackCommand::Play:
 			cameraManager.SetPhysicsSkipped(false);
 			if (const auto [start, end] = panelManager.GetPlaybackFrameRange();
@@ -662,6 +652,72 @@ namespace Chrivent {
 		case PlaybackCommand::None:
 			break;
 		}
+	}
+
+	void Program::ProcessPlaybackRequests() {
+		int seekFrame = 0;
+		bool seekFinished = false;
+		if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
+			cameraManager.SetPhysicsSkipped(!seekFinished);
+			cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
+			if (seekFinished) {
+				ResetPhysics(seekFrame);
+				cameraManager.SetPhysicsSkipped(false);
+			}
+		}
+		ApplyPlaybackCommand(panelManager.ConsumePlaybackCommand());
+	}
+
+	void Program::ProcessPlaybackShortcuts() {
+		const auto ReadKeyState = [](const int key) {
+			return GetAsyncKeyState(key);
+		};
+		const auto WasPressed = [](const SHORT keyState, const bool previouslyDown) {
+			return (keyState & 0x0001) != 0
+				|| ((keyState & 0x8000) != 0 && !previouslyDown);
+		};
+		const SHORT spaceState = ReadKeyState(VK_SPACE);
+		const SHORT leftState = ReadKeyState(VK_LEFT);
+		const SHORT rightState = ReadKeyState(VK_RIGHT);
+		const bool spaceDown = (spaceState & 0x8000) != 0;
+		const bool leftDown = (leftState & 0x8000) != 0;
+		const bool rightDown = (rightState & 0x8000) != 0;
+		const HWND foregroundWindow = GetForegroundWindow();
+		const bool programWindowFocused = foregroundWindow == viewerNativeWindow
+			|| panelManager.IsInputFocused();
+		bool textInputFocused = false;
+		if (const HWND focusedWindow = GetFocus()) {
+			wchar_t className[16]{};
+			textInputFocused = GetClassNameW(focusedWindow, className,
+				std::size(className)) > 0
+				&& lstrcmpiW(className, L"Edit") == 0;
+		}
+		const bool acceptShortcuts = !menuFrameActive && programWindowFocused && !textInputFocused;
+		const bool togglePlayback = acceptShortcuts
+			&& WasPressed(spaceState, previousSpaceShortcutDown);
+		int frameStep = 0;
+		if (acceptShortcuts && WasPressed(leftState, previousLeftShortcutDown))
+			frameStep--;
+		if (acceptShortcuts && WasPressed(rightState, previousRightShortcutDown))
+			frameStep++;
+		previousSpaceShortcutDown = spaceDown;
+		previousLeftShortcutDown = leftDown;
+		previousRightShortcutDown = rightDown;
+		if (togglePlayback) {
+			ApplyPlaybackCommand(cameraManager.IsPlaying()
+				? PlaybackCommand::Pause : PlaybackCommand::Play);
+		}
+		if (frameStep == 0)
+			return;
+		cameraManager.Pause(music);
+		cameraManager.SetPhysicsSkipped(false);
+		const auto [startFrame, endFrame] = panelManager.GetPlaybackFrameRange();
+		const int currentFrame = cameraManager.GetAnimationFrameIndex();
+		const int targetFrame = std::clamp(currentFrame + frameStep, startFrame, endFrame);
+		if (targetFrame == currentFrame)
+			return;
+		cameraManager.SeekFrame(*viewer, music, targetFrame, saveTime);
+		ResetPhysics(targetFrame);
 	}
 
 	void Program::UpdatePlaybackState() {
@@ -828,7 +884,7 @@ namespace Chrivent {
 
     bool Program::RunFrame(FrameTiming* timing, const bool pollGuiWindows) {
         const auto frameStart = std::chrono::steady_clock::now();
-        glfwPollEvents();
+		glfwPollEvents();
         if (pollGuiWindows)
             panelManager.PollGuiWindows();
 		switch (ProcessPanelRequests()) {
@@ -842,7 +898,8 @@ namespace Chrivent {
 		ProcessPlaybackRequests();
         cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
-        cameraManager.HandleInput(inputManager, music);
+		ProcessPlaybackShortcuts();
+		cameraManager.HandleInput(inputManager);
         const auto framebufferResult = UpdateFramebufferSize();
 		if (!framebufferResult) {
 			PrintGraphicsError(framebufferResult.error());

@@ -63,6 +63,7 @@ namespace Chrivent {
 		bool IsCameraMode() const { return motionPanel.GetMode() == MotionTimelineMode::Camera; }
 		bool IsFpsVisible() const { return menuBar.IsFpsVisible(); }
 		bool IsCloseRequested() const { return panelWindow.IsCloseRequested(); }
+		bool IsInputFocused() const { return panelWindow.IsInputFocused(); }
 
 		// 모션 표시 모드를 바꾸고 좌측 패널 표시를 함께 갱신한다.
 		void ApplyMotionMode(MotionTimelineMode mode);

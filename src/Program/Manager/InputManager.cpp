@@ -21,7 +21,6 @@ namespace Chrivent {
 
 	void InputManager::Reset() {
 		state = {};
-		prevSpaceDown = false;
 		prevRightMouseDown = false;
 		prevCursorX = 0.0;
 		prevCursorY = 0.0;
@@ -31,9 +30,6 @@ namespace Chrivent {
 	void InputManager::Update(const Viewer& viewer) {
 		state = {};
 		GLFWwindow* window = viewer.GetWindow();
-		const bool spaceDown = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-		state.togglePause = spaceDown && !prevSpaceDown;
-		prevSpaceDown = spaceDown;
 		state.moveForward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
 		state.moveBackward = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
 		state.moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;

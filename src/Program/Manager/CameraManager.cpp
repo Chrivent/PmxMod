@@ -163,20 +163,11 @@ namespace Chrivent {
 		viewer.ResetPostProcessHistory();
 	}
 
-	void CameraManager::HandleInput(const InputManager& inputManager, Sound& music) {
+	void CameraManager::HandleInput(const InputManager& inputManager) {
 		const PlaybackState& playback = playbackState;
-		const auto& [togglePause,
-			moveForward, moveBackward,
-			moveLeft, moveRight,
-			moveDown, moveUp,
-			rotateCamera, mouseDelta, wheelDelta] = inputManager.GetState();
-		if (togglePause) {
-			paused = !paused;
-			if (paused)
-				music.Pause();
-			else
-				music.Resume();
-		}
+		const auto& [moveForward, moveBackward
+			, moveLeft, moveRight, moveDown, moveUp
+			, rotateCamera, mouseDelta, wheelDelta] = inputManager.GetState();
 		if (useMotionCamera)
 			return;
 		const float moveSpeed = 100.0f * std::max(playback.elapsed, 1.0f / 120.0f);

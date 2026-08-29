@@ -10,7 +10,6 @@ namespace Chrivent {
 
 	// 현재 키보드와 마우스 입력 상태를 보관한다.
 	struct InputState {
-		bool togglePause = false;
 		bool moveForward = false;
 		bool moveBackward = false;
 		bool moveLeft = false;
@@ -25,7 +24,6 @@ namespace Chrivent {
 	// 렌더러 창의 입력 이벤트를 수집하고 프레임별 상태로 변환한다.
 	class InputManager {
 		InputState state;
-		bool prevSpaceDown = false;
 		bool prevRightMouseDown = false;
 		double prevCursorX = 0.0;
 		double prevCursorY = 0.0;
