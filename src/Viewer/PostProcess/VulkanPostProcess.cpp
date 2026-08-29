@@ -210,7 +210,7 @@ namespace Chrivent {
 	GraphicsError::Result<void> VulkanPostProcess::InitializeTargets(
 		const VulkanDevice& sourceDevice, const VulkanSwapChain& sourceSwapChain,
 		const VkFormat depthFormat) {
-		ResetTargets();
+		ResetSwapChainResources();
 		device = sourceDevice.GetDevice();
 		depthHasStencil = VulkanMsaaDepthBuffer::HasStencilComponent(depthFormat);
 		auto result = CreateSceneImages(sourceDevice, sourceSwapChain);
@@ -238,7 +238,7 @@ namespace Chrivent {
 		if (result)
 			return {};
 		const GraphicsError error = result.error();
-		ResetTargets();
+		ResetSwapChainResources();
 		return std::unexpected(error);
 	}
 
@@ -471,7 +471,7 @@ namespace Chrivent {
 			resource.DiscardInitializationFrame();
 	}
 
-	void VulkanPostProcess::ResetTargets() {
+	void VulkanPostProcess::ResetSwapChainResources() {
 		pipelines.Reset();
 		descriptors.Reset();
 		sceneTarget.Reset();
@@ -489,6 +489,6 @@ namespace Chrivent {
 	}
 
 	void VulkanPostProcess::ResetResources() {
-		ResetTargets();
+		ResetSwapChainResources();
 	}
 }

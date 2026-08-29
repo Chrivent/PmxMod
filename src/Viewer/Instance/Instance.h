@@ -57,6 +57,8 @@ namespace Chrivent {
 		const Animation* GetAnimation() const { return animation.get(); }
 		float GetScale() const { return scale; }
 
+		// 애니메이션이 없는 모델과 배율을 확정한 뒤 렌더러별 리소스를 일관된 상태로 초기화한다.
+		GraphicsError::Result<void> Initialize(std::shared_ptr<Model> sourceModel, float sourceScale);
 		// 모델, 애니메이션과 배율을 확정한 뒤 렌더러별 리소스를 일관된 상태로 초기화한다.
 		GraphicsError::Result<void> Initialize(std::shared_ptr<Model> sourceModel,
 			std::unique_ptr<Animation> sourceAnimation, float sourceScale);

@@ -2,6 +2,13 @@
 
 project(PmxMod LANGUAGES CXX)
 
+if(MSVC)
+    set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+    if(CMAKE_CXX_CL_SHOWINCLUDES_PREFIX MATCHES "\\?")
+        set(CMAKE_CL_SHOWINCLUDES_PREFIX "참고: 포함 파일:")
+    endif()
+endif()
+
 option(PMXMOD_BUILD_TESTS "PmxMod 테스트를 빌드합니다" OFF)
 
 add_compile_definitions(NOMINMAX)

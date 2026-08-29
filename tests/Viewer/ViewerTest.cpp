@@ -1,6 +1,5 @@
 ﻿#include "Viewer/Viewer/Viewer.h"
 
-#include "Core/Animation/Model/Animation.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Drawer/Drawer.h"
 #include "Viewer/Instance/Instance.h"
@@ -49,8 +48,10 @@ namespace Chrivent {
 		bool failWait = false;
 		bool skipBegin = false;
 		bool skipEnd = false;
+		bool resizedWithDepthEffect = false;
 		size_t beginCallCount = 0;
 		size_t loadEffectCallCount = 0;
+		size_t resizeCallCount = 0;
 		size_t waitCallCount = 0;
 
 		// 테스트에서 요청한 실패를 구조화된 그래픽 오류로 생성한다.
@@ -110,6 +111,8 @@ namespace Chrivent {
 
 		// 테스트에서는 크기 의존 리소스를 만들지 않는다.
 		GraphicsError::Result<void> ResizeCore() override {
+			resizeCallCount++;
+			resizedWithDepthEffect = postProcess.HasEffects() && postProcess.RequiresDepth();
 			return ResolveTestResult(failResize, "테스트 크기 변경");
 		}
 
@@ -145,7 +148,9 @@ namespace Chrivent {
 		size_t GetBeginCallCount() const { return beginCallCount; }
 		size_t GetLoadEffectCallCount() const { return loadEffectCallCount; }
 		float GetParameterValue(const size_t slot) const { return postProcess.GetParameterValue(slot); }
+		size_t GetResizeCallCount() const { return resizeCallCount; }
 		size_t GetWaitCallCount() const { return waitCallCount; }
+		bool WasResizedWithDepthEffect() const { return resizedWithDepthEffect; }
 		// 현재 프레임에서 요구하는 후처리 장면 입력 패스를 정상적으로 완료한다.
 		void CompleteSceneInput() {
 			const auto beginResult = BeginPostProcessSceneInputPass();
@@ -252,13 +257,13 @@ namespace Chrivent {
 		InstanceTestAdapter instance;
 		const std::shared_ptr<Model> model = CreateInstanceTestModel();
 		instance.SetSetupFailure(true);
-		const auto failureResult = instance.Initialize(model, {}, 1.0f);
+		const auto failureResult = instance.Initialize(model, 1.0f);
 		ASSERT_FALSE(failureResult.has_value());
 		EXPECT_FALSE(instance.HasBoundModel());
 		EXPECT_FALSE(instance.Upload().has_value());
 		EXPECT_EQ(instance.GetResetCallCount(), 2);
 		instance.SetSetupFailure(false);
-		ASSERT_TRUE(instance.Initialize(model, {}, 1.0f).has_value());
+		ASSERT_TRUE(instance.Initialize(model, 1.0f).has_value());
 		EXPECT_TRUE(instance.HasBoundModel());
 		EXPECT_TRUE(instance.Upload().has_value());
 		EXPECT_EQ(instance.GetUploadCallCount(), 1);
@@ -327,6 +332,44 @@ namespace Chrivent {
 		EXPECT_FALSE(viewer.Resize(1920, 1080).has_value());
 		viewer.SetResizeFailure(false);
 		EXPECT_FALSE(viewer.BeginFrame().has_value());
+	}
+
+	TEST(ViewerContract, ActiveEffectSurvivesRepeatedResizeAndResetsTemporalHistory) {
+		ViewerTestAdapter viewer;
+		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
+		viewer.GetSceneRenderState().viewMatrix[3].x = 1.0f;
+		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		viewer.CompleteSceneInput();
+		ASSERT_TRUE(viewer.EndFrame().has_value());
+		ASSERT_FALSE(viewer.IsPostProcessHistoryResetPending());
+		ASSERT_TRUE(viewer.Resize(1920, 1080).has_value());
+		EXPECT_EQ(viewer.GetResizeCallCount(), 1);
+		EXPECT_TRUE(viewer.WasResizedWithDepthEffect());
+		EXPECT_TRUE(viewer.IsPostProcessHistoryResetPending());
+		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		viewer.CompleteSceneInput();
+		ASSERT_TRUE(viewer.EndFrame().has_value());
+		EXPECT_FALSE(viewer.IsPostProcessHistoryResetPending());
+		ASSERT_TRUE(viewer.Resize(1280, 720).has_value());
+		EXPECT_EQ(viewer.GetResizeCallCount(), 2);
+		EXPECT_TRUE(viewer.WasResizedWithDepthEffect());
+		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		viewer.CompleteSceneInput();
+		EXPECT_TRUE(viewer.EndFrame().has_value());
+	}
+
+	TEST(ViewerContract, ResizeDuringFrameIsRejectedWithoutInvalidatingRenderer) {
+		ViewerTestAdapter viewer;
+		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
+		ASSERT_TRUE(viewer.BeginFrame().has_value());
+		const auto resizeResult = viewer.Resize(1920, 1080);
+		ASSERT_FALSE(resizeResult.has_value());
+		EXPECT_EQ(resizeResult.error().code, GraphicsErrorCode::InvalidState);
+		EXPECT_EQ(viewer.GetResizeCallCount(), 0);
+		viewer.CompleteSceneInput();
+		ASSERT_TRUE(viewer.EndFrame().has_value());
+		EXPECT_TRUE(viewer.Resize(1920, 1080).has_value());
+		EXPECT_EQ(viewer.GetResizeCallCount(), 1);
 	}
 
 	TEST(ViewerContract, EffectValidationFailureKeepsRendererUsable) {

@@ -64,6 +64,10 @@ namespace Chrivent {
 		return std::unexpected(setupResult.error());
 	}
 
+	GraphicsError::Result<void> Instance::Initialize(std::shared_ptr<Model> sourceModel, const float sourceScale) {
+		return Initialize(std::move(sourceModel), {}, sourceScale);
+	}
+
 	GraphicsError::Result<void> Instance::Upload() {
 		const auto initializedResult = CheckInitialized("모델 버텍스 업로드");
 		if (!initializedResult)

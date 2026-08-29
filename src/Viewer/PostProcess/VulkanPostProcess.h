@@ -93,8 +93,8 @@ namespace Chrivent {
 		void CommitImageStateFrame();
 		// 제출되지 않은 프레임의 Vulkan 이미지 상태 변경을 버린다.
 		void DiscardImageStateFrame();
-		// 크기에 종속된 Vulkan 후처리 target, descriptor와 pipeline을 해제한다.
-		void ResetTargets();
+		// swapchain에 종속된 Vulkan 후처리 target, descriptor와 pipeline을 해제한다.
+		void ResetSwapChainResources();
 		// 생성한 Vulkan 후처리 리소스를 해제한다.
 		void ResetResources() override;
 	};
