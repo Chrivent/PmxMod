@@ -237,11 +237,46 @@ namespace Chrivent {
     }
 
     void Program::RemoveViewerWindowSubclass() {
-        if (!viewerNativeWindow)
-            return;
-        RemoveWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId);
+		if (viewerNativeWindow)
+			RemoveWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId);
         viewerNativeWindow = nullptr;
+		viewerWindowedPlacement = { .length = sizeof(WINDOWPLACEMENT) };
+		viewerWindowedStyle = 0;
+		viewerFullscreen = false;
+		previousF11ShortcutDown = false;
     }
+
+	void Program::ToggleViewerFullscreen() {
+		if (!viewerNativeWindow)
+			return;
+		if (!viewerFullscreen) {
+			WINDOWPLACEMENT placement{ .length = sizeof(WINDOWPLACEMENT) };
+			MONITORINFO monitorInfo{ .cbSize = sizeof(MONITORINFO) };
+			const HMONITOR monitor = MonitorFromWindow(viewerNativeWindow, MONITOR_DEFAULTTONEAREST);
+			if (!monitor || !GetWindowPlacement(viewerNativeWindow, &placement)
+				|| !GetMonitorInfoW(monitor, &monitorInfo)) {
+				return;
+			}
+			viewerWindowedPlacement = placement;
+			viewerWindowedStyle = GetWindowLongPtrW(viewerNativeWindow, GWL_STYLE);
+			SetWindowLongPtrW(viewerNativeWindow, GWL_STYLE,
+				viewerWindowedStyle & ~static_cast<LONG_PTR>(WS_OVERLAPPEDWINDOW));
+			const auto& [left, top, right, bottom] = monitorInfo.rcMonitor;
+			SetWindowPos(viewerNativeWindow, HWND_TOP,
+				left, top,
+				right - left,
+				bottom - top,
+				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			viewerFullscreen = true;
+			return;
+		}
+		SetWindowLongPtrW(viewerNativeWindow, GWL_STYLE, viewerWindowedStyle);
+		SetWindowPlacement(viewerNativeWindow, &viewerWindowedPlacement);
+		SetWindowPos(viewerNativeWindow, nullptr, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+			| SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		viewerFullscreen = false;
+	}
 
     void Program::RequestPhysicsReset() {
         physicsResetRequested = true;
@@ -668,7 +703,7 @@ namespace Chrivent {
 		ApplyPlaybackCommand(panelManager.ConsumePlaybackCommand());
 	}
 
-	void Program::ProcessPlaybackShortcuts() {
+	void Program::ProcessKeyboardShortcuts() {
 		const auto ReadKeyState = [](const int key) {
 			return GetAsyncKeyState(key);
 		};
@@ -679,10 +714,13 @@ namespace Chrivent {
 		const SHORT spaceState = ReadKeyState(VK_SPACE);
 		const SHORT leftState = ReadKeyState(VK_LEFT);
 		const SHORT rightState = ReadKeyState(VK_RIGHT);
+		const SHORT f11State = ReadKeyState(VK_F11);
 		const bool spaceDown = (spaceState & 0x8000) != 0;
 		const bool leftDown = (leftState & 0x8000) != 0;
 		const bool rightDown = (rightState & 0x8000) != 0;
+		const bool f11Down = (f11State & 0x8000) != 0;
 		const HWND foregroundWindow = GetForegroundWindow();
+		const bool rendererFocused = foregroundWindow == viewerNativeWindow;
 		const bool programWindowFocused = foregroundWindow == viewerNativeWindow
 			|| panelManager.IsInputFocused();
 		bool textInputFocused = false;
@@ -695,6 +733,8 @@ namespace Chrivent {
 		const bool acceptShortcuts = !menuFrameActive && programWindowFocused && !textInputFocused;
 		const bool togglePlayback = acceptShortcuts
 			&& WasPressed(spaceState, previousSpaceShortcutDown);
+		const bool toggleFullscreen = !menuFrameActive && rendererFocused
+			&& WasPressed(f11State, previousF11ShortcutDown);
 		int frameStep = 0;
 		if (acceptShortcuts && WasPressed(leftState, previousLeftShortcutDown))
 			frameStep--;
@@ -703,6 +743,9 @@ namespace Chrivent {
 		previousSpaceShortcutDown = spaceDown;
 		previousLeftShortcutDown = leftDown;
 		previousRightShortcutDown = rightDown;
+		previousF11ShortcutDown = f11Down;
+		if (toggleFullscreen)
+			ToggleViewerFullscreen();
 		if (togglePlayback) {
 			ApplyPlaybackCommand(cameraManager.IsPlaying()
 				? PlaybackCommand::Pause : PlaybackCommand::Play);
@@ -898,7 +941,7 @@ namespace Chrivent {
 		ProcessPlaybackRequests();
         cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
         inputManager.Update(*viewer);
-		ProcessPlaybackShortcuts();
+		ProcessKeyboardShortcuts();
 		cameraManager.HandleInput(inputManager);
         const auto framebufferResult = UpdateFramebufferSize();
 		if (!framebufferResult) {

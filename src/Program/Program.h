@@ -79,6 +79,8 @@ namespace Chrivent {
         std::chrono::steady_clock::time_point fpsTime;
         std::chrono::steady_clock::time_point saveTime;
         HWND viewerNativeWindow = nullptr;
+		WINDOWPLACEMENT viewerWindowedPlacement{ sizeof(WINDOWPLACEMENT) };
+		LONG_PTR viewerWindowedStyle = 0;
         int fpsFrame = 0;
         RendererType currentRendererType = RendererType::OpenGL;
         bool benchmarkMode = false;
@@ -87,6 +89,8 @@ namespace Chrivent {
 		bool previousSpaceShortcutDown = false;
 		bool previousLeftShortcutDown = false;
 		bool previousRightShortcutDown = false;
+		bool previousF11ShortcutDown = false;
+		bool viewerFullscreen = false;
 
         static constexpr UINT_PTR kViewerWindowSubclassId = 9101;
 
@@ -116,6 +120,8 @@ namespace Chrivent {
 		void InstallViewerWindowSubclass(GLFWwindow* window);
         // 렌더러 창에 설치한 Win32 subclass를 해제한다.
         void RemoveViewerWindowSubclass();
+		// 렌더러 창을 현재 모니터의 전체화면과 이전 창 상태 사이에서 전환한다.
+		void ToggleViewerFullscreen();
         // 현재 프레임에서 물리를 다시 동기화하도록 요청한다.
         void RequestPhysicsReset();
         // 메뉴바 모달 루프 중 렌더링 프레임을 한 번 처리한다.
@@ -154,8 +160,8 @@ namespace Chrivent {
 		void ApplyPlaybackCommand(PlaybackCommand command);
 		// 프레임 탐색과 재생 제어 요청을 카메라와 음악에 반영한다.
 		void ProcessPlaybackRequests();
-		// 렌더링 창과 패널 창에서 입력한 재생 단축키를 처리한다.
-		void ProcessPlaybackShortcuts();
+		// 렌더링 창과 패널 창에서 입력한 재생 및 전체화면 단축키를 처리한다.
+		void ProcessKeyboardShortcuts();
 		// 재생 시간, 물리 초기화와 카메라 상태를 이번 프레임에 맞춰 갱신한다.
 		void UpdatePlaybackState();
 		// 모델 애니메이션과 스키닝을 병렬 갱신하고 단계별 측정 시각을 반환한다.
