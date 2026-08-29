@@ -693,6 +693,10 @@ namespace Chrivent {
 		int seekFrame = 0;
 		bool seekFinished = false;
 		if (panelManager.ConsumeSeekFrame(seekFrame, seekFinished)) {
+			if (seekFinished && cameraManager.IsPlaying()) {
+				const auto [startFrame, endFrame] = panelManager.GetPlaybackFrameRange();
+				seekFrame = std::clamp(seekFrame, startFrame, endFrame);
+			}
 			cameraManager.SetPhysicsSkipped(!seekFinished);
 			cameraManager.SeekFrame(*viewer, music, seekFrame, saveTime);
 			if (seekFinished) {
