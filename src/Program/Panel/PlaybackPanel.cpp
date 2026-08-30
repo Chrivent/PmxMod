@@ -197,13 +197,17 @@ namespace Chrivent {
 	}
 
 	bool PlaybackPanel::HandleCommand(const UINT_PTR commandId, const int notificationCode) {
-		if (commandId == controlIds.playButton)
+		HWND playbackButton = nullptr;
+		if (commandId == controlIds.playButton && notificationCode == BN_CLICKED) {
 			pendingCommand = PlaybackCommand::Play;
-		else if (commandId == controlIds.pauseButton)
+			playbackButton = playButton;
+		} else if (commandId == controlIds.pauseButton && notificationCode == BN_CLICKED) {
 			pendingCommand = PlaybackCommand::Pause;
-		else if (commandId == controlIds.stopButton)
+			playbackButton = pauseButton;
+		} else if (commandId == controlIds.stopButton && notificationCode == BN_CLICKED) {
 			pendingCommand = PlaybackCommand::Stop;
-		else if ((commandId == controlIds.startFrameEdit || commandId == controlIds.endFrameEdit) &&
+			playbackButton = stopButton;
+		} else if ((commandId == controlIds.startFrameEdit || commandId == controlIds.endFrameEdit) &&
 			notificationCode == EN_KILLFOCUS)
 			ApplyInputFrameRange(commandId);
 		else if (commandId == controlIds.resetRangeButton)
@@ -212,6 +216,8 @@ namespace Chrivent {
 			repeatEnabled = SendMessageW(repeatCheck, BM_GETCHECK, 0, 0) == BST_CHECKED;
 		else
 			return false;
+		if (playbackButton)
+			SetFocus(GetParent(playbackButton));
 		return true;
 	}
 
