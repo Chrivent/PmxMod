@@ -48,7 +48,7 @@ resource/
       └─ package.json
 ```
 
-有効な各 effect は Camera パネルに 1 行ずつ表示されます。複数の effect を同時に有効にでき、一覧の順番で適用されます。付属パッケージには被写界深度、depth 表示、モーションブラー、グレースケールが含まれます。
+有効な各 effect は Camera パネルに 1 行ずつ表示されます。複数の effect を同時に有効にでき、一覧の順番で適用されます。付属パッケージには被写界深度、depth 表示、モーションブラーが含まれます。
 
 `resource/internal/shaders` の model、edge、ground-shadow シェーダーは、インストール可能なパッケージではなくエンジンリソースです。schema と HLSL binding は [シェーダーパッケージ契約（韓国語）](./resource/shaders/README.ko.md)を参照してください。
 

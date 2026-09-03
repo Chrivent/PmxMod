@@ -48,7 +48,7 @@ resource/
       └─ package.json
 ```
 
-包中的每个有效 effect 都会在 Camera 面板中显示为独立的一行。可以同时启用多个 effect，并按列表顺序应用。随附包包含景深、depth 可视化、运动模糊和灰度效果。
+包中的每个有效 effect 都会在 Camera 面板中显示为独立的一行。可以同时启用多个 effect，并按列表顺序应用。随附包包含景深、depth 可视化和运动模糊。
 
 `resource/internal/shaders` 中的 model、edge 和 ground-shadow 着色器属于引擎资源，不是可安装包。schema 与 HLSL binding 请参阅[着色器包契约（韩文）](./resource/shaders/README.ko.md)。
 

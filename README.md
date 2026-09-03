@@ -48,7 +48,7 @@ resource/
       └─ package.json
 ```
 
-Each valid effect in the package appears as a separate row in the Camera panel. Effects can be enabled together and are applied in list order. The included packages provide depth of field, depth visualization, motion blur, and grayscale.
+Each valid effect in the package appears as a separate row in the Camera panel. Effects can be enabled together and are applied in list order. The included packages provide depth of field, depth visualization, and motion blur.
 
 The model, edge, and ground-shadow shaders under `resource/internal/shaders` are engine resources, not installable packages. See the [shader package contract](./resource/shaders/README.ko.md) for the schema and HLSL bindings.
 
