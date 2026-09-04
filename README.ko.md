@@ -6,6 +6,33 @@
 
 PmxMod는 PMX 모델을 불러오고 VMD 모델·카메라 모션을 재생하며 HLSL 후처리 효과를 적용하는 Windows용 C++23 프로그램입니다. 같은 씬과 셰이더 패키지 계약을 OpenGL, Direct3D 11, Direct3D 12, Vulkan에서 사용합니다.
 
+## 실행 영상
+
+썸네일이나 제목을 클릭하면 YouTube에서 영상을 볼 수 있습니다.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4"><img src="https://i.ytimg.com/vi/td8ko49hFW4/hqdefault.jpg" alt="실행 영상 1" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4">실행 영상 1</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU"><img src="https://i.ytimg.com/vi/GZMTVKHpLDU/hqdefault.jpg" alt="실행 영상 2" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU">실행 영상 2</a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA"><img src="https://i.ytimg.com/vi/lUkcElzVQyA/hqdefault.jpg" alt="실행 영상 3" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA">실행 영상 3</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ"><img src="https://i.ytimg.com/vi/C6waA9sEBlQ/hqdefault.jpg" alt="실행 영상 4" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ">실행 영상 4</a>
+    </td>
+  </tr>
+</table>
+
 ## 주요 기능
 
 - PMX 모델 불러오기와 VMD 모델·카메라 모션 재생

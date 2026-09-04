@@ -6,6 +6,33 @@
 
 PmxMod は PMX モデルを読み込み、VMD のモデル／カメラモーションを再生し、HLSL ポストプロセス効果を適用する Windows 向け C++23 アプリケーションです。同じシーンおよびシェーダーパッケージ契約を OpenGL、Direct3D 11、Direct3D 12、Vulkan で使用します。
 
+## 動作動画
+
+サムネイルまたはタイトルをクリックすると、YouTube で動画を視聴できます。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4"><img src="https://i.ytimg.com/vi/td8ko49hFW4/hqdefault.jpg" alt="動作動画 1" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4">動作動画 1</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU"><img src="https://i.ytimg.com/vi/GZMTVKHpLDU/hqdefault.jpg" alt="動作動画 2" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU">動作動画 2</a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA"><img src="https://i.ytimg.com/vi/lUkcElzVQyA/hqdefault.jpg" alt="動作動画 3" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA">動作動画 3</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ"><img src="https://i.ytimg.com/vi/C6waA9sEBlQ/hqdefault.jpg" alt="動作動画 4" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ">動作動画 4</a>
+    </td>
+  </tr>
+</table>
+
 ## 主な機能
 
 - PMX モデルの読み込みと VMD モデル／カメラモーションの再生

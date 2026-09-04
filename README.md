@@ -6,6 +6,33 @@
 
 PmxMod is a Windows C++23 application for loading PMX models, playing VMD model and camera motions, and applying HLSL post-process effects. The same scene and shader package contract runs on OpenGL, Direct3D 11, Direct3D 12, and Vulkan.
 
+## Demo videos
+
+Click a thumbnail or title to watch on YouTube.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4"><img src="https://i.ytimg.com/vi/td8ko49hFW4/hqdefault.jpg" alt="Demo 1" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4">Demo 1</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU"><img src="https://i.ytimg.com/vi/GZMTVKHpLDU/hqdefault.jpg" alt="Demo 2" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU">Demo 2</a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA"><img src="https://i.ytimg.com/vi/lUkcElzVQyA/hqdefault.jpg" alt="Demo 3" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA">Demo 3</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ"><img src="https://i.ytimg.com/vi/C6waA9sEBlQ/hqdefault.jpg" alt="Demo 4" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ">Demo 4</a>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - PMX model loading and VMD model/camera motion playback

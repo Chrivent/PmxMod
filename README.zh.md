@@ -6,6 +6,33 @@
 
 PmxMod 是一款面向 Windows、使用 C++23 编写的应用程序，可加载 PMX 模型、播放 VMD 模型／相机动作并应用 HLSL 后处理效果。OpenGL、Direct3D 11、Direct3D 12 和 Vulkan 使用同一套场景与着色器包契约。
 
+## 演示视频
+
+点击缩略图或标题即可在 YouTube 观看视频。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4"><img src="https://i.ytimg.com/vi/td8ko49hFW4/hqdefault.jpg" alt="演示视频 1" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=td8ko49hFW4">演示视频 1</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU"><img src="https://i.ytimg.com/vi/GZMTVKHpLDU/hqdefault.jpg" alt="演示视频 2" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=GZMTVKHpLDU">演示视频 2</a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA"><img src="https://i.ytimg.com/vi/lUkcElzVQyA/hqdefault.jpg" alt="演示视频 3" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=lUkcElzVQyA">演示视频 3</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ"><img src="https://i.ytimg.com/vi/C6waA9sEBlQ/hqdefault.jpg" alt="演示视频 4" width="480"></a><br>
+      <a href="https://www.youtube.com/watch?v=C6waA9sEBlQ">演示视频 4</a>
+    </td>
+  </tr>
+</table>
+
 ## 主要功能
 
 - 加载 PMX 模型并播放 VMD 模型／相机动作
