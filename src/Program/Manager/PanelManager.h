@@ -96,6 +96,10 @@ namespace Chrivent {
 		}
 		// 파일 메뉴에서 선택한 음악 경로를 반환하고 대기 요청을 초기화한다.
 		bool ConsumeMusicPath(std::filesystem::path& musicPath) { return menuBar.ConsumeMusicPath(musicPath); }
+		// 메뉴에서 선택한 4K 60fps 렌더링 출력 상위 폴더를 반환한다.
+		bool ConsumeRenderOutputDirectory(std::filesystem::path& outputDirectory) {
+			return menuBar.ConsumeRenderOutputDirectory(outputDirectory);
+		}
 		// 렌더러 변경 여부를 반환하고 내부 플래그를 초기화한다.
 		bool ConsumeRendererDirty() { return menuBar.ConsumeRendererDirty(); }
 		// 물리 활성화 변경 여부를 반환하고 내부 플래그를 초기화한다.

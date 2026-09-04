@@ -21,6 +21,7 @@ namespace Chrivent {
 		static constexpr int kPhysicsEnabledId = 1150;
 		static constexpr int kFpsViewId = 1200;
 		static constexpr int kResetPanelLayoutId = 1201;
+		static constexpr int kRender4k60Id = 1250;
 		static constexpr int kEnglishLanguageId = 1300;
 		static constexpr int kKoreanLanguageId = 1301;
 		static constexpr int kJapaneseLanguageId = 1302;
@@ -31,6 +32,7 @@ namespace Chrivent {
 		std::optional<SceneConfig> pendingSceneConfig;
 		std::filesystem::path pendingSceneFilePath;
 		std::optional<std::filesystem::path> pendingMusicPath;
+		std::optional<std::filesystem::path> pendingRenderOutputDirectory;
 		RendererType rendererType = RendererType::OpenGL;
 		bool rendererDirty = false;
 		bool physicsEnabled = true;
@@ -53,6 +55,8 @@ namespace Chrivent {
 		void ShowSaveSceneDialog();
 		// 현재 씬에서 사용할 음악 파일을 선택하는 열기 대화상자를 표시한다.
 		void ShowOpenMusicDialog();
+		// 실행 파일 옆 기본 폴더에 4K 60fps 렌더링 요청을 예약한다.
+		void ShowRenderOutputDialog();
 		// 사용할 렌더러를 선택하고 변경 상태를 기록한다.
 		void SelectRenderer(RendererType renderer);
 		// 현재 렌더러에 맞춰 메뉴의 선택 표시를 갱신한다.
@@ -86,6 +90,8 @@ namespace Chrivent {
 		bool ConsumeSceneConfigRequest(SceneConfig& config, std::filesystem::path& sourcePath);
 		// 파일 메뉴에서 선택한 음악 경로를 반환하고 요청을 초기화한다.
 		bool ConsumeMusicPath(std::filesystem::path& musicPath);
+		// 렌더링 메뉴에서 선택한 출력 상위 폴더를 반환하고 요청을 초기화한다.
+		bool ConsumeRenderOutputDirectory(std::filesystem::path& outputDirectory);
 		// 렌더러 변경 플래그를 반환하고 초기화한다.
 		bool ConsumeRendererDirty();
 		// 물리 활성화 변경 플래그를 반환하고 초기화한다.

@@ -9,6 +9,7 @@
 #include "Core/Parser/BinaryReader.h"
 #include "Core/Parser/VmdParser.h"
 #include "Viewer/Instance/Instance.h"
+#include "Program/FfmpegVideoWriter.h"
 #include "Program/MotionTimelineBuilder.h"
 #include "Program/Shader/InternalShaderCatalog.h"
 #include "Viewer/Viewer/OpenGlViewer.h"
@@ -22,6 +23,7 @@
 #include <shellapi.h>
 #include <GLFW/glfw3native.h>
 #include <algorithm>
+#include <cstdint>
 #include <cwchar>
 #include <format>
 #include <iomanip>
@@ -31,6 +33,115 @@
 #include <utility>
 
 namespace Chrivent {
+	namespace {
+		constexpr wchar_t kOfflineRenderProgressClassName[] = L"PmxModOfflineRenderProgress";
+
+		LRESULT CALLBACK OfflineRenderProgressWindowProc(const HWND window, const UINT message,
+			const WPARAM wParam, const LPARAM lParam) {
+			if (message == WM_CLOSE)
+				return 0;
+			return DefWindowProcW(window, message, wParam, lParam);
+		}
+
+		class OfflineRenderProgressWindow {
+			HWND window = nullptr;
+			HWND percentageLabel = nullptr;
+			HWND progressBar = nullptr;
+			HWND frameLabel = nullptr;
+
+			static bool RegisterWindowClass() {
+				WNDCLASSEXW windowClass{};
+				windowClass.cbSize = sizeof(windowClass);
+				windowClass.lpfnWndProc = OfflineRenderProgressWindowProc;
+				windowClass.hInstance = GetModuleHandleW(nullptr);
+				windowClass.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
+				windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+				windowClass.lpszClassName = kOfflineRenderProgressClassName;
+				return RegisterClassExW(&windowClass) != 0
+					|| GetLastError() == ERROR_CLASS_ALREADY_EXISTS;
+			}
+
+		public:
+			~OfflineRenderProgressWindow() { Close(); }
+
+			bool Create(const HWND centerWindow, const uint64_t totalFrames) {
+				if (!RegisterWindowClass())
+					return false;
+				constexpr int width = 460;
+				constexpr int height = 174;
+				int x = CW_USEDEFAULT;
+				int y = CW_USEDEFAULT;
+				RECT ownerBounds{};
+				if (centerWindow && GetWindowRect(centerWindow, &ownerBounds)) {
+					const int ownerWidth = static_cast<int>(ownerBounds.right - ownerBounds.left);
+					const int ownerHeight = static_cast<int>(ownerBounds.bottom - ownerBounds.top);
+					x = ownerBounds.left + std::max(0, (ownerWidth - width) / 2);
+					y = ownerBounds.top + std::max(0, (ownerHeight - height) / 2);
+				}
+				window = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
+					kOfflineRenderProgressClassName, Language::Text("render.progress.title").c_str(),
+					WS_POPUP | WS_CAPTION, x, y, width, height, nullptr, nullptr,
+					GetModuleHandleW(nullptr), nullptr);
+				if (!window)
+					return false;
+				percentageLabel = CreateWindowExW(0, L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_CENTER,
+					20, 18, width - 40, 24, window, nullptr, GetModuleHandleW(nullptr), nullptr);
+				progressBar = CreateWindowExW(0, PROGRESS_CLASSW, L"", WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
+					20, 50, width - 40, 24, window, nullptr, GetModuleHandleW(nullptr), nullptr);
+				frameLabel = CreateWindowExW(0, L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_CENTER,
+					20, 86, width - 40, 42, window, nullptr, GetModuleHandleW(nullptr), nullptr);
+				if (!percentageLabel || !progressBar || !frameLabel) {
+					Close();
+					return false;
+				}
+				const HFONT font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+				SendMessageW(percentageLabel, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+				SendMessageW(frameLabel, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+				SendMessageW(progressBar, PBM_SETRANGE32, 0, 10000);
+				ShowWindow(window, SW_SHOW);
+				Update(0, totalFrames);
+				return true;
+			}
+
+			void Poll() const {
+				if (!window)
+					return;
+				MSG message{};
+				while (PeekMessageW(&message, window, 0, 0, PM_REMOVE)) {
+					TranslateMessage(&message);
+					DispatchMessageW(&message);
+				}
+			}
+
+			void Update(const uint64_t completedFrames, const uint64_t totalFrames) const {
+				if (!window || totalFrames == 0)
+					return;
+				const uint64_t boundedCompleted = std::min(completedFrames, totalFrames);
+				const int progressValue = static_cast<int>(boundedCompleted * 10000 / totalFrames);
+				const int percentage = static_cast<int>(boundedCompleted * 100 / totalFrames);
+				const std::wstring percentageText = std::vformat(
+					Language::Text("render.progress.percent"), std::make_wformat_args(percentage));
+				const std::wstring frameText = std::vformat(
+					Language::Text("render.progress.frames"),
+					std::make_wformat_args(boundedCompleted, totalFrames));
+				SetWindowTextW(percentageLabel, percentageText.c_str());
+				SetWindowTextW(frameLabel, frameText.c_str());
+				SendMessageW(progressBar, PBM_SETPOS, progressValue, 0);
+				RedrawWindow(window, nullptr, nullptr,
+					RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+			}
+
+			void Close() {
+				if (window)
+					DestroyWindow(window);
+				window = nullptr;
+				percentageLabel = nullptr;
+				progressBar = nullptr;
+				frameLabel = nullptr;
+			}
+		};
+	}
+
     void Program::PrintUsage() {
         std::wcout
             << L"PmxMod [--scene <file.pmscene>] [--renderer <opengl|dx11|dx12|vulkan>]\n"
@@ -661,6 +772,11 @@ namespace Chrivent {
 		const auto shaderRequestResult = shaderEffectController.ProcessPanelRequests(panelManager, *viewer);
 		if (!shaderRequestResult)
 			PrintGraphicsError(shaderRequestResult.error());
+		std::filesystem::path renderOutputDirectory;
+		if (panelManager.ConsumeRenderOutputDirectory(renderOutputDirectory)) {
+			pendingRenderOutputDirectory = std::move(renderOutputDirectory);
+			return FrameRequestState::Skip;
+		}
 		return FrameRequestState::Continue;
 	}
 
@@ -964,6 +1080,162 @@ namespace Chrivent {
 		return RenderScene(timing, frameStart, updateTimes);
     }
 
+	bool Program::RunOfflineRender(const std::filesystem::path& outputRoot) {
+		constexpr int renderWidth = 3840;
+		constexpr int renderHeight = 2160;
+		constexpr int renderFrameRate = 60;
+		constexpr float renderStepSeconds = 1.0f / renderFrameRate;
+		const auto [startFrame, endFrame] = panelManager.GetPlaybackFrameRange();
+		const uint64_t frameIntervals = static_cast<uint64_t>(std::max(0, endFrame - startFrame));
+		const uint64_t outputFrameCount = frameIntervals * 2 + 1;
+		const std::wstring confirmMessage = std::vformat(
+			Language::Text("render.confirm"), std::make_wformat_args(outputFrameCount));
+		const std::wstring title = Language::Text("render.confirm_title");
+		if (MessageBoxW(viewerNativeWindow, confirmMessage.c_str(), title.c_str(),
+			MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) {
+			return true;
+		}
+		OfflineRenderProgressWindow progressWindow;
+		if (!progressWindow.Create(viewerNativeWindow, outputFrameCount))
+			std::cerr << "렌더링 진행 창을 만들지 못했습니다.\n";
+
+		const bool wasPlaying = cameraManager.IsPlaying();
+		const int originalFrame = cameraManager.GetAnimationFrameIndex();
+		const SceneRenderState originalSceneState = viewer->GetSceneRenderState();
+		cameraManager.Pause(music);
+		panelManager.ApplyPlaybackState(true);
+		if (currentRendererType != RendererType::DirectX11) {
+			if (!ChangeRenderer(RendererType::DirectX11))
+				return false;
+			panelManager.SetRendererType(RendererType::DirectX11);
+			SceneRenderState& sceneState = viewer->GetSceneRenderState();
+			sceneState.modelEnabled = originalSceneState.modelEnabled;
+			sceneState.edgeEnabled = originalSceneState.edgeEnabled;
+			sceneState.groundShadowEnabled = originalSceneState.groundShadowEnabled;
+			panelManager.ApplyBuiltInShaderStates(sceneState.modelEnabled,
+				sceneState.edgeEnabled, sceneState.groundShadowEnabled);
+		}
+		auto* dx11Viewer = dynamic_cast<Dx11Viewer*>(viewer.get());
+		if (!dx11Viewer)
+			return false;
+
+		SYSTEMTIME localTime{};
+		GetLocalTime(&localTime);
+		const std::filesystem::path outputPath = outputRoot / std::format(
+			L"PmxMod_4K60_{:04}{:02}{:02}_{:02}{:02}{:02}.mp4",
+			localTime.wYear, localTime.wMonth, localTime.wDay,
+			localTime.wHour, localTime.wMinute, localTime.wSecond);
+		std::error_code directoryError;
+		std::filesystem::create_directories(outputRoot, directoryError);
+		if (directoryError) {
+			std::cerr << "렌더링 출력 폴더를 만들지 못했습니다: " << directoryError.message() << '\n';
+			panelManager.ApplyPlaybackState(wasPlaying);
+			progressWindow.Close();
+			MessageBoxW(viewerNativeWindow, Language::Text("render.failed").c_str(),
+				title.c_str(), MB_OK | MB_ICONERROR);
+			if (wasPlaying)
+				cameraManager.Play(music);
+			return true;
+		}
+		FfmpegVideoWriter videoWriter;
+		const std::filesystem::path musicPath = panelManager.GetSceneConfig().musicPath;
+		if (!videoWriter.Start(outputPath, renderWidth, renderHeight, renderFrameRate, outputFrameCount,
+			musicPath, static_cast<double>(startFrame) / 30.0)) {
+			std::wcerr << L"FFmpeg 시작 실패: " << videoWriter.GetErrorMessage() << L'\n';
+			panelManager.ApplyPlaybackState(wasPlaying);
+			progressWindow.Close();
+			MessageBoxW(viewerNativeWindow, videoWriter.GetErrorMessage().c_str(),
+				title.c_str(), MB_OK | MB_ICONERROR);
+			if (wasPlaying)
+				cameraManager.Play(music);
+			return true;
+		}
+		const int originalWidth = viewer->GetScreenWidth();
+		const int originalHeight = viewer->GetScreenHeight();
+		const auto resizeResult = viewer->Resize(renderWidth, renderHeight);
+		if (!resizeResult) {
+			videoWriter.Cancel();
+			PrintGraphicsError(resizeResult.error());
+			panelManager.ApplyPlaybackState(wasPlaying);
+			progressWindow.Close();
+			MessageBoxW(viewerNativeWindow, Language::Text("render.failed").c_str(),
+				title.c_str(), MB_OK | MB_ICONERROR);
+			return false;
+		}
+
+		cameraManager.ApplyMotionCameraState(*viewer, panelManager.IsCameraMode());
+		cameraManager.SetPhysicsSkipped(false);
+		cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
+		ResetPhysics(startFrame);
+		bool renderSucceeded = true;
+		bool cancelled = false;
+		for (uint64_t outputFrame = 0; outputFrame < outputFrameCount; outputFrame++) {
+			glfwPollEvents();
+			panelManager.PollGuiWindows();
+			progressWindow.Poll();
+			if (panelManager.IsCloseRequested() || glfwWindowShouldClose(viewer->GetWindow())
+				|| (GetAsyncKeyState(VK_ESCAPE) & 0x0001) != 0) {
+				cancelled = true;
+				break;
+			}
+			if (outputFrame > 0)
+				cameraManager.StepFixedTime(renderStepSeconds);
+			panelManager.SetPlaybackFrame(cameraManager.GetAnimationFrameIndex());
+			cameraManager.UpdateCamera(*viewer);
+			const FrameUpdateTimes updateTimes = UpdateInstances(nullptr);
+			dx11Viewer->RequestFrameCapture([&videoWriter](const std::span<const uint8_t> pixels) {
+				return videoWriter.WriteFrame(pixels);
+			});
+			if (!RenderScene(nullptr, std::chrono::steady_clock::now(), updateTimes)) {
+				renderSucceeded = false;
+				break;
+			}
+			progressWindow.Update(outputFrame + 1, outputFrameCount);
+			if (outputFrame % 30 == 0 || outputFrame + 1 == outputFrameCount) {
+				const std::string progressTitle = std::format(
+					"Pmx Mod - 4K60 {}/{}", outputFrame + 1, outputFrameCount);
+				glfwSetWindowTitle(viewer->GetWindow(), progressTitle.c_str());
+			}
+		}
+		if (renderSucceeded && !cancelled) {
+			if (!videoWriter.Finish()) {
+				std::wcerr << L"FFmpeg 완료 실패: " << videoWriter.GetErrorMessage() << L'\n';
+				renderSucceeded = false;
+			}
+		} else {
+			videoWriter.Cancel();
+		}
+
+		progressWindow.Close();
+		glfwSetWindowTitle(viewer->GetWindow(), "Pmx Mod");
+		const auto restoreSizeResult = viewer->Resize(originalWidth, originalHeight);
+		if (!restoreSizeResult) {
+			PrintGraphicsError(restoreSizeResult.error());
+			renderSucceeded = false;
+		}
+		cameraManager.SeekFrame(*viewer, music, originalFrame, saveTime);
+		ResetPhysics(originalFrame);
+		cameraManager.UpdateCamera(*viewer);
+		panelManager.SetPlaybackFrame(originalFrame);
+		if (wasPlaying)
+			cameraManager.Play(music);
+		panelManager.ApplyPlaybackState(wasPlaying);
+		fpsTime = std::chrono::steady_clock::now();
+		saveTime = fpsTime;
+		if (!renderSucceeded) {
+			MessageBoxW(viewerNativeWindow, Language::Text("render.failed").c_str(),
+				title.c_str(), MB_OK | MB_ICONERROR);
+			return false;
+		}
+		const std::wstring outputPathText = outputPath.wstring();
+		const std::wstring resultMessage = cancelled ? Language::Text("render.cancelled")
+			: std::vformat(Language::Text("render.complete"),
+				std::make_wformat_args(outputPathText));
+		MessageBoxW(viewerNativeWindow, resultMessage.c_str(), title.c_str(),
+			MB_OK | (cancelled ? MB_ICONWARNING : MB_ICONINFORMATION));
+		return true;
+	}
+
     int Program::RunBenchmark(const std::size_t warmupFrames, const std::size_t benchmarkFrames) {
         for (std::size_t frame = 0; frame < warmupFrames; frame++) {
             if (!RunFrame())
@@ -1110,6 +1382,15 @@ namespace Chrivent {
             return result;
         }
 		while (!panelManager.IsCloseRequested() && !glfwWindowShouldClose(viewer->GetWindow())) {
+			if (!pendingRenderOutputDirectory.empty()) {
+				std::filesystem::path outputRoot = std::move(pendingRenderOutputDirectory);
+				pendingRenderOutputDirectory.clear();
+				if (!RunOfflineRender(outputRoot)) {
+					Shutdown();
+					return 1;
+				}
+				continue;
+			}
             if (!RunFrame()) {
                 Shutdown();
                 return 1;

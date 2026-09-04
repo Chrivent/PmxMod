@@ -9,7 +9,12 @@
 #include "Viewer/RenderTarget/Dx11RenderTargets.h"
 #include "Viewer/SwapChain/Dx11SwapChain.h"
 
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <span>
+#include <utility>
+#include <vector>
 
 namespace Chrivent {
 	// 공통 Viewer 계약을 D3D11 렌더링 흐름으로 구현한다.
@@ -24,9 +29,17 @@ namespace Chrivent {
 		Dx11Pipeline pipeline;
 		Dx11DummyTexture dummyTexture;
 		Dx11DrawContext drawContext{ device, pipeline, dummyTexture };
+		using FrameCaptureSink = std::function<bool(std::span<const uint8_t>)>;
+		FrameCaptureSink pendingFrameCaptureSink;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> frameCaptureStagingTexture;
+		std::vector<uint8_t> frameCapturePixels;
+		UINT frameCaptureWidth = 0;
+		UINT frameCaptureHeight = 0;
 
 		// 텍스처가 없는 재질에 사용할 기본 DX11 리소스를 생성한다.
 		GraphicsError::Result<void> CreateDummyResources();
+		// 합성이 끝난 swapchain back buffer를 재사용 가능한 CPU 버퍼로 읽어낸다.
+		GraphicsError::Result<void> ReadBackBuffer();
 
 	protected:
 		// 체크된 후처리 셰이더들을 DX11 ping-pong 체인으로 준비한다.
@@ -51,5 +64,9 @@ namespace Chrivent {
 
 	public:
 		Dx11Viewer() : Viewer(GraphicsApi::DirectX11, true) {}
+		// 다음 EndFrame에서 합성된 RGBA 프레임을 지정한 sink로 전달한다.
+		void RequestFrameCapture(FrameCaptureSink sink) {
+			pendingFrameCaptureSink = std::move(sink);
+		}
 	};
 }

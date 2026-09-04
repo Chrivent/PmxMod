@@ -99,6 +99,22 @@ namespace Chrivent {
 			pendingMusicPath = filename.data();
 	}
 
+	void MenuBar::ShowRenderOutputDialog() {
+		std::vector<wchar_t> executablePath(MAX_PATH);
+		while (true) {
+			const DWORD length = GetModuleFileNameW(nullptr, executablePath.data(),
+				static_cast<DWORD>(executablePath.size()));
+			if (length == 0)
+				return;
+			if (length < executablePath.size()) {
+				pendingRenderOutputDirectory = std::filesystem::path(
+					std::wstring(executablePath.data(), length)).parent_path() / "render-output";
+				return;
+			}
+			executablePath.resize(executablePath.size() * 2);
+		}
+	}
+
 	void MenuBar::SelectRenderer(const RendererType renderer) {
 		if (rendererType == renderer)
 			return;
@@ -169,6 +185,7 @@ namespace Chrivent {
 		const UINT state = MF_BYPOSITION | (isPlaying ? MF_GRAYED : MF_ENABLED);
 		EnableMenuItem(menu, 0, state);
 		EnableMenuItem(menu, 1, state);
+		EnableMenuItem(menu, 5, state);
 		DrawMenuBar(ownerWindow);
 	}
 
@@ -207,6 +224,9 @@ namespace Chrivent {
 		AppendMenuW(languageMenu, MF_STRING, kJapaneseLanguageId, L"日本語");
 		AppendMenuW(languageMenu, MF_STRING, kChineseLanguageId, L"中文");
 		AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(languageMenu), Language::Text("menu.language").c_str());
+		HMENU renderMenu = CreatePopupMenu();
+		AppendMenuW(renderMenu, MF_STRING, kRender4k60Id, Language::Text("menu.render_4k60").c_str());
+		AppendMenuW(menu, editableMenuState, reinterpret_cast<UINT_PTR>(renderMenu), Language::Text("menu.render").c_str());
 		int rendererId = kOpenGlRendererId;
 		if (rendererType == RendererType::DirectX11)
 			rendererId = kDirectX11RendererId;
@@ -271,6 +291,9 @@ namespace Chrivent {
 			case kResetPanelLayoutId:
 				panelLayoutResetRequested = true;
 				return true;
+			case kRender4k60Id:
+				ShowRenderOutputDialog();
+				return true;
 			case kEnglishLanguageId:
 				SelectLanguage(LanguageType::English);
 				return true;
@@ -298,6 +321,7 @@ namespace Chrivent {
 		pendingSceneConfig.reset();
 		pendingSceneFilePath.clear();
 		pendingMusicPath.reset();
+		pendingRenderOutputDirectory.reset();
 		rendererDirty = false;
 		physicsDirty = false;
 		languageDirty = false;
@@ -319,6 +343,14 @@ namespace Chrivent {
 			return false;
 		musicPath = std::move(*pendingMusicPath);
 		pendingMusicPath.reset();
+		return true;
+	}
+
+	bool MenuBar::ConsumeRenderOutputDirectory(std::filesystem::path& outputDirectory) {
+		if (!pendingRenderOutputDirectory)
+			return false;
+		outputDirectory = std::move(*pendingRenderOutputDirectory);
+		pendingRenderOutputDirectory.reset();
 		return true;
 	}
 

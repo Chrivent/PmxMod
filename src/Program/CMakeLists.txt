@@ -1,5 +1,6 @@
 ﻿target_sources(PmxMod PRIVATE
         Program.h Program.cpp
+        FfmpegVideoWriter.h FfmpegVideoWriter.cpp
         MotionTimelineBuilder.h MotionTimelineBuilder.cpp
         ResourceDirectories.h ResourceDirectories.cpp
         ShaderEffectController.h ShaderEffectController.cpp

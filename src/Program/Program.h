@@ -91,6 +91,7 @@ namespace Chrivent {
 		bool previousRightShortcutDown = false;
 		bool previousF11ShortcutDown = false;
 		bool viewerFullscreen = false;
+		std::filesystem::path pendingRenderOutputDirectory;
 
         static constexpr UINT_PTR kViewerWindowSubclassId = 9101;
 
@@ -173,6 +174,8 @@ namespace Chrivent {
         bool RunFrame(FrameTiming* timing = nullptr, bool pollGuiWindows = true);
 		// 지정한 프레임 수만큼 고정 시간으로 실행하고 구간별 성능 결과를 출력한다.
         int RunBenchmark(std::size_t warmupFrames, std::size_t benchmarkFrames);
+		// 입력된 재생 범위를 D3D11 4K 60fps MP4 영상으로 오프라인 렌더링한다.
+		bool RunOfflineRender(const std::filesystem::path& outputRoot);
 		// 해석된 명령행 옵션으로 프로그램 수명 주기를 실행한다.
 		int Execute(const ProgramOptions& options);
         
