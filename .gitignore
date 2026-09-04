@@ -11,3 +11,7 @@ cmake-build-*/
 
 # IntelliJ build output
 out/
+
+# Local scene presets can contain machine-specific model, motion, and audio paths.
+resource/scenes/*.pmscene
+!resource/scenes/*.example.pmscene
