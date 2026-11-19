@@ -4,6 +4,7 @@
 #include "Core/Model/Model.h"
 #include "Core/Model/ModelLoader.h"
 #include "Core/Model/ModelUpdater.h"
+#include "Core/Model/Physics/ScenePhysics.h"
 #include "Core/Parser/PmxParser.h"
 
 #include <gtest/gtest.h>
@@ -16,6 +17,13 @@ namespace Chrivent {
 	// 카메라 키 생성과 모델 상태 검증을 공유한다.
 	class AnimationModelContractTest : public testing::Test {
 	protected:
+		ScenePhysics scene;
+
+		static void PreparePose(Model& model) {
+			ModelUpdater::PrepareBeforePhysics(model, nullptr, 0.0f);
+			ModelUpdater::PrepareAfterPhysics(model, false, false);
+		}
+
 		// 테스트 모델에 노드를 추가하고 모델 수명 동안 사용할 관찰 포인터를 반환한다.
 		static Node* AddNode(Model& model, std::string name = {}) {
 			auto node = std::make_unique<Node>();
@@ -248,12 +256,12 @@ namespace Chrivent {
 	TEST_F(AnimationModelContractTest, CreatesOnlyUsefulSkinningRanges) {
 		Model model;
 		model.geometryData.positions.resize(10);
-		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		PreparePose(model);
 		ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexOffset, 0);
 		EXPECT_EQ(model.geometryData.updateRanges.front().vertexCount, 10);
 		model.geometryData.positions.clear();
-		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		PreparePose(model);
 		EXPECT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 0);
 	}
 
@@ -261,7 +269,7 @@ namespace Chrivent {
 		Model model;
 		model.infoData.modelName = "기존 모델";
 		const auto result = ModelLoader::Load(
-			model, "pmxmod_core_test_file_that_does_not_exist.pmx", {});
+			model, "pmxmod_core_test_file_that_does_not_exist.pmx", {}, scene);
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, ModelLoadErrorCode::Parse);
 		EXPECT_EQ(model.infoData.modelName, "기존 모델");
@@ -275,7 +283,7 @@ namespace Chrivent {
 			file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 		}
 		Model model;
-		const auto result = ModelLoader::Load(model, path, {});
+		const auto result = ModelLoader::Load(model, path, {}, scene);
 		std::error_code error;
 		std::filesystem::remove(path, error);
 		ASSERT_TRUE(result);
@@ -291,7 +299,7 @@ namespace Chrivent {
 			file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
 		}
 		Model model;
-		const auto result = ModelLoader::Load(model, path, {});
+		const auto result = ModelLoader::Load(model, path, {}, scene);
 		std::error_code error;
 		std::filesystem::remove(path, error);
 		ASSERT_TRUE(result);
@@ -312,7 +320,7 @@ namespace Chrivent {
 		ASSERT_EQ(model.skeletonData.GetNodes().size(), 1);
 		EXPECT_EQ(model.skeletonData.GetNodes().front()->name, "Root");
 		EXPECT_EQ(model.morphData.morphPositions.size(), 3);
-		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		PreparePose(model);
 		ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
 		ModelUpdater::UpdateSkinning(model, 0);
 		EXPECT_EQ(model.geometryData.updatePositions.front(), glm::vec3(-1, 0, -2));
@@ -469,6 +477,35 @@ namespace Chrivent {
 		EXPECT_EQ(keys[1].frame, 8);
 	}
 
+	TEST_F(AnimationModelContractTest, ReadsIndependentBoneCurvesAndIgnoresFirstBlockFlags) {
+		const auto model = std::make_shared<Model>();
+		const Node* node = AddNode(*model, "IK");
+		VmdParser::VmdData data{};
+		for (const uint32_t frame : {1230u, 1231u}) {
+			auto& key = data.motions.emplace_back();
+			std::memcpy(key.boneName, "IK", 2);
+			key.frame = frame;
+			key.quaternion = glm::quat(1, 0, 0, 0);
+			key.translate = glm::vec3(0);
+		}
+		auto& destination = data.motions.back();
+		destination.translate = glm::vec3(8);
+		destination.quaternion = glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 0, 1));
+		destination.interpolation[2] = 0x63;
+		destination.interpolation[3] = 0x0f;
+		for (std::size_t channel = 0; channel < 4; ++channel) {
+			constexpr uint8_t curves[][4]{{0, 0, 127, 0}, {0, 127, 127, 127}, {20, 20, 107, 107}, {35, 35, 80, 80}};
+			for (std::size_t point = 0; point < 4; ++point)
+				destination.interpolation[16 * channel + 4 * point] = curves[channel][point];
+		}
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		animation->Evaluate(1230.5f);
+		EXPECT_EQ(node->animTranslate, glm::vec3(1, 7, -4));
+		EXPECT_NEAR(glm::degrees(glm::angle(node->animRotate)), 45.0f, 0.001f);
+	}
+
 	TEST_F(AnimationModelContractTest, ResetsModelStateThroughTheUpdaterContract) {
 		const auto model = std::make_shared<Model>();
 		Node* node = AddNode(*model, "A");
@@ -481,9 +518,11 @@ namespace Chrivent {
 		AnimationBuilder builder(model);
 		builder.Build(data);
 		const auto animation = builder.TakeAnimation();
-		ModelUpdater::ResetPhysicsAtFrame(*model, *animation, 12.0f);
+		const ModelAnimationTarget targets[]{{.model = *model, .animation = animation.get()}};
+		ModelUpdater::ResetPhysicsAtFrame(scene, targets, 12.0f);
 		EXPECT_EQ(node->animTranslate, glm::vec3(3, 0, 0));
 		EXPECT_EQ(glm::vec3(node->global[3]), glm::vec3(3, 0, 0));
+		EXPECT_EQ(glm::vec3(model->skeletonData.transforms[0][3]), glm::vec3(3, 0, 0));
 	}
 
 	TEST_F(AnimationModelContractTest, KeepsTheLastCameraKeyAtADuplicateFrame) {
@@ -531,7 +570,8 @@ namespace Chrivent {
 		node->animTranslate = glm::vec3(8);
 		node->baseAnimTranslate = glm::vec3(5);
 		const Animation animation(model, {}, {}, {});
-		ModelUpdater::SyncPhysics(*model, animation, 0);
+		const ModelAnimationTarget targets[]{{*model, &animation}};
+		ModelUpdater::ResetPhysicsAtFrame(scene, targets, 0);
 		EXPECT_EQ(node->baseAnimTranslate, glm::vec3(5));
 	}
 
@@ -578,15 +618,15 @@ namespace Chrivent {
 		EXPECT_FLOAT_EQ(model.materialData.materials.front().edgeSize, material.edgeSize * 3.0f);
 	}
 
-	TEST_F(AnimationModelContractTest, OwnsPhysicsThroughTheModelBoundary) {
+	TEST_F(AnimationModelContractTest, UnregistersModelBodiesFromTheSceneOnReset) {
 		Model model;
 		RigidBodyDefinition rigidBody{};
 		rigidBody.shapeSize = glm::vec3(1);
 		rigidBody.groupMask = 0xffff;
-		ASSERT_TRUE(model.InitializePhysics({rigidBody}, {}));
+		ASSERT_TRUE(model.InitializePhysics(scene, {rigidBody}, {}));
 		ASSERT_TRUE(model.HasPhysics());
-		model.ResetPhysics();
-		model.UpdatePhysics(1.0f / 60.0f);
+		scene.Reset();
+		EXPECT_EQ(scene.Step(1.0f / 60.0f), 1);
 		model.Reset();
 		EXPECT_FALSE(model.HasPhysics());
 	}
@@ -595,9 +635,9 @@ namespace Chrivent {
 		Model model;
 		RigidBodyDefinition rigidBody{};
 		rigidBody.shapeSize = glm::vec3(1);
-		ASSERT_TRUE(model.InitializePhysics({rigidBody}, {}));
-		model.UpdatePhysics(-1.0f);
-		model.UpdatePhysics(std::numeric_limits<float>::quiet_NaN());
+		ASSERT_TRUE(model.InitializePhysics(scene, {rigidBody}, {}));
+		EXPECT_EQ(scene.Step(-1.0f), 0);
+		EXPECT_EQ(scene.Step(std::numeric_limits<float>::quiet_NaN()), 0);
 		EXPECT_TRUE(model.HasPhysics());
 	}
 
@@ -605,10 +645,10 @@ namespace Chrivent {
 		Model model;
 		RigidBodyDefinition validRigidBody{};
 		validRigidBody.shapeSize = glm::vec3(1);
-		ASSERT_TRUE(model.InitializePhysics({validRigidBody}, {}));
+		ASSERT_TRUE(model.InitializePhysics(scene, {validRigidBody}, {}));
 		RigidBodyDefinition invalidRigidBody = validRigidBody;
 		invalidRigidBody.group = 16;
-		const auto result = model.InitializePhysics({invalidRigidBody}, {});
+		const auto result = model.InitializePhysics(scene, {invalidRigidBody}, {});
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, PhysicsErrorCode::InvalidRigidBody);
 		EXPECT_EQ(result.error().definitionIndex, 0);
@@ -622,7 +662,7 @@ namespace Chrivent {
 		JointDefinition joint{};
 		joint.rigidBodyAIndex = 0;
 		joint.rigidBodyBIndex = 0;
-		const auto result = model.InitializePhysics({rigidBody}, {joint});
+		const auto result = model.InitializePhysics(scene, {rigidBody}, {joint});
 		ASSERT_FALSE(result);
 		EXPECT_EQ(result.error().code, PhysicsErrorCode::InvalidJoint);
 		EXPECT_FALSE(model.HasPhysics());
@@ -643,7 +683,7 @@ namespace Chrivent {
 		model.morphData.morphPositions.resize(1);
 		model.morphData.morphUVs.resize(1);
 		AddNode(model);
-		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		PreparePose(model);
 		ModelUpdater::UpdateSkinning(model, 0);
 		const glm::vec3 normal = model.geometryData.updateNormals.front();
 		EXPECT_TRUE(std::isfinite(normal.x));

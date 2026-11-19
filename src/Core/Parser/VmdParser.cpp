@@ -8,6 +8,11 @@
 #include <span>
 
 namespace Chrivent {
+	std::array<uint8_t, 4> VmdParser::VmdMotion::GetCurve(const std::size_t channel) const {
+		const auto* block = interpolation + 16 * channel;
+		return {block[0], block[4], block[8], block[12]};
+	}
+
 	void VmdParser::ReadHeader(BinaryReader& reader) {
 		reader.Read(data.header.header, sizeof(data.header.header));
 		reader.Read(data.header.modelName, sizeof(data.header.modelName));
@@ -128,9 +133,9 @@ namespace Chrivent {
 			}
 			return true;
 		};
-		const auto IsValidInterpolation = [](const auto& interpolation, const std::size_t valueCount) {
-			for (std::size_t index = 0; index < valueCount; index++) {
-				if (interpolation[index] > 127)
+		const auto IsValidInterpolation = [](const auto& interpolation) {
+			for (const auto value : interpolation) {
+				if (value > 127)
 					return false;
 			}
 			return true;
@@ -143,9 +148,15 @@ namespace Chrivent {
 			const float quaternionLength = glm::dot(motion.quaternion, motion.quaternion);
 			if (!IsValidShiftJis(motion.boneName) ||
 				!IsFiniteVector(motion.translate) || !IsFiniteVector(motion.quaternion) ||
-				quaternionLength <= 1.0e-8f || !IsValidInterpolation(motion.interpolation, 16)) {
+				quaternionLength <= 1.0e-8f) {
 				reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 이름, 숫자 또는 보간 값이 올바르지 않습니다.");
 				return;
+			}
+			for (std::size_t channel = 0; channel < 4; ++channel) {
+				if (!IsValidInterpolation(motion.GetCurve(channel))) {
+					reader.Fail(ParseErrorCode::InvalidValue, "본 모션 키의 보간 제어점이 범위를 벗어났습니다.");
+					return;
+				}
 			}
 		}
 		for (const auto& morph : data.morphs) {
@@ -157,7 +168,7 @@ namespace Chrivent {
 		}
 		for (const auto& camera : data.cameras) {
 			if (!std::isfinite(camera.distance) || !IsFiniteVector(camera.interest) ||
-				!IsFiniteVector(camera.rotate) || !IsValidInterpolation(camera.interpolation, 24) ||
+				!IsFiniteVector(camera.rotate) || !IsValidInterpolation(camera.interpolation) ||
 				camera.viewAngle == 0 || camera.viewAngle >= 180) {
 				reader.Fail(ParseErrorCode::InvalidValue, "카메라 키의 숫자 또는 보간 값이 올바르지 않습니다.");
 				return;

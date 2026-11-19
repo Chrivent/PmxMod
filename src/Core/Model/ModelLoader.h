@@ -9,6 +9,7 @@
 
 namespace Chrivent {
 	class Model;
+	class ScenePhysics;
 
 	enum class ModelLoadErrorCode {
 		Parse,
@@ -52,14 +53,15 @@ namespace Chrivent {
 		// 순환 참조가 있는 그룹 모프를 끊어 무한 재귀를 막는다.
 		static void FixInfiniteGroupMorphs(Model& model);
 		// PMX 강체와 조인트를 물리 월드에 등록한다.
-		static std::expected<void, ModelLoadError> LoadPhysics(Model& model, const PmxParser::PmxData& pmxData);
+		static std::expected<void, ModelLoadError> LoadPhysics(Model& model, const PmxParser::PmxData& pmxData,
+			ScenePhysics& scene, float scale);
 		// 검증된 PMX 데이터를 지정 모델의 런타임 표현으로 조립한다.
 		static std::expected<void, ModelLoadError> Build(Model& model, const PmxParser::PmxData& pmxData,
-			const std::filesystem::path& modelDir, const std::filesystem::path& defaultToonTextureDir);
+			const std::filesystem::path& modelDir, const std::filesystem::path& defaultToonTextureDir, ScenePhysics& scene, float scale);
 
 	public:
 		// PMX 모델과 내장 공용 툰 텍스처를 파일에서 로드한다.
 		static std::expected<void, ModelLoadError> Load(Model& model, const std::filesystem::path& filepath,
-			const std::filesystem::path& defaultToonTextureDir);
+			const std::filesystem::path& defaultToonTextureDir, ScenePhysics& scene, float scale = 1.0f);
 	};
 }

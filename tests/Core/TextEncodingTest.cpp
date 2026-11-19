@@ -49,7 +49,7 @@ namespace Chrivent {
 		const auto emptyText = TextEncoding::TryUtf8ToWide({});
 		ASSERT_TRUE(emptyText);
 		EXPECT_TRUE(emptyText->empty());
-		constexpr std::string invalidUtf8{"\xC3\x28", 2};
+		constexpr char invalidUtf8[] = "\xC3\x28";
 		const auto invalidText = TextEncoding::TryUtf8ToWide(invalidUtf8);
 		ASSERT_FALSE(invalidText);
 		EXPECT_EQ(invalidText.error(), TextEncoding::Error::InvalidSequence);

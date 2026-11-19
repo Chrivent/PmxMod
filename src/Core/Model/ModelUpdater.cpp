@@ -3,9 +3,9 @@
 #include "Core/Animation/Model/Animation.h"
 #include "Core/Model/Model.h"
 #include "Core/Model/ModelSkinning.h"
+#include "Core/Model/Physics/ScenePhysics.h"
 
 #include <algorithm>
-#include <chrono>
 
 namespace Chrivent {
 	void ModelUpdater::SaveBaseAnimation(const Model& model) {
@@ -40,20 +40,24 @@ namespace Chrivent {
 		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));
 	}
 
-	void ModelUpdater::UpdateNodePose(const Model& model, const bool afterPhysics) {
-		const auto ForEachStageNode = [&](const auto& updateNode) {
-			for (const auto& entry : model.skeletonData.sortedNodes) {
-				Node& node = entry.get();
-				if (node.isDeformAfterPhysics == afterPhysics)
-					updateNode(node);
-			}
-		};
-		ForEachStageNode([](Node& node) { node.UpdateLocalTransform(); });
-		ForEachStageNode([](Node& node) {
-			if (!node.parent)
+	void ModelUpdater::UpdateStageTransforms(const Model& model, const bool afterPhysics) {
+		for (const auto& entry : model.skeletonData.sortedNodes) {
+			Node& node = entry.get();
+			if (node.isDeformAfterPhysics == afterPhysics)
+				node.UpdateLocalTransform();
+		}
+		for (const auto& entry : model.skeletonData.sortedNodes) {
+			Node& node = entry.get();
+			if (node.isDeformAfterPhysics == afterPhysics && (!node.parent || node.parent->isDeformAfterPhysics != afterPhysics))
 				node.UpdateGlobalTransform();
-		});
-		ForEachStageNode([](Node& node) {
+		}
+	}
+
+	void ModelUpdater::ApplyStageConstraints(const Model& model, const bool afterPhysics) {
+		for (const auto& entry : model.skeletonData.sortedNodes) {
+			Node& node = entry.get();
+			if (node.isDeformAfterPhysics != afterPhysics)
+				continue;
 			if (node.appendNode) {
 				node.UpdateAppendTransform();
 				node.UpdateGlobalTransform();
@@ -62,7 +66,7 @@ namespace Chrivent {
 				node.ikSolver->Solve();
 				node.UpdateGlobalTransform();
 			}
-		});
+		}
 	}
 
 	void ModelUpdater::UpdateTransforms(Model& model) {
@@ -78,64 +82,72 @@ namespace Chrivent {
 			morph->weight = 0;
 		for (const auto& ikSolver : model.skeletonData.GetIkSolvers())
 			ikSolver->enable = true;
-		UpdateNodePose(model, false);
-		UpdateNodePose(model, true);
-		model.ResetPhysics();
+		UpdateStageTransforms(model, false);
+		ApplyStageConstraints(model, false);
+		EvaluateAfterPhysics(model, false, nullptr);
 	}
 
-	void ModelUpdater::SyncPhysics(Model& model, const Animation& animation, const float frame) {
-		if (!model.HasPhysics())
-			return;
+	void ModelUpdater::ResetPhysicsAtFrame(const ScenePhysics& scene, const std::span<const ModelAnimationTarget> targets, const float frame) {
+		bool hasBodies = false;
+		for (const auto& [model, animation] : targets) {
+			EvaluateBeforePhysics(model, animation, frame, 1.0f, nullptr);
+			EvaluateAfterPhysics(model, false, nullptr);
+			if (model.HasPhysics()) {
+				SaveBaseAnimation(model);
+				hasBodies = true;
+			}
+		}
+		scene.Reset();
 		constexpr int warmUpStepCount = 30;
 		constexpr float warmUpElapsed = 1.0f / warmUpStepCount;
-		SaveBaseAnimation(model);
-		for (int index = 0; index < warmUpStepCount; index++) {
-			BeginAnimation(model);
-			animation.Evaluate(frame, static_cast<float>(1 + index) / warmUpStepCount);
-			model.AccumulateMorphs();
-			UpdateNodePose(model, false);
-			model.UpdatePhysics(warmUpElapsed);
-			UpdateNodePose(model, true);
-		}
-	}
-
-	void ModelUpdater::ResetPhysicsAtFrame(Model& model, const Animation& animation, const float frame) {
-		BeginAnimation(model);
-		animation.Evaluate(frame);
-		model.AccumulateMorphs();
-		UpdateNodePose(model, false);
-		UpdateNodePose(model, true);
-		model.ResetPhysics();
-		SyncPhysics(model, animation, frame);
-	}
-
-	void ModelUpdater::Prepare(Model& model, const ModelUpdateOptions& options) {
-		const auto RunStage = [](double* elapsedMilliseconds, const auto& task) {
-			if (!elapsedMilliseconds) {
-				task();
-				return;
+		for (int index = 0; hasBodies && index < warmUpStepCount; index++) {
+			const float weight = static_cast<float>(index + 1) / warmUpStepCount;
+			for (const auto& [model, animation] : targets) {
+				if (model.HasPhysics())
+					EvaluateBeforePhysics(model, animation, frame, weight, nullptr);
 			}
-			const auto start = std::chrono::steady_clock::now();
-			task();
-			*elapsedMilliseconds =
-				std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
-		};
-		ModelUpdateTiming* timing = options.timing;
+			static_cast<void>(scene.Step(warmUpElapsed));
+			for (const auto& [model, animation] : targets) {
+				if (model.HasPhysics())
+					EvaluateAfterPhysics(model, true, nullptr);
+			}
+		}
+		for (const auto& [model, animation] : targets)
+			UpdateTransforms(model);
+	}
+
+	void ModelUpdater::EvaluateBeforePhysics(Model& model, const Animation* animation, const float frame,
+		const float weight, ModelUpdateTiming* timing) {
 		RunStage(timing ? &timing->initializeMilliseconds : nullptr,
 			[&] { BeginAnimation(model); });
 		RunStage(timing ? &timing->animationEvaluateMilliseconds : nullptr,
-			[&] { if (options.animation) options.animation->Evaluate(options.frame); });
+			[&] { if (animation) animation->Evaluate(frame, weight); });
 		RunStage(timing ? &timing->morphMilliseconds : nullptr,
 			[&] { model.AccumulateMorphs(); });
 		RunStage(timing ? &timing->beforePhysicsPoseMilliseconds : nullptr,
-			[&] { UpdateNodePose(model, false); });
-		RunStage(timing ? &timing->physicsMilliseconds : nullptr,
-			[&] { if (options.updatePhysics) model.UpdatePhysics(options.physicsElapsed); });
+			[&] { UpdateStageTransforms(model, false); ApplyStageConstraints(model, false); });
+	}
+
+	void ModelUpdater::EvaluateAfterPhysics(const Model& model, const bool reflectPhysics, ModelUpdateTiming* timing) {
 		RunStage(timing ? &timing->afterPhysicsPoseMilliseconds : nullptr,
-			[&] { UpdateNodePose(model, true); });
+			[&] { UpdateStageTransforms(model, true); });
+		if (reflectPhysics && model.HasPhysics())
+			RunStage(timing ? &timing->physicsMilliseconds : nullptr, [&] { model.ReflectPhysics(); });
+		RunStage(timing ? &timing->afterPhysicsPoseMilliseconds : nullptr,
+			[&] { ApplyStageConstraints(model, true); });
+	}
+
+	void ModelUpdater::PrepareBeforePhysics(Model& model, const Animation* animation, const float frame, ModelUpdateTiming* timing) {
+		if (timing)
+			*timing = {};
+		EvaluateBeforePhysics(model, animation, frame, 1.0f, timing);
+	}
+
+	void ModelUpdater::PrepareAfterPhysics(Model& model, const bool reflectPhysics, const bool preservePreviousPositions, ModelUpdateTiming* timing) {
+		EvaluateAfterPhysics(model, reflectPhysics, timing);
 		RunStage(timing ? &timing->transformMilliseconds : nullptr,
 			[&] { UpdateTransforms(model); });
-		ModelSkinning::PrepareUpdate(model, options.preservePreviousPositions);
+		ModelSkinning::PrepareUpdate(model, preservePreviousPositions);
 	}
 
 	std::size_t ModelUpdater::CalculateSkinningTaskCount(const Model& model) {

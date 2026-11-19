@@ -482,7 +482,8 @@ namespace Chrivent {
 		}
 	}
 
-	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(Model& model, const PmxParser::PmxData& pmxData) {
+	std::expected<void, ModelLoadError> ModelLoader::LoadPhysics(Model& model, const PmxParser::PmxData& pmxData,
+		ScenePhysics& scene, const float scale) {
 		std::vector<RigidBodyDefinition> rigidBodies;
 		rigidBodies.reserve(pmxData.rigidBodies.size());
 		for (const auto& rigidBody : pmxData.rigidBodies)
@@ -491,7 +492,7 @@ namespace Chrivent {
 		joints.reserve(pmxData.joints.size());
 		for (const auto& joint : pmxData.joints)
 			joints.emplace_back(CreateJointDefinition(joint));
-		const auto physicsResult = model.InitializePhysics(rigidBodies, joints);
+		const auto physicsResult = model.InitializePhysics(scene, rigidBodies, joints, scale);
 		if (!physicsResult) {
 			const auto& [code, definitionIndex, message] = physicsResult.error();
 			const std::string item = code == PhysicsErrorCode::InvalidRigidBody ? "강체 " : "조인트 ";
@@ -504,7 +505,7 @@ namespace Chrivent {
 	}
 
 	std::expected<void, ModelLoadError> ModelLoader::Build(Model& model, const PmxParser::PmxData& pmxData,
-		const std::filesystem::path& modelDir, const std::filesystem::path& defaultToonTextureDir) {
+		const std::filesystem::path& modelDir, const std::filesystem::path& defaultToonTextureDir, ScenePhysics& scene, const float scale) {
 		const auto supportResult = ValidateSupportedFeatures(pmxData);
 		if (!supportResult)
 			return std::unexpected(supportResult.error());
@@ -519,15 +520,11 @@ namespace Chrivent {
 		LoadNodes(model, pmxData, invZ);
 		LoadMorphs(model, pmxData, invZ);
 		FixInfiniteGroupMorphs(model);
-		const auto physicsResult = LoadPhysics(model, pmxData);
-		if (!physicsResult)
-			return std::unexpected(physicsResult.error());
-		model.ResetPhysics();
-		return {};
+		return LoadPhysics(model, pmxData, scene, scale);
 	}
 
 	std::expected<void, ModelLoadError> ModelLoader::Load(Model& model, const std::filesystem::path& filepath,
-		const std::filesystem::path& defaultToonTextureDir) {
+		const std::filesystem::path& defaultToonTextureDir, ScenePhysics& scene, const float scale) {
 		PmxParser parser;
 		const auto parseResult = parser.ReadFile(filepath);
 		if (!parseResult) {
@@ -538,7 +535,7 @@ namespace Chrivent {
 		}
 		Model loadedModel;
 		const auto buildResult = Build(
-			loadedModel, parser.GetData(), filepath.parent_path(), defaultToonTextureDir);
+			loadedModel, parser.GetData(), filepath.parent_path(), defaultToonTextureDir, scene, scale);
 		if (!buildResult)
 			return std::unexpected(buildResult.error());
 		model.Swap(loadedModel);

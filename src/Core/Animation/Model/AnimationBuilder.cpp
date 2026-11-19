@@ -40,10 +40,14 @@ namespace Chrivent {
 		const glm::quat q = glm::normalize(motion.quaternion);
 		const auto rot = ModelCoordinateConverter::ConvertZAxis(glm::mat3_cast(q));
 		key.rotate = glm::normalize(glm::quat_cast(rot));
-		key.txBezier.Assign(motion.interpolation[0], motion.interpolation[8], motion.interpolation[4], motion.interpolation[12]);
-		key.tyBezier.Assign(motion.interpolation[1], motion.interpolation[9], motion.interpolation[5], motion.interpolation[13]);
-		key.tzBezier.Assign(motion.interpolation[2], motion.interpolation[10], motion.interpolation[6], motion.interpolation[14]);
-		key.rotBezier.Assign(motion.interpolation[3], motion.interpolation[11], motion.interpolation[7], motion.interpolation[15]);
+		const auto AssignCurve = [&](Bezier& curve, const std::size_t channel) {
+			const auto [x1, y1, x2, y2] = motion.GetCurve(channel);
+			curve.Assign(x1, x2, y1, y2);
+		};
+		AssignCurve(key.txBezier, 0);
+		AssignCurve(key.tyBezier, 1);
+		AssignCurve(key.tzBezier, 2);
+		AssignCurve(key.rotBezier, 3);
 		return key;
 	}
 

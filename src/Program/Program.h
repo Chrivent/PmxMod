@@ -10,6 +10,7 @@
 #include "Program/Manager/InputManager.h"
 #include "Program/TaskExecutor.h"
 #include "Core/Model/ModelUpdater.h"
+#include "Core/Model/Physics/ScenePhysics.h"
 #include "Viewer/Viewer/Viewer.h"
 
 #include <chrono>
@@ -62,6 +63,7 @@ namespace Chrivent {
 			std::chrono::steady_clock::time_point animationStart;
 			std::chrono::steady_clock::time_point animationEnd;
 			std::chrono::steady_clock::time_point skinningEnd;
+			double scenePhysicsMilliseconds = 0.0;
 		};
 
         std::unique_ptr<Viewer> viewer;
@@ -73,6 +75,7 @@ namespace Chrivent {
         TaskExecutor taskExecutor;
 		ShaderEffectController shaderEffectController;
         Sound music;
+		ScenePhysics scenePhysics;
         std::vector<std::unique_ptr<Instance>> instances;
         std::vector<std::size_t> skinningTaskOffsets;
         std::vector<ModelUpdateTiming> modelUpdateTimings;
@@ -135,9 +138,9 @@ namespace Chrivent {
         // 선택한 모델의 PMX 메타데이터와 런타임 규모를 정보 패널에 표시한다.
         void UpdateModelInformation(std::size_t modelIndex);
         // 씬 설정에 맞춰 모델, 애니메이션, 음악, 카메라를 다시 로드한다.
-        bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true);
+        bool LoadScene(const SceneConfig& sceneConfig, bool resetPlaybackRange = true, int restoreFrame = -1);
         // 씬 설정의 모델과 애니메이션을 읽어 렌더 인스턴스를 생성한다.
-        bool LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const;
+        bool LoadInstances(const SceneConfig& sceneConfig, ScenePhysics& loadedPhysics, std::vector<std::unique_ptr<Instance>>& loadedInstances) const;
         // 현재 씬의 모델 모션과 카메라 모션 중 가장 긴 프레임을 계산한다.
         int CalculateMotionLastFrame() const;
         // 현재 씬의 모션과 음악 중 가장 긴 자동 재생 프레임을 계산한다.

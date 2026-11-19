@@ -25,7 +25,10 @@ namespace Chrivent {
 	}
 
 	Model::Model() : skeletonData(structureRevision), morphData(structureRevision) {}
-	Model::~Model() = default;
+	Model::~Model() {
+		// Bullet 모션 상태가 참조하는 본보다 먼저 월드 등록을 해제한다.
+		physicsData.Reset();
+	}
 
 	bool Model::HasPhysics() const {
 		return physicsData.IsInitialized();
@@ -49,16 +52,12 @@ namespace Chrivent {
 		morphEvaluator.Update(*this);
 	}
 
-	std::expected<void, PhysicsError> Model::InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
-		const std::vector<JointDefinition>& joints) {
-		return physicsData.Initialize(rigidBodies, joints, skeletonData.GetNodes());
+	std::expected<void, PhysicsError> Model::InitializePhysics(ScenePhysics& scene, const std::vector<RigidBodyDefinition>& rigidBodies,
+		const std::vector<JointDefinition>& joints, const float scale) {
+		return physicsData.Initialize(scene, rigidBodies, joints, skeletonData.GetNodes(), scale);
 	}
 
-	void Model::ResetPhysics() const {
-		physicsData.ResetSimulation(skeletonData.GetNodes());
-	}
-
-	void Model::UpdatePhysics(const float elapsed) const {
-		physicsData.UpdateSimulation(elapsed, skeletonData.GetNodes());
+	void Model::ReflectPhysics() const {
+		physicsData.ReflectTransforms();
 	}
 }

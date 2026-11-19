@@ -2,6 +2,7 @@
 
 #include "Core/Parser/BinaryReader.h"
 
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <filesystem>
@@ -76,6 +77,9 @@ namespace Chrivent {
 			glm::vec3		translate;
 			glm::quat		quaternion;
 			uint8_t			interpolation[64];
+
+			// X, Y, Z, 회전 채널은 각각 16바이트 블록의 0/4/8/12에 x1/y1/x2/y2를 저장한다.
+			std::array<uint8_t, 4> GetCurve(std::size_t channel) const;
 		};
 
 		// 한 VMD 파일에서 읽은 모든 키프레임 섹션을 묶어 보관한다.

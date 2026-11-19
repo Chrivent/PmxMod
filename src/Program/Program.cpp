@@ -364,11 +364,9 @@ namespace Chrivent {
 			return false;
 		}
         saveTime = std::chrono::steady_clock::now();
-        if (!LoadScene(panelManager.GetSceneConfig(), false))
+        if (!LoadScene(panelManager.GetSceneConfig(), false, playbackFrame))
             return false;
         panelManager.BindSound(music);
-        cameraManager.SeekFrame(*viewer, music, playbackFrame, saveTime);
-        ResetPhysics(playbackFrame);
         cameraManager.UpdateCamera(*viewer);
         return true;
     }
@@ -425,9 +423,10 @@ namespace Chrivent {
 		panelManager.ApplyInformation(std::move(fields));
 	}
 
-    bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange) {
+    bool Program::LoadScene(const SceneConfig& sceneConfig, const bool resetPlaybackRange, const int restoreFrame) {
+		ScenePhysics loadedPhysics;
         std::vector<std::unique_ptr<Instance>> loadedInstances;
-        if (!LoadInstances(sceneConfig, loadedInstances)) {
+        if (!LoadInstances(sceneConfig, loadedPhysics, loadedInstances)) {
             std::cerr << "장면 인스턴스를 불러오지 못했습니다.\n";
             return false;
         }
@@ -447,6 +446,7 @@ namespace Chrivent {
             return false;
         }
         ClearInstances();
+		scenePhysics = std::move(loadedPhysics);
         instances = std::move(loadedInstances);
 		if (reuseMusic)
 			music.Pause();
@@ -458,22 +458,20 @@ namespace Chrivent {
         cameraManager.Stop(*viewer, music, saveTime);
         panelManager.UpdateFrameLimits(CalculatePlaybackLastFrame(), CalculateMotionLastFrame(), resetPlaybackRange);
         panelManager.ApplyCameraMotionPath(sceneConfig.cameraAnim);
-        const int startFrame = panelManager.GetPlaybackFrameRange().start;
-		if (startFrame > 0) {
+        const int startFrame = restoreFrame >= 0 ? restoreFrame : panelManager.GetPlaybackFrameRange().start;
+		if (startFrame > 0)
 			cameraManager.SeekFrame(*viewer, music, startFrame, saveTime);
-			ResetPhysics(startFrame);
-		}
-		viewer->ResetPostProcessHistory();
+		ResetPhysics(startFrame);
 		return true;
     }
 
-    bool Program::LoadInstances(const SceneConfig& sceneConfig, std::vector<std::unique_ptr<Instance>>& loadedInstances) const {
+    bool Program::LoadInstances(const SceneConfig& sceneConfig, ScenePhysics& loadedPhysics, std::vector<std::unique_ptr<Instance>>& loadedInstances) const {
         loadedInstances.clear();
         loadedInstances.reserve(sceneConfig.modelConfigs.size());
         for (const auto& [modelPath, animPaths, scale] : sceneConfig.modelConfigs) {
             const auto pmxModel = std::make_shared<Model>();
 			const auto loadResult = ModelLoader::Load(
-				*pmxModel, modelPath, resourceDirectories.GetDefaultToonTextureDirectory());
+				*pmxModel, modelPath, resourceDirectories.GetDefaultToonTextureDirectory(), loadedPhysics, scale);
 			if (!loadResult) {
                 std::cerr << loadResult.error().message << '\n';
                 return false;
@@ -491,7 +489,6 @@ namespace Chrivent {
                 animationBuilder.Build(vmd.GetData());
             }
             auto vmdAnim = animationBuilder.TakeAnimation();
-			ModelUpdater::SyncPhysics(*pmxModel, *vmdAnim, 0.0f);
             auto instanceResult = viewer->CreateInstance(pmxModel, std::move(vmdAnim), scale);
             if (!instanceResult) {
 				PrintGraphicsError(instanceResult.error());
@@ -523,12 +520,12 @@ namespace Chrivent {
     }
 
     void Program::ResetPhysics(const int frame) const {
+		std::vector<ModelAnimationTarget> targets;
+		targets.reserve(instances.size());
         for (const auto& instance : instances) {
-            if (!instance || !instance->GetAnimation())
-                continue;
-            Model& model = instance->GetModel();
-			ModelUpdater::ResetPhysicsAtFrame(model, *instance->GetAnimation(), static_cast<float>(frame));
+			targets.push_back({instance->GetModel(), instance->GetAnimation()});
         }
+		ModelUpdater::ResetPhysicsAtFrame(scenePhysics, targets, static_cast<float>(frame));
         viewer->ResetPostProcessHistory();
     }
 
@@ -803,20 +800,31 @@ namespace Chrivent {
 	Program::FrameUpdateTimes Program::UpdateInstances(const FrameTiming* timing) {
 		FrameUpdateTimes updateTimes;
 		updateTimes.animationStart = std::chrono::steady_clock::now();
-		if (timing) {
-			modelUpdateTimings.clear();
+		if (timing)
 			modelUpdateTimings.resize(instances.size());
-		}
-		const bool physicsEnabled = panelManager.IsPhysicsEnabled();
-		const InstanceUpdateState instanceUpdateState{
-			.animationFrame = cameraManager.GetAnimationFrame(),
-			.elapsed = cameraManager.GetElapsed(),
-			.velocityRequired = viewer->RequiresPostProcessVelocity(),
-			.physicsEnabled = physicsEnabled && !cameraManager.IsPhysicsSkipped()
+		const float frame = cameraManager.GetAnimationFrame();
+		const float elapsed = cameraManager.GetElapsed();
+		const bool physicsEnabled = panelManager.IsPhysicsEnabled() && !cameraManager.IsPhysicsSkipped();
+		const bool preservePreviousPositions = viewer->RequiresPostProcessVelocity();
+		const auto PrepareBeforePhysics = [&](const std::size_t index) {
+			instances[index]->PrepareBeforePhysics(frame, timing ? &modelUpdateTimings[index] : nullptr);
 		};
-		taskExecutor.Run(instances.size(), [&](const std::size_t index) {
-			instances[index]->PrepareUpdate(instanceUpdateState, timing ? &modelUpdateTimings[index] : nullptr);
-		});
+		const auto PrepareAfterPhysics = [&](const std::size_t index) {
+			instances[index]->PrepareAfterPhysics(physicsEnabled, preservePreviousPositions, timing ? &modelUpdateTimings[index] : nullptr);
+		};
+		if (physicsEnabled && elapsed > 0.0f) {
+			taskExecutor.Run(instances.size(), PrepareBeforePhysics);
+			const auto start = timing ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+			static_cast<void>(scenePhysics.Step(elapsed));
+			if (timing)
+				updateTimes.scenePhysicsMilliseconds = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+			taskExecutor.Run(instances.size(), PrepareAfterPhysics);
+		} else {
+			taskExecutor.Run(instances.size(), [&](const std::size_t index) {
+				PrepareBeforePhysics(index);
+				PrepareAfterPhysics(index);
+			});
+		}
 		updateTimes.animationEnd = std::chrono::steady_clock::now();
 		skinningTaskOffsets.resize(instances.size() + 1);
 		skinningTaskOffsets[0] = 0;
@@ -905,6 +913,7 @@ namespace Chrivent {
 				return std::chrono::duration<double, std::milli>(end - start).count();
 			};
 			timing->animationMilliseconds = Milliseconds(updateTimes.animationStart, updateTimes.animationEnd);
+			timing->physicsCpuMilliseconds = updateTimes.scenePhysicsMilliseconds;
 			for (const auto& [initializeMilliseconds
 				, animationEvaluateMilliseconds
 				, morphMilliseconds

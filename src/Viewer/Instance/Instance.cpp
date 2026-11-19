@@ -109,17 +109,14 @@ namespace Chrivent {
 		return drawer->DrawPostProcessSceneInputs();
 	}
 
-	void Instance::PrepareUpdate(const InstanceUpdateState& state, ModelUpdateTiming* timing) const {
-		if (!initialized)
-			return;
-		ModelUpdater::Prepare(*model, {
-			.animation = animation.get(),
-			.frame = state.animationFrame,
-			.physicsElapsed = state.elapsed,
-			.preservePreviousPositions = state.velocityRequired,
-			.updatePhysics = state.physicsEnabled,
-			.timing = timing
-		});
+	void Instance::PrepareBeforePhysics(const float frame, ModelUpdateTiming* timing) const {
+		if (initialized)
+			ModelUpdater::PrepareBeforePhysics(*model, animation.get(), frame, timing);
+	}
+
+	void Instance::PrepareAfterPhysics(const bool reflectPhysics, const bool preservePreviousPositions, ModelUpdateTiming* timing) const {
+		if (initialized)
+			ModelUpdater::PrepareAfterPhysics(*model, reflectPhysics, preservePreviousPositions, timing);
 	}
 
 	std::size_t Instance::CalculateSkinningTaskCount() const {

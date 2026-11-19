@@ -30,6 +30,7 @@ target_sources(PmxModCore PRIVATE
         Model/Bone/Node.h Model/Bone/Node.cpp
 
         Model/Physics/Physics.h Model/Physics/Physics.cpp
+        Model/Physics/ScenePhysics.h Model/Physics/ScenePhysics.cpp
         Model/Physics/RigidBody.h Model/Physics/RigidBody.cpp
         Model/Physics/Joint.h Model/Physics/Joint.cpp
         Model/Physics/MotionState.h Model/Physics/MotionState.cpp

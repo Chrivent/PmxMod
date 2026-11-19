@@ -4,14 +4,19 @@
 #include "Core/Model/ModelCoordinateConverter.h"
 
 namespace Chrivent {
-	DefaultMotionState::DefaultMotionState(const glm::mat4& initialMatrix) {
-		glm::mat4 trans = ModelCoordinateConverter::ConvertZAxis(initialMatrix);
-		transform.setFromOpenGLMatrix(&trans[0][0]);
-		initialTransform = transform;
+	btTransform MotionState::ToWorldTransform(const glm::mat4& modelMatrix) const {
+		const glm::mat4 matrix = ModelCoordinateConverter::ConvertZAxis(modelMatrix);
+		btTransform result;
+		result.setFromOpenGLMatrix(&matrix[0][0]);
+		result.setOrigin(result.getOrigin() * sceneScale);
+		return result;
 	}
 
-	DynamicMotionState::DynamicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix)
-		: offset(offsetMatrix), node(sourceNode) {
+	DefaultMotionState::DefaultMotionState(const glm::mat4& initialMatrix, const float scale)
+		: MotionState(scale), initialTransform(ToWorldTransform(initialMatrix)), transform(initialTransform) {}
+
+	DynamicMotionState::DynamicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix, const float scale)
+		: MotionState(scale), offset(offsetMatrix), node(sourceNode) {
 		invOffset = glm::inverse(offsetMatrix);
 		DynamicMotionState::Reset();
 	}
@@ -19,8 +24,7 @@ namespace Chrivent {
 	void DynamicMotionState::Reset() {
 		if (!node)
 			return;
-		glm::mat4 global = ModelCoordinateConverter::ConvertZAxis(node->global * offset);
-		transform.setFromOpenGLMatrix(&global[0][0]);
+		transform = ToWorldTransform(node->global * offset);
 	}
 
 	void DynamicMotionState::ReflectGlobalTransform() {
@@ -28,9 +32,11 @@ namespace Chrivent {
 			return;
 		glm::mat4 worldTransformMat;
 		transform.getOpenGLMatrix(&worldTransformMat[0][0]);
+		worldTransformMat[3] = glm::vec4(glm::vec3(worldTransformMat[3]) / sceneScale, 1.0f);
 		glm::mat4 btGlobal = ModelCoordinateConverter::ConvertZAxis(worldTransformMat) * invOffset;
 		PostProcessBtGlobal(btGlobal);
 		node->global = btGlobal;
+		node->local = node->parent ? glm::inverse(node->parent->global) * btGlobal : btGlobal;
 		node->UpdateChildTransform();
 	}
 
@@ -39,13 +45,12 @@ namespace Chrivent {
 			btGlobal[3] = node->global[3];
 	}
 
-	KinematicMotionState::KinematicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix)
-		: node(sourceNode), offset(offsetMatrix) {}
+	KinematicMotionState::KinematicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix, const float scale)
+		: MotionState(scale), node(sourceNode), offset(offsetMatrix) {}
 
 	void KinematicMotionState::getWorldTransform(btTransform& worldTransform) const {
 		if (!node)
 			return;
-		glm::mat4 global = ModelCoordinateConverter::ConvertZAxis(node->global * offset);
-		worldTransform.setFromOpenGLMatrix(&global[0][0]);
+		worldTransform = ToWorldTransform(node->global * offset);
 	}
 }

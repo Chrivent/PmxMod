@@ -247,7 +247,8 @@ namespace Chrivent {
 		EXPECT_FALSE(instance.DrawGroundShadowPass().has_value());
 		EXPECT_FALSE(instance.DrawPostProcessSceneInputs().has_value());
 		instance.BeginDraw({});
-		instance.PrepareUpdate({});
+		instance.PrepareBeforePhysics(0.0f);
+		instance.PrepareAfterPhysics(false, false);
 		EXPECT_EQ(instance.CalculateSkinningTaskCount(), 0);
 		instance.UpdateSkinning(0);
 		EXPECT_EQ(instance.GetUploadCallCount(), 0);

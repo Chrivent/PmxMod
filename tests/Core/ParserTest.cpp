@@ -208,7 +208,7 @@ namespace Chrivent {
 			return bytes;
 		}
 
-		static std::string BuildVmdWithNonCanonicalInterpolationPadding() {
+		static std::string BuildVmdWithInterpolationByte(const std::size_t offset) {
 			std::string bytes(50, '\0');
 			constexpr char signature[] = "Vocaloid Motion Data 0002";
 			std::memcpy(bytes.data(), signature, sizeof(signature) - 1);
@@ -221,7 +221,7 @@ namespace Chrivent {
 			Append(bytes, glm::vec3(0));
 			Append(bytes, glm::quat(1, 0, 0, 0));
 			uint8_t interpolation[64]{};
-			interpolation[31] = 255;
+			interpolation[offset] = 255;
 			AppendBytes(bytes, reinterpret_cast<const char*>(interpolation), sizeof(interpolation));
 			return bytes;
 		}
@@ -327,12 +327,25 @@ namespace Chrivent {
 	}
 
 	TEST_F(ParserContractTest, AcceptsUnusedBoneInterpolationPaddingAbove127) {
-		std::istringstream stream(BuildVmdWithNonCanonicalInterpolationPadding());
-		VmdParser parser;
-		const auto result = parser.Read(stream);
-		ASSERT_TRUE(result);
-		ASSERT_EQ(parser.GetData().motions.size(), 1);
-		EXPECT_EQ(parser.GetData().motions.front().interpolation[31], 255);
+		for (const std::size_t offset : {2, 3, 31, 63}) {
+			std::istringstream stream(BuildVmdWithInterpolationByte(offset));
+			VmdParser parser;
+			ASSERT_TRUE(parser.Read(stream)) << offset;
+			ASSERT_EQ(parser.GetData().motions.size(), 1);
+			EXPECT_EQ(parser.GetData().motions.front().interpolation[offset], 255);
+		}
+	}
+
+	TEST_F(ParserContractTest, RejectsOutOfRangeControlPointsInEachBoneChannel) {
+		for (const std::size_t block : {0, 16, 32, 48}) {
+			for (const std::size_t point : {0, 4, 8, 12}) {
+				std::istringstream stream(BuildVmdWithInterpolationByte(block + point));
+				VmdParser parser;
+				const auto result = parser.Read(stream);
+				ASSERT_FALSE(result) << block + point;
+				EXPECT_EQ(result.error().code, ParseErrorCode::InvalidValue);
+			}
+		}
 	}
 
 	TEST_F(ParserContractTest, RejectsInvalidShiftJisMotionNames) {

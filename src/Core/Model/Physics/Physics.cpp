@@ -1,8 +1,11 @@
 ﻿#include "Core/Model/Physics/Physics.h"
 
 #include "Core/Model/Model.h"
+#include "Core/Model/Physics/ScenePhysics.h"
 #include "RigidBody.h"
 #include "Joint.h"
+#include <algorithm>
+#include <cmath>
 
 namespace Chrivent {
 	bool PhysicsOverlapFilter::needBroadphaseCollision(btBroadphaseProxy* proxy0, btBroadphaseProxy* proxy1) const {
@@ -18,6 +21,7 @@ namespace Chrivent {
 	}
 
 	Physics::~Physics() {
+		world->getPairCache()->setOverlapFilterCallback(nullptr);
 		world->removeRigidBody(groundRigidBody.get());
 	}
 
@@ -37,16 +41,26 @@ namespace Chrivent {
 		world->removeConstraint(&constraint);
 	}
 
-	void Physics::StepSimulation(const float elapsed) const {
+	int Physics::StepSimulation(const float elapsed) const {
 		if (!std::isfinite(elapsed) || elapsed <= 0.0f)
-			return;
-		world->stepSimulation(elapsed, maxSubStepCount, 1.0f / simulationFps);
+			return 0;
+		constexpr float tick = 1.0f / simulationFps;
+		constexpr float maxElapsed = maxSubStepCount * tick;
+		const float boundedElapsed = elapsed > maxElapsed ? maxElapsed + std::fmod(elapsed - maxElapsed, tick) : elapsed;
+		return std::min(world->stepSimulation(boundedElapsed, maxSubStepCount, tick), maxSubStepCount);
 	}
 
-	void Physics::CleanCollisionPairs(btRigidBody& rigidBody) const {
-		if (const auto cache = world->getPairCache(); cache && rigidBody.getBroadphaseHandle()) {
-			const auto worldDispatcher = world->getDispatcher();
-			cache->cleanProxyFromPairs(rigidBody.getBroadphaseHandle(), worldDispatcher);
+	void Physics::ResetSimulation() const {
+		world->ResetClock();
+		solver->reset();
+		for (int index = 0; index < world->getNumCollisionObjects(); ++index) {
+			auto* object = world->getCollisionObjectArray()[index];
+			const auto* body = static_cast<const RigidBody*>(object->getUserPointer());
+			if (!body)
+				continue;
+			body->ResetTransform();
+			world->getPairCache()->cleanProxyFromPairs(object->getBroadphaseHandle(), dispatcher.get());
+			world->updateSingleAabb(object);
 		}
 	}
 
@@ -55,7 +69,7 @@ namespace Chrivent {
 		collisionConfig = std::make_unique<btDefaultCollisionConfiguration>();
 		dispatcher = std::make_unique<btCollisionDispatcher>(collisionConfig.get());
 		solver = std::make_unique<btSequentialImpulseConstraintSolver>();
-		world = std::make_unique<btDiscreteDynamicsWorld>(dispatcher.get(), broadPhase.get(), solver.get(), collisionConfig.get());
+		world = std::make_unique<PhysicsDynamicsWorld>(dispatcher.get(), broadPhase.get(), solver.get(), collisionConfig.get());
 		world->setGravity(btVector3(0, -9.8f * 10.0f, 0));
 		groundShape = std::make_unique<btStaticPlaneShape>(btVector3(0, 1, 0), 0.0f);
 		btTransform groundTransform;
@@ -79,6 +93,7 @@ namespace Chrivent {
 		physics.swap(other.physics);
 		rigidBodies.swap(other.rigidBodies);
 		joints.swap(other.joints);
+		poseBodies.swap(other.poseBodies);
 	}
 
 	std::expected<void, PhysicsError> ModelPhysicsData::ValidateDefinitions(
@@ -150,66 +165,46 @@ namespace Chrivent {
 		return {};
 	}
 
-	void ModelPhysicsData::ReflectTransforms(const std::vector<std::unique_ptr<Node>>& nodes) const {
-		for (const auto& rigidBody : rigidBodies) {
+	void ModelPhysicsData::ReflectTransforms() const {
+		for (const auto* rigidBody : poseBodies)
 			rigidBody->ReflectGlobalTransform();
-			rigidBody->CalculateLocalTransform();
-		}
-		for (const auto& node : nodes) {
-			if (!node->parent)
-				node->UpdateGlobalTransform();
-		}
 	}
 
 	std::expected<void, PhysicsError> ModelPhysicsData::Initialize(
-		const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
-		const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::unique_ptr<Node>>& nodes) {
+		ScenePhysics& scene, const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+		const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::unique_ptr<Node>>& nodes, const float scale) {
 		const auto validationResult = ValidateDefinitions(rigidBodyDefinitions, jointDefinitions, nodes.size());
 		if (!validationResult)
 			return std::unexpected(validationResult.error());
+		if (!std::isfinite(scale))
+			return std::unexpected(PhysicsError{.code = PhysicsErrorCode::InvalidRigidBody, .definitionIndex = 0, .message = "모델 배율은 유한해야 합니다."});
 		Reset();
-		if (rigidBodyDefinitions.empty())
+		if (rigidBodyDefinitions.empty() || scale == 0.0f)
 			return {};
-		physics = std::make_unique<Physics>();
+		physics = scene.AcquireWorld();
 		rigidBodies.reserve(rigidBodyDefinitions.size());
+		poseBodies.reserve(rigidBodyDefinitions.size());
 		for (const auto& definition : rigidBodyDefinitions) {
 			Node* node = definition.nodeIndex >= 0 ? nodes[definition.nodeIndex].get() : nullptr;
-			auto rigidBody = std::make_unique<RigidBody>(definition, node);
+			auto rigidBody = std::make_unique<RigidBody>(definition, node, scale);
 			physics->AddRigidBody(rigidBody->ResolveRigidBody(), definition.group, definition.groupMask);
+			if (rigidBody->GetPoseDepth() != 0)
+				poseBodies.emplace_back(rigidBody.get());
 			rigidBodies.emplace_back(std::move(rigidBody));
 		}
 		joints.reserve(jointDefinitions.size());
 		for (const auto& definition : jointDefinitions) {
+			JointDefinition scaled = definition;
+			scaled.translate *= scale;
+			scaled.translateLowerLimit = (scale > 0 ? definition.translateLowerLimit : definition.translateUpperLimit) * scale;
+			scaled.translateUpperLimit = (scale > 0 ? definition.translateUpperLimit : definition.translateLowerLimit) * scale;
 			auto joint = std::make_unique<Joint>(
-				definition, *rigidBodies[definition.rigidBodyAIndex], *rigidBodies[definition.rigidBodyBIndex]);
+				scaled, *rigidBodies[definition.rigidBodyAIndex], *rigidBodies[definition.rigidBodyBIndex]);
 			physics->AddConstraint(joint->ResolveConstraint());
 			joints.emplace_back(std::move(joint));
 		}
+		std::ranges::stable_sort(poseBodies, {}, &RigidBody::GetPoseDepth);
 		return {};
-	}
-
-	void ModelPhysicsData::ResetSimulation(const std::vector<std::unique_ptr<Node>>& nodes) const {
-		if (!IsInitialized())
-			return;
-		for (const auto& rigidBody : rigidBodies) {
-			rigidBody->ApplyActivation(false);
-			rigidBody->ResetTransform();
-		}
-		physics->StepSimulation(1.0f / 60.0f);
-		ReflectTransforms(nodes);
-		for (const auto& rigidBody : rigidBodies) {
-			physics->CleanCollisionPairs(rigidBody->ResolveRigidBody());
-			rigidBody->ClearMotion();
-		}
-	}
-
-	void ModelPhysicsData::UpdateSimulation(const float elapsed, const std::vector<std::unique_ptr<Node>>& nodes) const {
-		if (!IsInitialized())
-			return;
-		for (const auto& rigidBody : rigidBodies)
-			rigidBody->ApplyActivation(true);
-		physics->StepSimulation(elapsed);
-		ReflectTransforms(nodes);
 	}
 
 	void ModelPhysicsData::Reset() {
@@ -220,6 +215,7 @@ namespace Chrivent {
 				physics->RemoveRigidBody(rigidBody->ResolveRigidBody());
 		}
 		joints.clear();
+		poseBodies.clear();
 		rigidBodies.clear();
 		physics.reset();
 	}

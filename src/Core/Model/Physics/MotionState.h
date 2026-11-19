@@ -8,6 +8,12 @@ namespace Chrivent {
 
 	// 모델 본과 Bullet 강체 사이의 변환 동기화 규약을 정의한다.
 	class MotionState : public btMotionState {
+	protected:
+		float sceneScale;
+		explicit MotionState(const float scale) : sceneScale(scale) {}
+		// 본의 회전축은 유지하고 위치만 씬 단위로 바꾸어 Bullet에 전달한다.
+		btTransform ToWorldTransform(const glm::mat4& modelMatrix) const;
+
 	public:
 		// 물리 변환을 초기 상태로 되돌린다.
 		virtual void Reset() {}
@@ -15,13 +21,13 @@ namespace Chrivent {
 		virtual void ReflectGlobalTransform() {}
 	};
 
-	// 본 변환을 그대로 따르는 기본 강체 동기화를 구현한다.
+	// 연결된 본이 없는 강체의 초기 위치와 현재 물리 변환을 보관한다.
 	class DefaultMotionState final : public MotionState {
 		btTransform	initialTransform;
 		btTransform	transform;
 
 	public:
-		explicit DefaultMotionState(const glm::mat4& initialMatrix);
+		DefaultMotionState(const glm::mat4& initialMatrix, float scale);
 
 		void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 		void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
@@ -43,7 +49,7 @@ namespace Chrivent {
 		virtual void PostProcessBtGlobal(glm::mat4&) const {}
 
 	public:
-		DynamicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix);
+		DynamicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix, float scale);
 
 		void getWorldTransform(btTransform& worldTransform) const override { worldTransform = transform; }
 		void setWorldTransform(const btTransform& worldTransform) override { transform = worldTransform; }
@@ -70,7 +76,7 @@ namespace Chrivent {
 		glm::mat4			offset;
 
 	public:
-		KinematicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix);
+		KinematicMotionState(Node* sourceNode, const glm::mat4& offsetMatrix, float scale);
 
 		// 연결된 본 변환을 Bullet 월드 변환으로 변환한다.
 		void getWorldTransform(btTransform& worldTransform) const override;

@@ -1,5 +1,6 @@
 ﻿#include "Core/Model/Model.h"
 #include "Core/Model/ModelUpdater.h"
+#include "Core/Model/Physics/ScenePhysics.h"
 
 #include <gtest/gtest.h>
 
@@ -28,7 +29,8 @@ namespace Chrivent {
 
 		// 공개된 모델 갱신 계약을 통해 첫 번째 스키닝 작업을 수행한다.
 		static void RunSkinning(Model& model) {
-			ModelUpdater::Prepare(model, {.updatePhysics = false});
+			ModelUpdater::PrepareBeforePhysics(model, nullptr, 0.0f);
+			ModelUpdater::PrepareAfterPhysics(model, false, false);
 			ASSERT_EQ(ModelUpdater::CalculateSkinningTaskCount(model), 1);
 			ModelUpdater::UpdateSkinning(model, 0);
 		}
@@ -101,10 +103,8 @@ namespace Chrivent {
 		vertex.boneWeights[0] = 1.0f;
 		model.geometryData.updatePositions.front() = glm::vec3(7, 0, 0);
 		model.skeletonData.AddNode(std::make_unique<Node>());
-		ModelUpdater::Prepare(model, {
-			.preservePreviousPositions = true,
-			.updatePhysics = false
-		});
+		ModelUpdater::PrepareBeforePhysics(model, nullptr, 0.0f);
+		ModelUpdater::PrepareAfterPhysics(model, false, true);
 		ASSERT_EQ(model.geometryData.previousPositions.size(), 1);
 		EXPECT_EQ(model.geometryData.previousPositions.front(), glm::vec3(7, 0, 0));
 	}
@@ -133,10 +133,118 @@ namespace Chrivent {
 		afterPhysicsNode->initTranslate = glm::vec3(0, 2, 0);
 		afterPhysicsNode->isDeformAfterPhysics = true;
 		model.skeletonData.AddNode(std::move(afterPhysicsNode));
-		ModelUpdater::Prepare(model, {.updatePhysics = false});
+		ModelUpdater::PrepareBeforePhysics(model, nullptr, 0.0f);
+		ModelUpdater::PrepareAfterPhysics(model, false, false);
 		EXPECT_EQ(glm::vec3(beforePhysicsNodeReference->global[3]), glm::vec3(1, 0, 0));
 		EXPECT_EQ(glm::vec3(afterPhysicsNodeReference->global[3]), glm::vec3(0, 2, 0));
 		EXPECT_EQ(glm::vec3(model.skeletonData.transforms[0][3]), glm::vec3(1, 0, 0));
 		EXPECT_EQ(glm::vec3(model.skeletonData.transforms[1][3]), glm::vec3(0, 2, 0));
+	}
+
+	TEST_F(ModelRuntimeContractTest, MixedStageChildReachesSkinningOnTheSameEvaluation) {
+		Model model;
+		InitializeSkinningModel(model, WeightType::BoneDeform1);
+		model.geometryData.vertexBoneInfos.front().boneIndices[0] = 1;
+		AddSkinningTransform(model, glm::vec3(3, 0, 0));
+		AddSkinningTransform(model, glm::vec3(0));
+		const auto& nodes = model.skeletonData.GetNodes();
+		nodes[0]->AddChild(*nodes[1]);
+		nodes[1]->isDeformAfterPhysics = true;
+		for (const float y : {1.0f, 2.0f, -1.0f, -1.0f}) {
+			nodes[1]->initTranslate.y = y;
+			RunSkinning(model);
+			const glm::vec3 expected(3, y, 0);
+			EXPECT_EQ(glm::vec3(nodes[1]->global[3]), expected);
+			EXPECT_EQ(glm::vec3(model.skeletonData.transforms[1][3]), expected);
+			EXPECT_EQ(model.geometryData.updatePositions.front(), expected);
+		}
+	}
+
+	TEST_F(ModelRuntimeContractTest, StepsAt60HzAndDiscardsFractionalTimeOnSeek) {
+		ScenePhysics scene;
+		Model first;
+		Model second;
+		constexpr RigidBodyDefinition body{.shapeSize = glm::vec3(1)};
+		ASSERT_TRUE(first.InitializePhysics(scene, {body}, {}));
+		ASSERT_TRUE(second.InitializePhysics(scene, {body}, {}));
+		constexpr float halfTick = 1.0f / 120.0f;
+		EXPECT_EQ(scene.Step(halfTick), 0);
+		scene.Reset();
+		EXPECT_EQ(scene.Step(halfTick), 0);
+		EXPECT_EQ(scene.Step(halfTick), 1);
+		EXPECT_EQ(scene.Step(1.0f / 30.0f), 2);
+		EXPECT_EQ(scene.Step(1.0f), 10);
+		scene.Reset();
+		EXPECT_EQ(scene.Step(10.75f / 60.0f), 10);
+		EXPECT_EQ(scene.Step(halfTick), 1);
+	}
+
+	TEST_F(ModelRuntimeContractTest, LoadingOrDiscardingAnotherSceneDoesNotAdvanceTheLiveClock) {
+		ScenePhysics live;
+		Model actor;
+		constexpr RigidBodyDefinition body{.shapeSize = glm::vec3(1)};
+		ASSERT_TRUE(actor.InitializePhysics(live, {body}, {}));
+		EXPECT_EQ(live.Step(1.0f / 120.0f), 0);
+		{
+			ScenePhysics candidate;
+			Model other;
+			ASSERT_TRUE(other.InitializePhysics(candidate, {body}, {}));
+			EXPECT_EQ(candidate.Step(1.0f / 30.0f), 2);
+			candidate.Reset();
+		}
+		EXPECT_EQ(live.Step(1.0f / 120.0f), 1);
+	}
+
+	TEST_F(ModelRuntimeContractTest, ModelsCollideAtSceneScaleAndUnregisterIndependently) {
+		ScenePhysics scene;
+		Model platform;
+		Model actor;
+		constexpr RigidBodyDefinition box{.shape = RigidBodyShape::Box, .shapeSize = glm::vec3(2, 0.5f, 2),
+			.translate = glm::vec3(0, 4, 0), .group = 1, .groupMask = 1};
+		ASSERT_TRUE(platform.InitializePhysics(scene, {box}, {}, 2.0f));
+		AddSkinningTransform(actor, glm::vec3(0, 13, 0));
+		const auto& bone = actor.skeletonData.GetNodes().front();
+		bone->isDeformAfterPhysics = true;
+		ModelUpdater::InitializeAnimation(actor);
+		constexpr RigidBodyDefinition ball{.nodeIndex = 0, .shapeSize = glm::vec3(1), .translate = glm::vec3(0, 13, 0),
+			.mass = 1, .operation = RigidBodyOperation::Dynamic, .group = 0, .groupMask = 2};
+		ASSERT_TRUE(actor.InitializePhysics(scene, {ball}, {}));
+		const ModelAnimationTarget targets[]{{platform, nullptr}, {actor, nullptr}};
+		ModelUpdater::ResetPhysicsAtFrame(scene, targets, 0);
+		EXPECT_NEAR(bone->global[3].y, 10.0f, 0.05f);
+		ModelUpdater::ResetPhysicsAtFrame(scene, targets, 1230.5f);
+		EXPECT_NEAR(bone->global[3].y, 10.0f, 0.05f);
+		platform.Reset();
+		for (int tick = 0; tick < 120; ++tick) {
+			ModelUpdater::PrepareBeforePhysics(actor, nullptr, 0);
+			ASSERT_EQ(scene.Step(1.0f / 60.0f), 1);
+			ModelUpdater::PrepareAfterPhysics(actor, true, false);
+		}
+		EXPECT_NEAR(bone->global[3].y, 1.0f, 0.05f);
+		EXPECT_NEAR(actor.skeletonData.transforms[0][3].y, 1.0f, 0.05f);
+	}
+
+	TEST_F(ModelRuntimeContractTest, ReflectsParentBeforeChildRegardlessOfBodyFileOrder) {
+		ScenePhysics scene;
+		Model model;
+		AddSkinningTransform(model, glm::vec3(0, 20, 0));
+		AddSkinningTransform(model, glm::vec3(0, 3, 0));
+		const auto& nodes = model.skeletonData.GetNodes();
+		nodes[0]->AddChild(*nodes[1]);
+		nodes[1]->isDeformAfterPhysics = true;
+		ModelUpdater::InitializeAnimation(model);
+		constexpr RigidBodyDefinition child{.nodeIndex = 1, .shapeSize = glm::vec3(0.5f), .translate = glm::vec3(0, 23, 0),
+			.mass = 1, .operation = RigidBodyOperation::Dynamic};
+		auto parent = child;
+		parent.nodeIndex = 0;
+		parent.translate.y = 20;
+		ASSERT_TRUE(model.InitializePhysics(scene, {child, parent}, {}));
+		for (int tick = 0; tick < 15; ++tick) {
+			ModelUpdater::PrepareBeforePhysics(model, nullptr, 0);
+			ASSERT_EQ(scene.Step(1.0f / 60.0f), 1);
+			ModelUpdater::PrepareAfterPhysics(model, true, false);
+			EXPECT_NEAR(nodes[1]->global[3].y - nodes[0]->global[3].y, 3.0f, 0.001f);
+		}
+		EXPECT_LT(nodes[0]->global[3].y, 19.0f);
 	}
 }

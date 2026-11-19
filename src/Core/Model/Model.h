@@ -15,6 +15,7 @@
 
 namespace Chrivent {
 	class Physics;
+	class ScenePhysics;
 	class RigidBody;
 	class Joint;
 
@@ -188,18 +189,17 @@ namespace Chrivent {
 		void Swap(ModelMorphData& other);
 	};
 
-	// 모델의 Bullet 물리 월드, 강체와 조인트를 함께 소유하고 등록 수명을 관리한다.
+	// 모델의 강체와 조인트를 소유하고 공유 월드에 대한 등록 수명을 관리한다.
 	class ModelPhysicsData {
-		std::unique_ptr<Physics> physics;
+		std::shared_ptr<Physics> physics;
 		std::vector<std::unique_ptr<RigidBody>> rigidBodies;
 		std::vector<std::unique_ptr<Joint>> joints;
+		std::vector<RigidBody*> poseBodies;
 
 		// 강체와 조인트 정의가 Bullet 생성 조건과 모델 참조 범위를 만족하는지 검증한다.
 		static std::expected<void, PhysicsError> ValidateDefinitions(
 			const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
 			const std::vector<JointDefinition>& jointDefinitions, std::size_t nodeCount);
-		// 강체 변환을 본에 반영하고 루트 노드의 글로벌 변환을 갱신한다.
-		void ReflectTransforms(const std::vector<std::unique_ptr<Node>>& nodes) const;
 
 	public:
 		ModelPhysicsData();
@@ -209,13 +209,11 @@ namespace Chrivent {
 
 		// 두 모델 물리 상태의 전체 소유 리소스를 교환한다.
 		void Swap(ModelPhysicsData& other);
-		// 런타임 정의와 모델 노드로 물리 월드, 강체와 조인트를 구성한다.
-		std::expected<void, PhysicsError> Initialize(const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
-			const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::unique_ptr<Node>>& nodes);
-		// 현재 모델 포즈 기준으로 강체 상태와 충돌 쌍을 초기화한다.
-		void ResetSimulation(const std::vector<std::unique_ptr<Node>>& nodes) const;
-		// 지정한 경과 시간만큼 물리를 진행하고 강체 변환을 본에 반영한다.
-		void UpdateSimulation(float elapsed, const std::vector<std::unique_ptr<Node>>& nodes) const;
+		// 모델 강체와 조인트를 씬 좌표계에 맞춰 같은 월드에 등록한다.
+		std::expected<void, PhysicsError> Initialize(ScenePhysics& scene, const std::vector<RigidBodyDefinition>& rigidBodyDefinitions,
+			const std::vector<JointDefinition>& jointDefinitions, const std::vector<std::unique_ptr<Node>>& nodes, float scale);
+		// 공유 월드를 진행하지 않고 이 모델의 본에만 계산 결과를 반영한다.
+		void ReflectTransforms() const;
 		// 물리 월드에서 조인트와 강체를 제거하고 소유 리소스를 해제한다.
 		void Reset();
 	};
@@ -238,7 +236,7 @@ namespace Chrivent {
 
 		uint64_t GetStructureRevision() const { return structureRevision; }
 
-		// 모델에 활성화된 물리 월드가 있는지 확인한다.
+		// 씬 물리에 등록된 강체가 있는지 확인한다.
 		bool HasPhysics() const;
 		// 모델이 소유한 리소스와 런타임 상태를 해제한다.
 		void Reset();
@@ -246,12 +244,10 @@ namespace Chrivent {
 		void Swap(Model& other);
 		// 현재 모프 가중치를 준비된 프레임의 형상, 재질과 본 상태에 누적한다.
 		void AccumulateMorphs();
-		// 런타임 정의 목록으로 모델 물리 월드, 강체와 조인트를 구성한다.
-		std::expected<void, PhysicsError> InitializePhysics(const std::vector<RigidBodyDefinition>& rigidBodies,
-			const std::vector<JointDefinition>& joints);
-		// 강체와 조인트를 현재 모델 포즈 기준으로 초기화한다.
-		void ResetPhysics() const;
-		// 물리 시뮬레이션을 진행하고 강체 변환을 노드에 반영한다.
-		void UpdatePhysics(float elapsed) const;
+		// 런타임 정의 목록으로 강체와 조인트를 생성해 지정한 씬에 등록한다.
+		std::expected<void, PhysicsError> InitializePhysics(ScenePhysics& scene, const std::vector<RigidBodyDefinition>& rigidBodies,
+			const std::vector<JointDefinition>& joints, float scale = 1.0f);
+		// 이번 씬 스텝에서 계산한 강체 변환을 현재 본 포즈에 반영한다.
+		void ReflectPhysics() const;
 	};
 }
