@@ -341,13 +341,7 @@ namespace Chrivent {
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout, 0, 1, &frameDataDescriptorSet, 0, nullptr);
 		BeginHistoryFrame();
-		constexpr VkImageSubresourceRange colorRange{
-			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			.baseMipLevel = 0,
-			.levelCount = 1,
-			.baseArrayLayer = 0,
-			.layerCount = 1
-		};
+		constexpr VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		constexpr VkClearColorValue clearColor{};
 		const auto runtimeResourcePlans = GetResourcePlans();
 		for (size_t index = 0; index < resources.size() && index < runtimeResourcePlans.size(); index++) {
@@ -413,20 +407,18 @@ namespace Chrivent {
 				outputInitialized ? VK_ACCESS_2_SHADER_SAMPLED_READ_BIT : VK_ACCESS_2_NONE,
 				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_IMAGE_ASPECT_COLOR_BIT);
-			const VkRenderingAttachmentInfo colorAttachment{
-				.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-				.imageView = outputImageView,
-				.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-				.storeOp = VK_ATTACHMENT_STORE_OP_STORE
-			};
-			const VkRenderingInfo renderingInfo{
-				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-				.renderArea = { .extent = outputExtent },
-				.layerCount = 1,
-				.colorAttachmentCount = 1,
-				.pColorAttachments = &colorAttachment
-			};
+			VkRenderingAttachmentInfo colorAttachment{};
+			colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+			colorAttachment.imageView = outputImageView;
+			colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			VkRenderingInfo renderingInfo{};
+			renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+			renderingInfo.renderArea.extent = outputExtent;
+			renderingInfo.layerCount = 1;
+			renderingInfo.colorAttachmentCount = 1;
+			renderingInfo.pColorAttachments = &colorAttachment;
 			const VkDescriptorSet descriptorSet =
 				descriptors.TryGetTextureDescriptorSet(imageIndex, passIndex);
 			const VkDescriptorSet parameterSet =

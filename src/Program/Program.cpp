@@ -240,7 +240,7 @@ namespace Chrivent {
 		if (viewerNativeWindow)
 			RemoveWindowSubclass(viewerNativeWindow, ViewerWindowProc, kViewerWindowSubclassId);
         viewerNativeWindow = nullptr;
-		viewerWindowedPlacement = { .length = sizeof(WINDOWPLACEMENT) };
+		viewerWindowedPlacement = { sizeof(WINDOWPLACEMENT) };
 		viewerWindowedStyle = 0;
 		viewerFullscreen = false;
 		previousF11ShortcutDown = false;
@@ -250,8 +250,8 @@ namespace Chrivent {
 		if (!viewerNativeWindow)
 			return;
 		if (!viewerFullscreen) {
-			WINDOWPLACEMENT placement{ .length = sizeof(WINDOWPLACEMENT) };
-			MONITORINFO monitorInfo{ .cbSize = sizeof(MONITORINFO) };
+			WINDOWPLACEMENT placement{ sizeof(WINDOWPLACEMENT) };
+			MONITORINFO monitorInfo{ sizeof(MONITORINFO) };
 			const HMONITOR monitor = MonitorFromWindow(viewerNativeWindow, MONITOR_DEFAULTTONEAREST);
 			if (!monitor || !GetWindowPlacement(viewerNativeWindow, &placement)
 				|| !GetMonitorInfoW(monitor, &monitorInfo)) {
@@ -404,22 +404,22 @@ namespace Chrivent {
 			modelName = modelPath.filename().wstring();
 		std::vector<InformationField> fields;
 		fields.reserve(10);
-		fields.push_back({.labelKey = "information.model_name", .value = std::move(modelName)});
+		fields.push_back({ "information.model_name", std::move(modelName) });
 		const std::wstring englishName = TextEncoding::Utf8ToWideOrEmpty(model.infoData.englishModelName);
 		if (!englishName.empty())
-			fields.push_back({.labelKey = "information.english_name", .value = englishName});
+			fields.push_back({ "information.english_name", englishName });
 		if (!modelPath.empty())
-			fields.push_back({.labelKey = "information.file", .value = modelPath.wstring()});
-		fields.push_back({.labelKey = "information.scale", .value = std::format(L"{:.3g}", instance.GetScale())});
-		fields.push_back({.labelKey = "information.vertices", .value = std::to_wstring(model.geometryData.positions.size())});
-		fields.push_back({.labelKey = "information.materials", .value = std::to_wstring(model.materialData.materials.size())});
-		fields.push_back({.labelKey = "information.bones", .value = std::to_wstring(model.skeletonData.GetNodes().size())});
-		fields.push_back({.labelKey = "information.morphs", .value = std::to_wstring(model.morphData.GetMorphs().size())});
+			fields.push_back({ "information.file", modelPath.wstring() });
+		fields.push_back({ "information.scale", std::format(L"{:.3g}", instance.GetScale()) });
+		fields.push_back({ "information.vertices", std::to_wstring(model.geometryData.positions.size()) });
+		fields.push_back({ "information.materials", std::to_wstring(model.materialData.materials.size()) });
+		fields.push_back({ "information.bones", std::to_wstring(model.skeletonData.GetNodes().size()) });
+		fields.push_back({ "information.morphs", std::to_wstring(model.morphData.GetMorphs().size()) });
 		std::wstring comment = TextEncoding::Utf8ToWideOrEmpty(model.infoData.comment);
 		if (comment.empty())
 			comment = TextEncoding::Utf8ToWideOrEmpty(model.infoData.englishComment);
 		if (!comment.empty())
-			fields.push_back({.labelKey = "information.comment", .value = std::move(comment)});
+			fields.push_back({ "information.comment", std::move(comment) });
 		panelManager.ApplyInformation(std::move(fields));
 	}
 
@@ -584,11 +584,7 @@ namespace Chrivent {
 		std::filesystem::path modelPath;
 		if (panelManager.ConsumeAddModelPath(modelPath)) {
 			SceneConfig sceneConfig = panelManager.GetSceneConfig();
-			sceneConfig.modelConfigs.emplace_back(ModelConfig{
-				.modelPath = std::move(modelPath),
-				.animPaths = {},
-				.scale = 1.0f
-			});
+			sceneConfig.modelConfigs.emplace_back(ModelConfig{ std::move(modelPath), {}, 1.0f });
 			if (LoadScene(sceneConfig))
 				panelManager.CommitSceneConfig(sceneConfig);
 		}

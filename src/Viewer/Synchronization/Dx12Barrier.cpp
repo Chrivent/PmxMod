@@ -95,19 +95,18 @@ namespace Chrivent {
 		const D3D12_RESOURCE_STATES before, const D3D12_RESOURCE_STATES after) {
 		if (enhancedCommandList != nullptr) {
 			const D3D12_BUFFER_BARRIER bufferBarrier{
-				.SyncBefore = ResolveSync(before),
-				.SyncAfter = ResolveSync(after),
-				.AccessBefore = ResolveAccess(before),
-				.AccessAfter = ResolveAccess(after),
-				.pResource = resource,
-				.Offset = 0,
-				.Size = resource->GetDesc().Width
+				ResolveSync(before),
+				ResolveSync(after),
+				ResolveAccess(before),
+				ResolveAccess(after),
+				resource,
+				0,
+				resource->GetDesc().Width
 			};
-			const D3D12_BARRIER_GROUP barrierGroup{
-				.Type = D3D12_BARRIER_TYPE_BUFFER,
-				.NumBarriers = 1,
-				.pBufferBarriers = &bufferBarrier
-			};
+			D3D12_BARRIER_GROUP barrierGroup;
+			barrierGroup.Type = D3D12_BARRIER_TYPE_BUFFER;
+			barrierGroup.NumBarriers = 1;
+			barrierGroup.pBufferBarriers = &bufferBarrier;
 			enhancedCommandList->Barrier(1, &barrierGroup);
 			return;
 		}

@@ -70,29 +70,21 @@ namespace Chrivent {
 
 	// 유효한 테스트용 셰이더 프로그램 선언을 생성한다.
 	ShaderProgramDefinition MakeTestProgram() {
-		return {
-			.shaderPath = "test.hlsl",
-			.vertexEntry = "VSMain",
-			.pixelEntry = "PSMain"
-		};
+		return { "test.hlsl", {}, "VSMain", "PSMain" };
 	}
 
 	// 지정한 입력과 출력으로 테스트용 후처리 패스를 생성한다.
 	EffectPassDefinition MakeTestPass(
 		std::vector<EffectPassInputDefinition> inputs, const EffectPassOutputDefinition output) {
-		return {
-			.program = MakeTestProgram(),
-			.inputs = std::move(inputs),
-			.output = output
-		};
+		return { MakeTestProgram(), std::move(inputs), output };
 	}
 
 	// 장면 색상을 최종 출력으로 전달하는 단일 패스 효과를 생성한다.
 	EffectRuntimeDefinition MakeSinglePassEffect() {
 		EffectRuntimeDefinition effect;
 		effect.passes.emplace_back(MakeTestPass(
-			{ { .slot = 0, .kind = EffectPassInputKind::EffectInput } },
-			{ .kind = EffectPassOutputKind::EffectOutput }));
+			{ { 0, EffectPassInputKind::EffectInput } },
+			{ EffectPassOutputKind::EffectOutput }));
 		return effect;
 	}
 
@@ -104,11 +96,11 @@ namespace Chrivent {
 	TEST(PostProcessContract, BuildsSinglePassInputsAndParameters) {
 		PostProcessTestAdapter postProcess;
 		EffectRuntimeDefinition effect = MakeSinglePassEffect();
-		effect.parameters.emplace_back(EffectParameterValue{ .slot = 2, .value = 0.75f });
+		effect.parameters.emplace_back(EffectParameterValue{ 2, 0.75f });
 		effect.passes[0].inputs.emplace_back(
-			EffectPassInputDefinition{ .slot = 1, .kind = EffectPassInputKind::SceneDepth });
+			EffectPassInputDefinition{ 1, EffectPassInputKind::SceneDepth });
 		effect.passes[0].inputs.emplace_back(
-			EffectPassInputDefinition{ .slot = 2, .kind = EffectPassInputKind::SceneVelocity });
+			EffectPassInputDefinition{ 2, EffectPassInputKind::SceneVelocity });
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		const auto result = postProcess.Configure(effects);
 		ASSERT_TRUE(result.has_value()) << result.error().Format();
@@ -119,7 +111,7 @@ namespace Chrivent {
 		EXPECT_EQ(postProcess.GetPassCount(), 1);
 		EXPECT_FLOAT_EQ(postProcess.GetParameterValue(0, 2), 0.75f);
 		constexpr EffectParameterUpdate updates[]{
-			{ .effectIndex = 0, .slot = 2, .value = 0.25f }
+			{ 0, 2, 0.25f }
 		};
 		EXPECT_TRUE(postProcess.UpdateParameters(updates));
 		EXPECT_FLOAT_EQ(postProcess.GetParameterValue(0, 2), 0.25f);
@@ -129,8 +121,8 @@ namespace Chrivent {
 		PostProcessTestAdapter postProcess;
 		EffectRuntimeDefinition effect = MakeSinglePassEffect();
 		effect.parameters = {
-			{ .slot = 1, .value = 0.25f },
-			{ .slot = 1, .value = 0.5f }
+			{ 1, 0.25f },
+			{ 1, 0.5f }
 		};
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		const auto declarationResult = postProcess.Configure(effects);
@@ -138,16 +130,16 @@ namespace Chrivent {
 		EXPECT_EQ(declarationResult.error().code, PostProcessPlanErrorCode::InvalidParameter);
 		EXPECT_EQ(declarationResult.error().effectIndex, 0);
 		EXPECT_EQ(declarationResult.error().passIndex, PostProcessPlanError::noPassIndex);
-		effect.parameters = { { .slot = 1, .value = 0.25f } };
+		effect.parameters = { { 1, 0.25f } };
 		ASSERT_TRUE(postProcess.Configure(effects).has_value());
 		constexpr EffectParameterUpdate invalidEffect[]{
-			{ .effectIndex = 1, .slot = 1, .value = 0.5f }
+			{ 1, 1, 0.5f }
 		};
 		constexpr EffectParameterUpdate invalidSlot[]{
-			{ .effectIndex = 0, .slot = PostProcessInputLayout::maxParameterCount, .value = 0.5f }
+			{ 0, PostProcessInputLayout::maxParameterCount, 0.5f }
 		};
 		constexpr EffectParameterUpdate invalidValue[]{
-			{ .effectIndex = 0, .slot = 1, .value = std::numeric_limits<float>::infinity() }
+			{ 0, 1, std::numeric_limits<float>::infinity() }
 		};
 		EXPECT_FALSE(postProcess.UpdateParameters(invalidEffect));
 		EXPECT_FALSE(postProcess.UpdateParameters(invalidSlot));
@@ -159,9 +151,9 @@ namespace Chrivent {
 		PostProcessTestAdapter postProcess;
 		EffectRuntimeDefinition effect;
 		effect.passes.emplace_back(MakeTestPass({
-			{ .slot = 0, .kind = EffectPassInputKind::SceneColor },
-			{ .slot = 0, .kind = EffectPassInputKind::SceneDepth }
-		}, { .kind = EffectPassOutputKind::EffectOutput }));
+			{ 0, EffectPassInputKind::SceneColor },
+			{ 0, EffectPassInputKind::SceneDepth }
+		}, { EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		EXPECT_FALSE(postProcess.Configure(effects).has_value());
 	}
@@ -170,13 +162,13 @@ namespace Chrivent {
 		PostProcessTestAdapter postProcess;
 		EffectRuntimeDefinition effect;
 		effect.resources.emplace_back(EffectResourceDefinition{
-			.lifetime = EffectResourceLifetime::Transient,
-			.format = EffectTextureFormat::Rgba16Float,
-			.resolution = EffectPassResolution::Half
+			EffectResourceLifetime::Transient,
+			EffectTextureFormat::Rgba16Float,
+			EffectPassResolution::Half
 		});
 		effect.passes.emplace_back(MakeTestPass(
-			{ { .slot = 0, .kind = EffectPassInputKind::Resource, .resourceIndex = 0 } },
-			{ .kind = EffectPassOutputKind::EffectOutput }));
+			{ { 0, EffectPassInputKind::Resource, 0 } },
+			{ EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		EXPECT_FALSE(postProcess.Configure(effects).has_value());
 	}
@@ -185,16 +177,16 @@ namespace Chrivent {
 		PostProcessTestAdapter postProcess;
 		EffectRuntimeDefinition effect;
 		effect.resources.emplace_back(EffectResourceDefinition{
-			.lifetime = EffectResourceLifetime::Transient,
-			.format = EffectTextureFormat::Rgba16Float,
-			.resolution = EffectPassResolution::Half
+			EffectResourceLifetime::Transient,
+			EffectTextureFormat::Rgba16Float,
+			EffectPassResolution::Half
 		});
 		effect.passes.emplace_back(MakeTestPass(
-			{ { .slot = 0, .kind = EffectPassInputKind::SceneColor } },
-			{ .kind = EffectPassOutputKind::Resource, .resourceIndex = 0 }));
+			{ { 0, EffectPassInputKind::SceneColor } },
+			{ EffectPassOutputKind::Resource, 0 }));
 		effect.passes.emplace_back(MakeTestPass(
-			{ { .slot = 0, .kind = EffectPassInputKind::Resource, .resourceIndex = 0 } },
-			{ .kind = EffectPassOutputKind::EffectOutput }));
+			{ { 0, EffectPassInputKind::Resource, 0 } },
+			{ EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		const auto result = postProcess.Configure(effects);
 		ASSERT_TRUE(result.has_value()) << result.error().Format();
@@ -216,16 +208,16 @@ namespace Chrivent {
 		PostProcessTestAdapter postProcess;
 		EffectRuntimeDefinition effect;
 		effect.resources.emplace_back(EffectResourceDefinition{
-			.lifetime = EffectResourceLifetime::History,
-			.format = EffectTextureFormat::Rgba16Float,
-			.resolution = EffectPassResolution::Full
+			EffectResourceLifetime::History,
+			EffectTextureFormat::Rgba16Float,
+			EffectPassResolution::Full
 		});
 		effect.passes.emplace_back(MakeTestPass(
-			{ { .slot = 0, .kind = EffectPassInputKind::Resource, .resourceIndex = 0 } },
-			{ .kind = EffectPassOutputKind::Resource, .resourceIndex = 0 }));
+			{ { 0, EffectPassInputKind::Resource, 0 } },
+			{ EffectPassOutputKind::Resource, 0 }));
 		effect.passes.emplace_back(MakeTestPass(
-			{ { .slot = 0, .kind = EffectPassInputKind::Resource, .resourceIndex = 0 } },
-			{ .kind = EffectPassOutputKind::EffectOutput }));
+			{ { 0, EffectPassInputKind::Resource, 0 } },
+			{ EffectPassOutputKind::EffectOutput }));
 		const std::vector<const EffectRuntimeDefinition*> effects{ &effect };
 		ASSERT_TRUE(postProcess.Configure(effects).has_value());
 		EXPECT_TRUE(postProcess.IsHistoryInitializationNeeded(0));

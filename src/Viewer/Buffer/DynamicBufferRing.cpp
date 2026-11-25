@@ -8,9 +8,7 @@ namespace Chrivent {
 	DynamicBufferError::Result<void> DynamicBufferRing::Setup(const size_t bufferSize) {
 		Clear();
 		if (bufferSize == 0)
-			return std::unexpected(DynamicBufferError{
-				.message = "Dynamic buffer ring 크기는 0보다 커야 합니다."
-			});
+			return std::unexpected(DynamicBufferError{ "Dynamic buffer ring 크기는 0보다 커야 합니다." });
 		capacity = bufferSize;
 		return {};
 	}
@@ -34,15 +32,9 @@ namespace Chrivent {
 		if (!BufferSize::TryAlignUp(writeOffset, alignment, alignedOffset)
 			|| size > availableCapacity || alignedOffset > availableCapacity - size
 			|| !BufferSize::TryAdd(baseOffset, alignedOffset, absoluteOffset)) {
-			return std::unexpected(DynamicBufferError{
-				.message = std::move(capacityError)
-			});
+			return std::unexpected(DynamicBufferError{ std::move(capacityError) });
 		}
 		writeOffset = alignedOffset + size;
-		return UploadSlice{
-			.offset = absoluteOffset,
-			.size = size,
-			.cpuAddress = nullptr
-		};
+		return UploadSlice{ absoluteOffset, size, nullptr };
 	}
 }

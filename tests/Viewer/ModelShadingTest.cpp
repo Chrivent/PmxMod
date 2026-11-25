@@ -20,15 +20,15 @@ namespace Chrivent {
 		Dx11Pipeline pipeline;
 
 		HRESULT CreateBuffer(const UINT bind, const UINT size, const void* data, ID3D11Buffer** buffer) const {
-			const D3D11_BUFFER_DESC desc{ .ByteWidth = size, .Usage = D3D11_USAGE_DEFAULT, .BindFlags = bind };
-			const D3D11_SUBRESOURCE_DATA initial{ .pSysMem = data };
+			const D3D11_BUFFER_DESC desc{ size, D3D11_USAGE_DEFAULT, bind };
+			const D3D11_SUBRESOURCE_DATA initial{ data };
 			return device->CreateBuffer(&desc, data ? &initial : nullptr, buffer);
 		}
 
 		HRESULT CreateTextureView(const UINT height, const DXGI_FORMAT format, const void* data,
 			const UINT pitch, ID3D11ShaderResourceView** view) const {
 			const auto desc = Dx11DescBuilder::MakeTexture2DDesc(1, height, format, D3D11_BIND_SHADER_RESOURCE);
-			const D3D11_SUBRESOURCE_DATA initial{ .pSysMem = data, .SysMemPitch = pitch };
+			const D3D11_SUBRESOURCE_DATA initial{ data, pitch };
 			ComPtr<ID3D11Texture2D> texture;
 			const HRESULT result = device->CreateTexture2D(&desc, &initial, &texture);
 			return SUCCEEDED(result) ? device->CreateShaderResourceView(texture.Get(), nullptr, view) : result;
@@ -65,9 +65,9 @@ namespace Chrivent {
 
 			constexpr glm::vec3 normal(0, 0, 1);
 			constexpr ViewerVertex triangle[]{
-				{ .position = {-1, -1, 0.5f}, .normal = normal },
-				{ .position = {-1,  3, 0.5f}, .normal = normal },
-				{ .position = { 3, -1, 0.5f}, .normal = normal }
+				{ {-1, -1, 0.5f}, normal },
+				{ {-1,  3, 0.5f}, normal },
+				{ { 3, -1, 0.5f}, normal }
 			};
 			ComPtr<ID3D11Buffer> vertices, vertexBuffer;
 			ASSERT_EQ(CreateBuffer(D3D11_BIND_VERTEX_BUFFER, sizeof(triangle), triangle, &vertices), S_OK);

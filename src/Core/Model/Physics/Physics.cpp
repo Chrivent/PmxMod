@@ -182,7 +182,7 @@ namespace Chrivent {
 		if (!validationResult)
 			return std::unexpected(validationResult.error());
 		if (!std::isfinite(scale))
-			return std::unexpected(PhysicsError{.code = PhysicsErrorCode::InvalidRigidBody, .definitionIndex = 0, .message = "모델 배율은 유한해야 합니다."});
+			return std::unexpected(PhysicsError{ PhysicsErrorCode::InvalidRigidBody, 0, "모델 배율은 유한해야 합니다." });
 		Reset();
 		if (rigidBodyDefinitions.empty() || scale == 0.0f)
 			return {};

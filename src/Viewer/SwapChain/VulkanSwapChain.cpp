@@ -102,25 +102,18 @@ namespace Chrivent {
 	GraphicsError::Result<void> VulkanSwapChain::CreateImageViews() {
 		imageViews.resize(images.size());
 		for (size_t index = 0; index < images.size(); index++) {
-			VkImageViewCreateInfo createInfo{
-				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-				.image = images[index],
-				.viewType = VK_IMAGE_VIEW_TYPE_2D,
-				.format = imageFormat,
-				.components = {
-					VK_COMPONENT_SWIZZLE_IDENTITY,
-					VK_COMPONENT_SWIZZLE_IDENTITY,
-					VK_COMPONENT_SWIZZLE_IDENTITY,
-					VK_COMPONENT_SWIZZLE_IDENTITY
-				},
-				.subresourceRange = {
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				}
+			VkImageViewCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			createInfo.image = images[index];
+			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			createInfo.format = imageFormat;
+			createInfo.components = {
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY,
+				VK_COMPONENT_SWIZZLE_IDENTITY
 			};
+			createInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 			const VkResult result = vkCreateImageView(device, &createInfo,
 				nullptr, &imageViews[index]);
 			if (result != VK_SUCCESS) {
@@ -170,20 +163,19 @@ namespace Chrivent {
 			sourceDevice.GetGraphicsQueueFamily(),
 			sourceDevice.GetPresentQueueFamily()
 		};
-		VkSwapchainCreateInfoKHR createInfo{
-			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-			.surface = sourceDevice.GetSurface(),
-			.minImageCount = imageCount,
-			.imageFormat = format,
-			.imageColorSpace = colorSpace,
-			.imageExtent = selectedExtent,
-			.imageArrayLayers = 1,
-			.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			.preTransform = capabilities.currentTransform,
-			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-			.presentMode = presentMode,
-			.clipped = VK_TRUE
-		};
+		VkSwapchainCreateInfoKHR createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		createInfo.surface = sourceDevice.GetSurface();
+		createInfo.minImageCount = imageCount;
+		createInfo.imageFormat = format;
+		createInfo.imageColorSpace = colorSpace;
+		createInfo.imageExtent = selectedExtent;
+		createInfo.imageArrayLayers = 1;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		createInfo.preTransform = capabilities.currentTransform;
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.presentMode = presentMode;
+		createInfo.clipped = VK_TRUE;
 		if (sourceDevice.GetGraphicsQueueFamily() != sourceDevice.GetPresentQueueFamily()) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
@@ -254,14 +246,13 @@ namespace Chrivent {
 				"Vulkan present에 필요한 스왑체인, 큐 또는 세마포어를 사용할 수 없습니다"));
 		}
 		const VkSwapchainKHR swapChains[] = { swapChain };
-		const VkPresentInfoKHR presentInfo{
-			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &renderFinishedSemaphore,
-			.swapchainCount = 1,
-			.pSwapchains = swapChains,
-			.pImageIndices = &imageIndex
-		};
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+		presentInfo.pImageIndices = &imageIndex;
 		const VkResult result = vkQueuePresentKHR(presentQueue, &presentInfo);
 		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 			return VulkanSwapChainState::RecreateRequired;

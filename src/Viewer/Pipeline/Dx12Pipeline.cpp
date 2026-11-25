@@ -88,14 +88,14 @@ namespace Chrivent {
 	GraphicsError::Result<void> Dx12Pipeline::CreateModelPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "NORMAL", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, normal), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "UV", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, uv), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "TEXCOORD", .SemanticIndex = 1, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, subTextureUv), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, subTextureUv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();

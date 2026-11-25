@@ -50,24 +50,23 @@ namespace Chrivent {
 		const std::span<const CameraAnimationKey> cameraKeys, std::vector<MotionTimelineGroup>& groups) {
 		if (cameraKeys.empty())
 			return;
-		MotionTimelineRow cameraRow{
-			.name = Language::Text("motion.camera"),
-			.curveNames = {
-				Language::Text("interpolation.x"),
-				Language::Text("interpolation.y"),
-				Language::Text("interpolation.z"),
-				Language::Text("interpolation.rotation"),
-				Language::Text("interpolation.distance"),
-				Language::Text("interpolation.fov")
-			},
-			.expandable = true
+		MotionTimelineRow cameraRow{};
+		cameraRow.name = Language::Text("motion.camera");
+		cameraRow.curveNames = {
+			Language::Text("interpolation.x"),
+			Language::Text("interpolation.y"),
+			Language::Text("interpolation.z"),
+			Language::Text("interpolation.rotation"),
+			Language::Text("interpolation.distance"),
+			Language::Text("interpolation.fov")
 		};
+		cameraRow.expandable = true;
 		cameraRow.keys.reserve(cameraKeys.size());
 		for (const auto& [frame, interest, rotate, distance, fov
 			, ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier, perspective] : cameraKeys) {
 			cameraRow.keys.push_back({
-				.frame = ToTimelineFrame(frame),
-				.curves = {
+				ToTimelineFrame(frame),
+				{
 					ixBezier.GetControlPoints(),
 					iyBezier.GetControlPoints(),
 					izBezier.GetControlPoints(),
@@ -75,7 +74,7 @@ namespace Chrivent {
 					distanceBezier.GetControlPoints(),
 					fovBezier.GetControlPoints()
 				},
-				.values = {
+				{
 					interest.x,
 					interest.y,
 					interest.z,
@@ -85,12 +84,11 @@ namespace Chrivent {
 				}
 			});
 		}
-		MotionTimelineGroup cameraGroup{
-			.name = Language::Text("motion.camera"),
-			.rows = { std::move(cameraRow) },
-			.mode = MotionTimelineMode::Camera,
-			.grouped = false
-		};
+		MotionTimelineGroup cameraGroup{};
+		cameraGroup.name = Language::Text("motion.camera");
+		cameraGroup.rows.emplace_back(std::move(cameraRow));
+		cameraGroup.mode = MotionTimelineMode::Camera;
+		cameraGroup.grouped = false;
 		cameraGroup.keyFrames = CollectFrames(cameraGroup.rows);
 		groups.emplace_back(std::move(cameraGroup));
 	}
@@ -116,14 +114,14 @@ namespace Chrivent {
 					if (rotation.w < 0.0f)
 						rotation = -rotation;
 					timelineKeys.push_back({
-						.frame = ToTimelineFrame(frame),
-						.curves = {
+						ToTimelineFrame(frame),
+						{
 							txBezier.GetControlPoints(),
 							tyBezier.GetControlPoints(),
 							tzBezier.GetControlPoints(),
 							rotBezier.GetControlPoints()
 						},
-						.values = {
+						{
 							translate.x,
 							translate.y,
 							translate.z,
@@ -139,7 +137,7 @@ namespace Chrivent {
 				auto& timelineKeys = ikKeys[ikSolvers[targetIndex].get()];
 				timelineKeys.reserve(keys.size());
 				for (const auto& [frame, ikEnable] : keys)
-					timelineKeys.push_back({ .frame = ToTimelineFrame(frame) });
+					timelineKeys.push_back({ ToTimelineFrame(frame) });
 			}
 			const auto& morphs = model.morphData.GetMorphs();
 			for (const auto& [targetIndex, keys] : animation->GetMorphTracks()) {
@@ -148,14 +146,14 @@ namespace Chrivent {
 				auto& timelineKeys = morphKeys[morphs[targetIndex].get()];
 				timelineKeys.reserve(keys.size());
 				for (const auto& [frame, morphWeight] : keys)
-					timelineKeys.push_back({ .frame = ToTimelineFrame(frame) });
+					timelineKeys.push_back({ ToTimelineFrame(frame) });
 			}
 		}
 		MotionTimelineData timeline;
 		timeline.groups.reserve(model.skeletonData.displayFrames.size() + 1);
 		AppendCameraGroup(cameraKeys, timeline.groups);
 		for (const auto& [name, boneIndices, morphIndices] : model.skeletonData.displayFrames) {
-			MotionTimelineGroup group{ .name = TextEncoding::Utf8ToWideOrEmpty(name) };
+			MotionTimelineGroup group{ TextEncoding::Utf8ToWideOrEmpty(name) };
 			group.rows.reserve(boneIndices.size() + morphIndices.size());
 			for (const uint32_t boneIndex : boneIndices) {
 				if (boneIndex >= model.skeletonData.GetNodes().size())
@@ -170,15 +168,15 @@ namespace Chrivent {
 				}
 				NormalizeKeys(keys);
 				group.rows.push_back({
-					.name = TextEncoding::Utf8ToWideOrEmpty(node->name),
-					.curveNames = {
+					TextEncoding::Utf8ToWideOrEmpty(node->name),
+					{
 						Language::Text("interpolation.x"),
 						Language::Text("interpolation.y"),
 						Language::Text("interpolation.z"),
 						Language::Text("interpolation.rotation")
 					},
-					.keys = std::move(keys),
-					.expandable = true
+					std::move(keys),
+					true
 				});
 			}
 			for (const uint32_t morphIndex : morphIndices) {
@@ -189,10 +187,7 @@ namespace Chrivent {
 					continue;
 				auto keys = morphKeys[morph.get()];
 				NormalizeKeys(keys);
-				group.rows.push_back({
-					.name = TextEncoding::Utf8ToWideOrEmpty(morph->name),
-					.keys = std::move(keys)
-				});
+				group.rows.push_back({ TextEncoding::Utf8ToWideOrEmpty(morph->name), {}, std::move(keys) });
 			}
 			if (group.rows.empty())
 				continue;
@@ -200,7 +195,7 @@ namespace Chrivent {
 			timeline.groups.emplace_back(std::move(group));
 		}
 		if (timeline.groups.size() == (cameraKeys.empty() ? 0 : 1)) {
-			MotionTimelineGroup boneGroup{ .name = Language::Text("motion.bones") };
+			MotionTimelineGroup boneGroup{ Language::Text("motion.bones") };
 			for (const auto& node : model.skeletonData.GetNodes()) {
 				if (!node)
 					continue;
@@ -211,30 +206,27 @@ namespace Chrivent {
 				}
 				NormalizeKeys(keys);
 				boneGroup.rows.push_back({
-					.name = TextEncoding::Utf8ToWideOrEmpty(node->name),
-					.curveNames = {
+					TextEncoding::Utf8ToWideOrEmpty(node->name),
+					{
 						Language::Text("interpolation.x"),
 						Language::Text("interpolation.y"),
 						Language::Text("interpolation.z"),
 						Language::Text("interpolation.rotation")
 					},
-					.keys = std::move(keys),
-					.expandable = true
+					std::move(keys),
+					true
 				});
 			}
 			boneGroup.keyFrames = CollectFrames(boneGroup.rows);
 			if (!boneGroup.rows.empty())
 				timeline.groups.emplace_back(std::move(boneGroup));
-			MotionTimelineGroup morphGroup{ .name = Language::Text("motion.morphs") };
+			MotionTimelineGroup morphGroup{ Language::Text("motion.morphs") };
 			for (const auto& morph : model.morphData.GetMorphs()) {
 				if (!morph)
 					continue;
 				auto keys = morphKeys[morph.get()];
 				NormalizeKeys(keys);
-				morphGroup.rows.push_back({
-					.name = TextEncoding::Utf8ToWideOrEmpty(morph->name),
-					.keys = std::move(keys)
-				});
+				morphGroup.rows.push_back({ TextEncoding::Utf8ToWideOrEmpty(morph->name), {}, std::move(keys) });
 			}
 			morphGroup.keyFrames = CollectFrames(morphGroup.rows);
 			if (!morphGroup.rows.empty())

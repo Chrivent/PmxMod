@@ -16,12 +16,7 @@ namespace Chrivent {
 	ShaderProgramDefinition InternalShaderCatalog::CreateProgram(
 		std::filesystem::path shaderPath, const char* vertexEntry, const char* pixelEntry) {
 		const std::filesystem::path includeRoot = shaderPath.parent_path();
-		return {
-			.shaderPath = std::move(shaderPath),
-			.includeRoot = includeRoot,
-			.vertexEntry = vertexEntry,
-			.pixelEntry = pixelEntry
-		};
+		return { std::move(shaderPath), includeRoot, vertexEntry, pixelEntry };
 	}
 
 	std::expected<SceneShaderRuntimeContract, std::string> InternalShaderCatalog::Load(
@@ -47,9 +42,6 @@ namespace Chrivent {
 		loadedSceneInputPasses.velocity = CreateProgram(
 			std::move(sceneInputShaderPath), "VSVelocity",
 			invertNdcYForTextureCoordinates ? "PSVelocityInvertedY" : "PSVelocity");
-		return SceneShaderRuntimeContract{
-			.builtIn = std::move(loadedBuiltInPasses),
-			.sceneInput = std::move(loadedSceneInputPasses)
-		};
+		return SceneShaderRuntimeContract{ std::move(loadedBuiltInPasses), std::move(loadedSceneInputPasses) };
 	}
 }

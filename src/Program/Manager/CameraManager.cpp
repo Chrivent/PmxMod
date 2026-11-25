@@ -246,24 +246,24 @@ namespace Chrivent {
 		const glm::vec3 previousCameraDirection = glm::normalize(-glm::vec3(previousInverseView[2]));
 		const glm::vec3 cameraRight = glm::normalize(glm::vec3(inverseView[0]));
 		const glm::vec3 cameraUp = glm::normalize(glm::vec3(inverseView[1]));
-		viewer.UpdatePostProcessFrameData({
-			.deltaTime = playback.renderDeltaTime,
-			.nearPlane = nearPlane,
-			.farPlane = farPlane,
-			.verticalFovRadians = verticalFov,
-			.viewportWidth = viewportWidth,
-			.viewportHeight = viewportHeight,
-			.inverseViewportWidth = viewportWidth > 0.0f ? 1.0f / viewportWidth : 0.0f,
-			.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f,
-			.historyReset = historyResetPending ? 1.0f : 0.0f,
-			.orthographic = cam.perspective ? 0.0f : 1.0f,
-			.orthoHalfHeight = cam.perspective ? 0.0f : 1.0f / scene.projectionMatrix[1][1],
-			.cameraWorldPosition = glm::vec4(cameraPosition, 0.0f),
-			.previousCameraWorldPosition = glm::vec4(previousCameraPosition, 0.0f),
-			.cameraWorldDirection = glm::vec4(cameraDirection, 0.0f),
-			.previousCameraWorldDirection = glm::vec4(previousCameraDirection, 0.0f),
-			.cameraWorldRight = glm::vec4(cameraRight, 0.0f),
-			.cameraWorldUp = glm::vec4(cameraUp, 0.0f)
-		});
+		PostProcessFrameData frameData{};
+		frameData.deltaTime = playback.renderDeltaTime;
+		frameData.nearPlane = nearPlane;
+		frameData.farPlane = farPlane;
+		frameData.verticalFovRadians = verticalFov;
+		frameData.viewportWidth = viewportWidth;
+		frameData.viewportHeight = viewportHeight;
+		frameData.inverseViewportWidth = viewportWidth > 0.0f ? 1.0f / viewportWidth : 0.0f;
+		frameData.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f;
+		frameData.historyReset = historyResetPending ? 1.0f : 0.0f;
+		frameData.orthographic = cam.perspective ? 0.0f : 1.0f;
+		frameData.orthoHalfHeight = cam.perspective ? 0.0f : 1.0f / scene.projectionMatrix[1][1];
+		frameData.cameraWorldPosition = glm::vec4(cameraPosition, 0.0f);
+		frameData.previousCameraWorldPosition = glm::vec4(previousCameraPosition, 0.0f);
+		frameData.cameraWorldDirection = glm::vec4(cameraDirection, 0.0f);
+		frameData.previousCameraWorldDirection = glm::vec4(previousCameraDirection, 0.0f);
+		frameData.cameraWorldRight = glm::vec4(cameraRight, 0.0f);
+		frameData.cameraWorldUp = glm::vec4(cameraUp, 0.0f);
+		viewer.UpdatePostProcessFrameData(frameData);
 	}
 }

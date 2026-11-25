@@ -9,15 +9,17 @@
 namespace Chrivent {
 	GraphicsError::Result<void> VulkanPipeline::CreateDescriptorSetLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding vertexConstantBinding{
-			.binding = SpirvBindingLayout::frameDataBinding,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+			SpirvBindingLayout::frameDataBinding,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			1,
+			VK_SHADER_STAGE_VERTEX_BIT
 		};
 		static constexpr VkDescriptorSetLayoutCreateInfo vertexLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = 1,
-			.pBindings = &vertexConstantBinding
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&vertexConstantBinding
 		};
 		VkResult result = vkCreateDescriptorSetLayout(device, &vertexLayoutInfo,
 			nullptr, &descriptorSetLayouts[0]);
@@ -27,15 +29,17 @@ namespace Chrivent {
 				"Vulkan vertex descriptor set layout을 만들지 못했습니다", result, true));
 		}
 		static constexpr VkDescriptorSetLayoutBinding pixelConstantBinding{
-			.binding = SpirvBindingLayout::parameterDataBinding,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			SpirvBindingLayout::parameterDataBinding,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
 		static constexpr VkDescriptorSetLayoutCreateInfo pixelLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = 1,
-			.pBindings = &pixelConstantBinding
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&pixelConstantBinding
 		};
 		result = vkCreateDescriptorSetLayout(device, &pixelLayoutInfo,
 			nullptr, &descriptorSetLayouts[1]);
@@ -46,46 +50,48 @@ namespace Chrivent {
 		}
 		static constexpr VkDescriptorSetLayoutBinding textureBindings[] = {
 			VkDescriptorSetLayoutBinding{
-				.binding = SceneShaderInputLayout::baseTextureRegister,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SceneShaderInputLayout::baseTextureRegister,
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = SceneShaderInputLayout::toonTextureRegister,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SceneShaderInputLayout::toonTextureRegister,
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = SceneShaderInputLayout::sphereTextureRegister,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SceneShaderInputLayout::sphereTextureRegister,
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::baseSamplerRegister),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::baseSamplerRegister),
+				VK_DESCRIPTOR_TYPE_SAMPLER,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::toonSamplerRegister),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::toonSamplerRegister),
+				VK_DESCRIPTOR_TYPE_SAMPLER,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			},
 			VkDescriptorSetLayoutBinding{
-				.binding = SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::sphereSamplerRegister),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::sphereSamplerRegister),
+				VK_DESCRIPTOR_TYPE_SAMPLER,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			}
 		};
 		static constexpr VkDescriptorSetLayoutCreateInfo textureLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = std::size(textureBindings),
-			.pBindings = textureBindings
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			std::size(textureBindings),
+			textureBindings
 		};
 		result = vkCreateDescriptorSetLayout(device, &textureLayoutInfo,
 			nullptr, &descriptorSetLayouts[2]);
@@ -99,9 +105,11 @@ namespace Chrivent {
 
 	GraphicsError::Result<void> VulkanPipeline::CreatePipelineLayout() {
 		const VkPipelineLayoutCreateInfo createInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.setLayoutCount = 3,
-			.pSetLayouts = descriptorSetLayouts
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			3,
+			descriptorSetLayouts
 		};
 		const VkResult result = vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout);
 		if (result != VK_SUCCESS) {
@@ -117,12 +125,11 @@ namespace Chrivent {
 		const BuiltInShaderPasses& passes, const ShaderProgramDefinition& depthProgram,
 		const ShaderProgramDefinition& velocityProgram) {
 		using Builder = VulkanPipelineBuilder;
-		const Builder::Configuration modelConfiguration{
-			.pipelineLayout = pipelineLayout,
-			.colorFormat = sourceColorFormat,
-			.depthFormat = sourceDepthFormat,
-			.sampleCount = sourceDevice.GetMsaaSampleCount()
-		};
+		Builder::Configuration modelConfiguration{};
+		modelConfiguration.pipelineLayout = pipelineLayout;
+		modelConfiguration.colorFormat = sourceColorFormat;
+		modelConfiguration.depthFormat = sourceDepthFormat;
+		modelConfiguration.sampleCount = sourceDevice.GetMsaaSampleCount();
 		const auto modelFrontFaceResult = Builder::Create(
 			sourceDevice, passes.model, modelConfiguration, modelFrontFacePipeline);
 		if (!modelFrontFaceResult)
@@ -133,11 +140,10 @@ namespace Chrivent {
 			sourceDevice, passes.model, modelBothFaceConfiguration, modelBothFacePipeline);
 		if (!modelBothFaceResult)
 			return modelBothFaceResult;
-		const Builder::Configuration depthConfiguration{
-			.pipelineLayout = pipelineLayout,
-			.depthFormat = sourceDepthFormat,
-			.vertexLayout = Builder::VertexLayout::PositionUv
-		};
+		Builder::Configuration depthConfiguration{};
+		depthConfiguration.pipelineLayout = pipelineLayout;
+		depthConfiguration.depthFormat = sourceDepthFormat;
+		depthConfiguration.vertexLayout = Builder::VertexLayout::PositionUv;
 		const auto depthFrontFaceResult = Builder::Create(
 			sourceDevice, depthProgram, depthConfiguration, sceneDepthFrontFacePipeline);
 		if (!depthFrontFaceResult)
@@ -148,12 +154,11 @@ namespace Chrivent {
 			sourceDevice, depthProgram, depthBothFaceConfiguration, sceneDepthBothFacePipeline);
 		if (!depthBothFaceResult)
 			return depthBothFaceResult;
-		const Builder::Configuration velocityConfiguration{
-			.pipelineLayout = pipelineLayout,
-			.colorFormat = VK_FORMAT_R16G16_SFLOAT,
-			.depthFormat = sourceDepthFormat,
-			.vertexLayout = Builder::VertexLayout::Velocity
-		};
+		Builder::Configuration velocityConfiguration{};
+		velocityConfiguration.pipelineLayout = pipelineLayout;
+		velocityConfiguration.colorFormat = VK_FORMAT_R16G16_SFLOAT;
+		velocityConfiguration.depthFormat = sourceDepthFormat;
+		velocityConfiguration.vertexLayout = Builder::VertexLayout::Velocity;
 		const auto velocityFrontFaceResult = Builder::Create(
 			sourceDevice, velocityProgram, velocityConfiguration, sceneVelocityFrontFacePipeline);
 		if (!velocityFrontFaceResult)
@@ -164,30 +169,28 @@ namespace Chrivent {
 			sourceDevice, velocityProgram, velocityBothFaceConfiguration, sceneVelocityBothFacePipeline);
 		if (!velocityBothFaceResult)
 			return velocityBothFaceResult;
-		const Builder::Configuration edgeConfiguration{
-			.pipelineLayout = pipelineLayout,
-			.colorFormat = sourceColorFormat,
-			.depthFormat = sourceDepthFormat,
-			.sampleCount = sourceDevice.GetMsaaSampleCount(),
-			.cullMode = VK_CULL_MODE_FRONT_BIT,
-			.vertexLayout = Builder::VertexLayout::Edge
-		};
+		Builder::Configuration edgeConfiguration{};
+		edgeConfiguration.pipelineLayout = pipelineLayout;
+		edgeConfiguration.colorFormat = sourceColorFormat;
+		edgeConfiguration.depthFormat = sourceDepthFormat;
+		edgeConfiguration.sampleCount = sourceDevice.GetMsaaSampleCount();
+		edgeConfiguration.cullMode = VK_CULL_MODE_FRONT_BIT;
+		edgeConfiguration.vertexLayout = Builder::VertexLayout::Edge;
 		const auto edgeResult = Builder::Create(
 			sourceDevice, passes.edge, edgeConfiguration, edgePipeline);
 		if (!edgeResult)
 			return edgeResult;
-		const Builder::Configuration groundShadowConfiguration{
-			.pipelineLayout = pipelineLayout,
-			.colorFormat = sourceColorFormat,
-			.depthFormat = sourceDepthFormat,
-			.sampleCount = sourceDevice.GetMsaaSampleCount(),
-			.cullMode = VK_CULL_MODE_NONE,
-			.vertexLayout = Builder::VertexLayout::PositionOnly,
-			.depthBiasEnabled = true,
-			.stencilTestEnabled = true,
-			.depthWriteDisabled = true,
-			.preserveDestinationAlpha = true
-		};
+		Builder::Configuration groundShadowConfiguration{};
+		groundShadowConfiguration.pipelineLayout = pipelineLayout;
+		groundShadowConfiguration.colorFormat = sourceColorFormat;
+		groundShadowConfiguration.depthFormat = sourceDepthFormat;
+		groundShadowConfiguration.sampleCount = sourceDevice.GetMsaaSampleCount();
+		groundShadowConfiguration.cullMode = VK_CULL_MODE_NONE;
+		groundShadowConfiguration.vertexLayout = Builder::VertexLayout::PositionOnly;
+		groundShadowConfiguration.depthBiasEnabled = true;
+		groundShadowConfiguration.stencilTestEnabled = true;
+		groundShadowConfiguration.depthWriteDisabled = true;
+		groundShadowConfiguration.preserveDestinationAlpha = true;
 		return Builder::Create(sourceDevice, passes.groundShadow,
 			groundShadowConfiguration, groundShadowPipeline);
 	}

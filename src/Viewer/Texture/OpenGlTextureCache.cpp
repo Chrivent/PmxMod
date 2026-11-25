@@ -38,7 +38,7 @@ namespace Chrivent {
 				GraphicsErrorCode::ResourceCreationFailed, "dummy texture 생성",
 				"OpenGL fallback texture를 초기화하지 못했습니다", result, true));
 		}
-		const OpenGlTexture texture{ .hasAlpha = false, .texture = tex };
+		const OpenGlTexture texture{ false, tex };
 		textures.emplace(key, texture);
 		return texture;
 	}
@@ -77,7 +77,7 @@ namespace Chrivent {
 				GraphicsErrorCode::ResourceCreationFailed, "texture 생성",
 				"OpenGL texture 데이터를 업로드하지 못했습니다", result, true));
 		}
-		const OpenGlTexture texture{ .hasAlpha = hasAlpha, .texture = tex };
+		const OpenGlTexture texture{ hasAlpha, tex };
 		textures.emplace(key, texture);
 		return std::optional{ texture };
 	}

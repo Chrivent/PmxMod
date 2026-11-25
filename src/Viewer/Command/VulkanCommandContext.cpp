@@ -10,42 +10,36 @@ namespace Chrivent {
 		const VkPipelineStageFlags2 sourceStage, const VkAccessFlags2 sourceAccess,
 		const VkPipelineStageFlags2 destinationStage, const VkAccessFlags2 destinationAccess,
 		const VkImageAspectFlags aspectMask) {
-		const VkImageMemoryBarrier2 barrier{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-			.srcStageMask = sourceStage,
-			.srcAccessMask = sourceAccess,
-			.dstStageMask = destinationStage,
-			.dstAccessMask = destinationAccess,
-			.oldLayout = oldLayout,
-			.newLayout = newLayout,
-			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = image,
-			.subresourceRange = {
-				.aspectMask = aspectMask,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-			}
-		};
-		const VkDependencyInfo dependencyInfo{
-			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-			.imageMemoryBarrierCount = 1,
-			.pImageMemoryBarriers = &barrier
-		};
+		VkImageMemoryBarrier2 barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+		barrier.srcStageMask = sourceStage;
+		barrier.srcAccessMask = sourceAccess;
+		barrier.dstStageMask = destinationStage;
+		barrier.dstAccessMask = destinationAccess;
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = image;
+		barrier.subresourceRange = { aspectMask, 0, 1, 0, 1 };
+		VkDependencyInfo dependencyInfo{};
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.imageMemoryBarrierCount = 1;
+		dependencyInfo.pImageMemoryBarriers = &barrier;
 		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 	}
 
 	void VulkanCommandContext::ApplyViewportAndScissor(
 		const VkCommandBuffer commandBuffer, const VkExtent2D extent) {
 		const VkViewport viewport{
-			.width = static_cast<float>(extent.width),
-			.height = static_cast<float>(extent.height),
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
+			0.0f,
+			0.0f,
+			static_cast<float>(extent.width),
+			static_cast<float>(extent.height),
+			0.0f,
+			1.0f
 		};
-		const VkRect2D scissor{ .extent = extent };
+		const VkRect2D scissor{ { 0, 0 }, extent };
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	}
@@ -155,38 +149,31 @@ namespace Chrivent {
 			VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 			VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			VK_IMAGE_ASPECT_DEPTH_BIT | (depthHasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0));
-		const VkClearValue colorClear{ .color = { {
-			clearColor[0], clearColor[1], clearColor[2], clearColor[3]
-		} } };
-		constexpr VkClearValue depthClear{ .depthStencil = { 1.0f, 0 } };
-		const VkRenderingAttachmentInfo colorAttachment{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.imageView = renderColorView,
-			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.resolveMode = multisampled ? VK_RESOLVE_MODE_AVERAGE_BIT : VK_RESOLVE_MODE_NONE,
-			.resolveImageView = multisampled ? resolveImageView : VK_NULL_HANDLE,
-			.resolveImageLayout = multisampled ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = multisampled ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE,
-			.clearValue = colorClear
-		};
-		const VkRenderingAttachmentInfo depthAttachment{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.imageView = depthImageView,
-			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			.clearValue = depthClear
-		};
-		const VkRenderingInfo renderingInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-			.renderArea = { .extent = extent },
-			.layerCount = 1,
-			.colorAttachmentCount = 1,
-			.pColorAttachments = &colorAttachment,
-			.pDepthAttachment = &depthAttachment,
-			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
-		};
+		VkRenderingAttachmentInfo colorAttachment{};
+		colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		colorAttachment.imageView = renderColorView;
+		colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachment.resolveMode = multisampled ? VK_RESOLVE_MODE_AVERAGE_BIT : VK_RESOLVE_MODE_NONE;
+		colorAttachment.resolveImageView = multisampled ? resolveImageView : VK_NULL_HANDLE;
+		colorAttachment.resolveImageLayout = multisampled ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = multisampled ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.clearValue.color = { { clearColor[0], clearColor[1], clearColor[2], clearColor[3] } };
+		VkRenderingAttachmentInfo depthAttachment{};
+		depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depthAttachment.imageView = depthImageView;
+		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+		VkRenderingInfo renderingInfo{};
+		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderingInfo.renderArea.extent = extent;
+		renderingInfo.layerCount = 1;
+		renderingInfo.colorAttachmentCount = 1;
+		renderingInfo.pColorAttachments = &colorAttachment;
+		renderingInfo.pDepthAttachment = &depthAttachment;
+		renderingInfo.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr;
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		ApplyViewportAndScissor(commandBuffer, extent);
 		return {};
@@ -281,33 +268,29 @@ namespace Chrivent {
 				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_IMAGE_ASPECT_COLOR_BIT);
 		}
-		constexpr VkClearValue depthClear{ .depthStencil = { 1.0f, 0 } };
-		const VkRenderingAttachmentInfo depthAttachment{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.imageView = depthImageView,
-			.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.clearValue = depthClear
-		};
+		VkRenderingAttachmentInfo depthAttachment{};
+		depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		depthAttachment.imageView = depthImageView;
+		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
 		constexpr VkClearValue velocityClear{};
-		const VkRenderingAttachmentInfo velocityAttachment{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			.imageView = velocityImageView,
-			.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.clearValue = velocityClear
-		};
-		const VkRenderingInfo renderingInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-			.renderArea = { .extent = extent },
-			.layerCount = 1,
-			.colorAttachmentCount = velocityImageView != VK_NULL_HANDLE ? 1u : 0u,
-			.pColorAttachments = velocityImageView != VK_NULL_HANDLE ? &velocityAttachment : nullptr,
-			.pDepthAttachment = &depthAttachment,
-			.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr
-		};
+		VkRenderingAttachmentInfo velocityAttachment{};
+		velocityAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+		velocityAttachment.imageView = velocityImageView;
+		velocityAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		velocityAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		velocityAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		velocityAttachment.clearValue = velocityClear;
+		VkRenderingInfo renderingInfo{};
+		renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		renderingInfo.renderArea.extent = extent;
+		renderingInfo.layerCount = 1;
+		renderingInfo.colorAttachmentCount = velocityImageView != VK_NULL_HANDLE ? 1u : 0u;
+		renderingInfo.pColorAttachments = velocityImageView != VK_NULL_HANDLE ? &velocityAttachment : nullptr;
+		renderingInfo.pDepthAttachment = &depthAttachment;
+		renderingInfo.pStencilAttachment = depthHasStencil ? &depthAttachment : nullptr;
 		vkCmdBeginRendering(commandBuffer, &renderingInfo);
 		ApplyViewportAndScissor(commandBuffer, extent);
 		return true;

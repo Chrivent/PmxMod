@@ -44,9 +44,9 @@ namespace Chrivent {
 			ShaderPackage package = std::move(*loadResult);
 			if (!packageIds.emplace(package.id).second) {
 				discovery.errors.emplace_back(ShaderPackageError{
-					.code = ShaderPackageErrorCode::DuplicatePackageId,
-					.manifestPath = manifestPath,
-					.message = "중복된 셰이더 패키지 id입니다: " + package.id
+					ShaderPackageErrorCode::DuplicatePackageId,
+					manifestPath,
+					"중복된 셰이더 패키지 id입니다: " + package.id
 				});
 				continue;
 			}
@@ -54,9 +54,9 @@ namespace Chrivent {
 		}
 		if (error)
 			discovery.errors.emplace_back(ShaderPackageError{
-				.code = ShaderPackageErrorCode::ScanFailed,
-				.manifestPath = packagesDirectory,
-				.message = "셰이더 패키지 디렉터리를 검색하지 못했습니다: " + packagesDirectory.string()
+				ShaderPackageErrorCode::ScanFailed,
+				packagesDirectory,
+				"셰이더 패키지 디렉터리를 검색하지 못했습니다: " + packagesDirectory.string()
 			});
 		std::ranges::sort(discovery.packages, [](const ShaderPackage& left, const ShaderPackage& right) {
 			return left.id < right.id;
@@ -309,10 +309,7 @@ namespace Chrivent {
 				error = "효과 parameter slot이 올바르지 않거나 중복되었습니다: " + manifestPath.string();
 				return false;
 			}
-			values.emplace_back(EffectParameterValue{
-				.slot = parameter.slot,
-				.value = parameter.defaultValue
-			});
+			values.emplace_back(EffectParameterValue{ parameter.slot, parameter.defaultValue });
 			metadata.emplace_back(std::move(parameter));
 		}
 		return true;
@@ -394,8 +391,8 @@ namespace Chrivent {
 			}
 			const size_t resourceIndex = resources.size();
 			resourceDefinitions.emplace(resource.name, ParsedResourceReference{
-				.index = resourceIndex,
-				.lifetime = resource.definition.lifetime
+				resourceIndex,
+				resource.definition.lifetime
 			});
 			resources.emplace_back(std::move(resource.definition));
 		}
@@ -404,10 +401,10 @@ namespace Chrivent {
 		std::unordered_set<std::string> initializedTransientResources;
 		for (size_t passIndex = 0; passIndex < parsedPasses.size(); passIndex++) {
 			ParsedEffectPass& parsedPass = parsedPasses[passIndex];
-			EffectPassDefinition pass{ .program = std::move(parsedPass.program) };
+			EffectPassDefinition pass{ std::move(parsedPass.program) };
 			pass.inputs.reserve(parsedPass.inputs.size());
 			for (const auto& [slot, resource] : parsedPass.inputs) {
-				EffectPassInputDefinition input{ .slot = slot };
+				EffectPassInputDefinition input{ slot };
 				if (resource == "effect_input") {
 					input.kind = EffectPassInputKind::EffectInput;
 					pass.inputs.emplace_back(input);
@@ -544,9 +541,9 @@ namespace Chrivent {
 		std::string error;
 		if (!LoadPackage(manifestPath, package, error)) {
 			return std::unexpected(ShaderPackageError{
-				.code = ShaderPackageErrorCode::InvalidPackage,
-				.manifestPath = manifestPath,
-				.message = std::move(error)
+				ShaderPackageErrorCode::InvalidPackage,
+				manifestPath,
+				std::move(error)
 			});
 		}
 		return package;

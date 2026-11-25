@@ -120,13 +120,18 @@ namespace Chrivent {
 				"Vulkan 업로드 fence를 초기화하지 못했습니다", result, true));
 		}
 		const VkCommandBufferSubmitInfo commandBufferInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-			.commandBuffer = commandBuffer
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			nullptr,
+			commandBuffer
 		};
 		const VkSubmitInfo2 submitInfo{
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-			.commandBufferInfoCount = 1,
-			.pCommandBufferInfos = &commandBufferInfo
+			VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+			nullptr,
+			0,
+			{},
+			nullptr,
+			1,
+			&commandBufferInfo
 		};
 		result = vkQueueSubmit2(sourceDevice.GetGraphicsQueue(), 1, &submitInfo, fence);
 		if (result != VK_SUCCESS) {
@@ -176,25 +181,23 @@ namespace Chrivent {
 				GraphicsErrorCode::InvalidState, "index buffer 업로드 기록",
 				"Vulkan 업로드 batch 또는 index buffer가 올바르지 않습니다"));
 		}
-		const VkBufferCopy copyRegion{ .size = size };
+		const VkBufferCopy copyRegion{ 0, 0, size };
 		vkCmdCopyBuffer(commandBuffer, source->GetBuffer(), destination, 1, &copyRegion);
-		const VkBufferMemoryBarrier2 barrier{
-			.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT,
-			.dstAccessMask = VK_ACCESS_2_INDEX_READ_BIT,
-			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.buffer = destination,
-			.offset = 0,
-			.size = size
-		};
-		const VkDependencyInfo dependencyInfo{
-			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-			.bufferMemoryBarrierCount = 1,
-			.pBufferMemoryBarriers = &barrier
-		};
+		VkBufferMemoryBarrier2 barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+		barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+		barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+		barrier.dstStageMask = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
+		barrier.dstAccessMask = VK_ACCESS_2_INDEX_READ_BIT;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.buffer = destination;
+		barrier.offset = 0;
+		barrier.size = size;
+		VkDependencyInfo dependencyInfo{};
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.bufferMemoryBarrierCount = 1;
+		dependencyInfo.pBufferMemoryBarriers = &barrier;
 		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 		retainedBuffers.emplace_back(std::move(source));
 		return {};

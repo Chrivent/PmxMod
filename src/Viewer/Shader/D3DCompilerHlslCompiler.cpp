@@ -79,9 +79,6 @@ namespace Chrivent {
 			+ " entry=" + entry + " target=" + target + '\n';
 		if (errorBlob != nullptr && errorBlob->GetBufferPointer() != nullptr)
 			message += static_cast<const char*>(errorBlob->GetBufferPointer());
-		return std::unexpected(ShaderCompileError{
-			.shaderPath = file,
-			.message = std::move(message)
-		});
+		return std::unexpected(ShaderCompileError{ file, std::move(message) });
 	}
 }

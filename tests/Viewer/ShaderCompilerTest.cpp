@@ -187,14 +187,7 @@ namespace Chrivent {
 		WriteShader(outsidePath, "float4 ResolveColor() { return 1.0; }\n");
 		const std::filesystem::path shaderPath = directory / "effect.hlsl";
 		WriteShader(shaderPath, "#include \"../PmxModOutsideShaderInclude.hlsli\"\n");
-		const EffectPassDefinition pass{
-			.program = {
-				.shaderPath = shaderPath,
-				.includeRoot = directory,
-				.vertexEntry = "VSMain",
-				.pixelEntry = "PSMain"
-			}
-		};
+		const EffectPassDefinition pass{ { shaderPath, directory, "VSMain", "PSMain" } };
 		EXPECT_FALSE(PostProcessShaderValidator::Validate(pass).has_value());
 		std::error_code filesystemError;
 		std::filesystem::remove_all(directory, filesystemError);
@@ -218,13 +211,8 @@ namespace Chrivent {
 			"    return InputTexture.Sample(LinearClamp, input.uv);\n"
 			"}\n");
 		const EffectPassDefinition pass{
-			.program = {
-				.shaderPath = shaderPath,
-				.includeRoot = directory,
-				.vertexEntry = "VSMain",
-				.pixelEntry = "PSMain"
-			},
-			.inputs = { { .slot = 0, .kind = EffectPassInputKind::SceneColor } }
+			{ shaderPath, directory, "VSMain", "PSMain" },
+			{ { 0, EffectPassInputKind::SceneColor } }
 		};
 		EXPECT_FALSE(PostProcessShaderValidator::Validate(pass).has_value());
 		std::error_code filesystemError;

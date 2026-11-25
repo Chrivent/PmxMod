@@ -258,21 +258,21 @@ namespace Chrivent {
 			RECT area{};
 			switch (entry.area) {
 			case PanelWindowArea::Model:
-				area = { .left = margin, .top = margin, .right = margin + leftWidth, .bottom = margin + modelHeight };
+				area = { margin, margin, margin + leftWidth, margin + modelHeight };
 				break;
 			case PanelWindowArea::Information:
-				area = { .left = margin, .top = margin + modelHeight + gap, .right = margin + leftWidth, .bottom = margin + topHeight };
+				area = { margin, margin + modelHeight + gap, margin + leftWidth, margin + topHeight };
 				break;
 			case PanelWindowArea::Motion:
-				area = { .left = motionX, .top = margin, .right = motionX + motionWidth, .bottom = margin + topHeight };
+				area = { motionX, margin, motionX + motionWidth, margin + topHeight };
 				break;
 			case PanelWindowArea::InterpolationCurve:
-				area = { .left = interpolationX, .top = margin, .right = interpolationX + rightWidth, .bottom = margin + topHeight };
+				area = { interpolationX, margin, interpolationX + rightWidth, margin + topHeight };
 				break;
 			case PanelWindowArea::Bottom: {
 				const int panelWidth = bottomCount > 0 ? (width - margin * 2 - gap * (bottomCount - 1)) / bottomCount : 0;
 				const int x = margin + bottomIndex * (panelWidth + gap);
-				area = {.left = x, .top = bottomY, .right = x + panelWidth, .bottom = bottomY + bottomHeight};
+				area = { x, bottomY, x + panelWidth, bottomY + bottomHeight };
 				bottomIndex++;
 				break;
 			}
@@ -280,7 +280,7 @@ namespace Chrivent {
 			const int areaWidth = std::max(0, static_cast<int>(area.right - area.left));
 			entry.bounds = area;
 			MoveWindow(entry.frame, area.left + 8, area.top + 5, areaWidth - 16, 18, TRUE);
-			RECT panelRect{.left = area.left + 4, .top = area.top + 24, .right = area.right - 4, .bottom = area.bottom - 4};
+			RECT panelRect{ area.left + 4, area.top + 24, area.right - 4, area.bottom - 4 };
 			entry.panel->Resize(panelRect);
 		}
 		InvalidateRect(window, nullptr, FALSE);

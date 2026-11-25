@@ -50,19 +50,18 @@ namespace Chrivent {
 	}
 
 	RigidBodyDefinition ModelLoader::CreateRigidBodyDefinition(const PmxParser::PmxRigidbody& rigidBody) {
-		RigidBodyDefinition definition{
-			.nodeIndex = rigidBody.boneIndex,
-			.shapeSize = rigidBody.shapeSize,
-			.translate = rigidBody.translate,
-			.rotate = rigidBody.rotate,
-			.mass = rigidBody.mass,
-			.translateDamping = rigidBody.translateDimmer,
-			.rotateDamping = rigidBody.rotateDimmer,
-			.restitution = rigidBody.repulsion,
-			.friction = rigidBody.friction,
-			.group = rigidBody.group,
-			.groupMask = rigidBody.collisionGroup
-		};
+		RigidBodyDefinition definition{};
+		definition.nodeIndex = rigidBody.boneIndex;
+		definition.shapeSize = rigidBody.shapeSize;
+		definition.translate = rigidBody.translate;
+		definition.rotate = rigidBody.rotate;
+		definition.mass = rigidBody.mass;
+		definition.translateDamping = rigidBody.translateDimmer;
+		definition.rotateDamping = rigidBody.rotateDimmer;
+		definition.restitution = rigidBody.repulsion;
+		definition.friction = rigidBody.friction;
+		definition.group = rigidBody.group;
+		definition.groupMask = rigidBody.collisionGroup;
 		switch (rigidBody.shape) {
 			case PmxParser::Shape::Sphere: definition.shape = RigidBodyShape::Sphere; break;
 			case PmxParser::Shape::Box: definition.shape = RigidBodyShape::Box; break;
@@ -79,18 +78,18 @@ namespace Chrivent {
 	}
 
 	JointDefinition ModelLoader::CreateJointDefinition(const PmxParser::PmxJoint& joint) {
-		return {
-			.rigidBodyAIndex = joint.rigidbodyAIndex,
-			.rigidBodyBIndex = joint.rigidbodyBIndex,
-			.translate = joint.translate,
-			.rotate = joint.rotate,
-			.translateLowerLimit = joint.translateLowerLimit,
-			.translateUpperLimit = joint.translateUpperLimit,
-			.rotateLowerLimit = joint.rotateLowerLimit,
-			.rotateUpperLimit = joint.rotateUpperLimit,
-			.springTranslateFactor = joint.springTranslateFactor,
-			.springRotateFactor = joint.springRotateFactor
-		};
+		JointDefinition definition{};
+		definition.rigidBodyAIndex = joint.rigidbodyAIndex;
+		definition.rigidBodyBIndex = joint.rigidbodyBIndex;
+		definition.translate = joint.translate;
+		definition.rotate = joint.rotate;
+		definition.translateLowerLimit = joint.translateLowerLimit;
+		definition.translateUpperLimit = joint.translateUpperLimit;
+		definition.rotateLowerLimit = joint.rotateLowerLimit;
+		definition.rotateUpperLimit = joint.rotateUpperLimit;
+		definition.springTranslateFactor = joint.springTranslateFactor;
+		definition.springRotateFactor = joint.springRotateFactor;
+		return definition;
 	}
 
 	WeightType ModelLoader::ConvertWeightType(const PmxParser::WeightType weightType) {

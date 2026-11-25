@@ -35,29 +35,26 @@ namespace Chrivent {
 	ModelVertexConstants Drawer::BuildModelVertexConstants(
 		const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix) {
 		const SceneRenderState& scene = state.scene;
-		return {
-			.wv = scene.viewMatrix * world,
-			.wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world
-		};
+		return { scene.viewMatrix * world, clipMatrix * scene.projectionMatrix * scene.viewMatrix * world };
 	}
 
 	ModelPixelConstants Drawer::BuildModelPixelConstants(const SceneDrawState& state, const Material& material,
 		const int textureMode, const int toonTextureMode, const int sphereTextureMode) {
 		const SceneRenderState& scene = state.scene;
-		return {
-			.texMulFactor = material.textureMulFactor,
-			.texAddFactor = material.textureAddFactor,
-			.toonTexMulFactor = material.toonTextureMulFactor,
-			.toonTexAddFactor = material.toonTextureAddFactor,
-			.sphereTexMulFactor = material.sphereTextureMulFactor,
-			.sphereTexAddFactor = material.sphereTextureAddFactor,
-			.textureModes = glm::ivec4(textureMode, toonTextureMode, sphereTextureMode, 0),
-			.diffuseAlpha = material.diffuse,
-			.ambientSpecularPower = glm::vec4(material.ambient, material.specularPower),
-			.specular = glm::vec4(material.specular, 0.0f),
-			.lightColor = glm::vec4(scene.lighting.color, 0.0f),
-			.lightDir = glm::vec4(glm::mat3(scene.viewMatrix) * scene.lighting.direction, 0.0f)
-		};
+		ModelPixelConstants constants{};
+		constants.texMulFactor = material.textureMulFactor;
+		constants.texAddFactor = material.textureAddFactor;
+		constants.toonTexMulFactor = material.toonTextureMulFactor;
+		constants.toonTexAddFactor = material.toonTextureAddFactor;
+		constants.sphereTexMulFactor = material.sphereTextureMulFactor;
+		constants.sphereTexAddFactor = material.sphereTextureAddFactor;
+		constants.textureModes = glm::ivec4(textureMode, toonTextureMode, sphereTextureMode, 0);
+		constants.diffuseAlpha = material.diffuse;
+		constants.ambientSpecularPower = glm::vec4(material.ambient, material.specularPower);
+		constants.specular = glm::vec4(material.specular, 0.0f);
+		constants.lightColor = glm::vec4(scene.lighting.color, 0.0f);
+		constants.lightDir = glm::vec4(glm::mat3(scene.viewMatrix) * scene.lighting.direction, 0.0f);
+		return constants;
 	}
 
 	Drawer::MaterialTextureModes Drawer::ResolveMaterialTextureModes(const Material& material,
@@ -93,16 +90,16 @@ namespace Chrivent {
 		const glm::mat4& clipMatrix, const glm::vec2& screenSize) {
 		const SceneRenderState& scene = state.scene;
 		return {
-			.wv = scene.viewMatrix * world,
-			.wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix * world,
-			.screenSize = screenSize
+			scene.viewMatrix * world,
+			clipMatrix * scene.projectionMatrix * scene.viewMatrix * world,
+			screenSize
 		};
 	}
 
 	GroundShadowVertexConstants Drawer::BuildGroundShadowVertexConstants(
 		const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix) {
 		const SceneRenderState& scene = state.scene;
-		return { .wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix
+		return { clipMatrix * scene.projectionMatrix * scene.viewMatrix
 			* BuildGroundShadowMatrix(scene.lighting.direction) * world };
 	}
 
@@ -122,11 +119,7 @@ namespace Chrivent {
 
 	SceneSurfacePixelConstants Drawer::BuildSceneSurfacePixelConstants(
 		const float opacity, const bool textureHasAlpha) {
-		return {
-			.materialOpacity = opacity,
-			.textureAlphaEnabled = textureHasAlpha ? 1.0f : 0.0f,
-			.alphaCutoff = SceneShaderInputLayout::surfaceOpacityThreshold
-		};
+		return { opacity, textureHasAlpha ? 1.0f : 0.0f, SceneShaderInputLayout::surfaceOpacityThreshold };
 	}
 
 	void Drawer::BeginDraw(const SceneDrawState& state) {

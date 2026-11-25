@@ -216,12 +216,12 @@ namespace Chrivent {
 
 	SceneDrawState Viewer::ResolveSceneDrawState() const {
 		return {
-			.scene = sceneRenderState,
-			.previousViewMatrix = postProcessTemporalState.previousViewMatrix,
-			.previousProjectionMatrix = postProcessTemporalState.previousProjectionMatrix,
-			.screenSize = glm::vec2(screenWidth, screenHeight),
-			.historyReset = postProcessTemporalState.historyResetPending,
-			.velocityRequired = RequiresPostProcessVelocity()
+			sceneRenderState,
+			postProcessTemporalState.previousViewMatrix,
+			postProcessTemporalState.previousProjectionMatrix,
+			glm::vec2(screenWidth, screenHeight),
+			postProcessTemporalState.historyResetPending,
+			RequiresPostProcessVelocity()
 		};
 	}
 

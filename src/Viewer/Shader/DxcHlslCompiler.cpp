@@ -15,30 +15,17 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
 		if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils))) ||
 			FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler)))) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "DXC를 초기화하지 못했습니다."
-			});
+			return std::unexpected(ShaderCompileError{ file, "DXC를 초기화하지 못했습니다." });
 		}
 		Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler;
 		if (FAILED(utils->CreateDefaultIncludeHandler(&includeHandler))) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "HLSL include handler를 초기화하지 못했습니다."
-			});
+			return std::unexpected(ShaderCompileError{ file, "HLSL include handler를 초기화하지 못했습니다." });
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobEncoding> source;
 		if (FAILED(utils->LoadFile(file.c_str(), nullptr, &source))) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "HLSL 셰이더를 열지 못했습니다: " + file.string()
-			});
+			return std::unexpected(ShaderCompileError{ file, "HLSL 셰이더를 열지 못했습니다: " + file.string() });
 		}
-		const DxcBuffer sourceBuffer{
-			.Ptr = source->GetBufferPointer(),
-			.Size = source->GetBufferSize(),
-			.Encoding = DXC_CP_UTF8
-		};
+		const DxcBuffer sourceBuffer{ source->GetBufferPointer(), source->GetBufferSize(), DXC_CP_UTF8 };
 		const std::wstring includeDirectory = file.parent_path().wstring();
 		std::vector arguments{
 			file.c_str(), L"-E", entry.c_str(), L"-T", target.c_str(),
@@ -48,20 +35,14 @@ namespace Chrivent {
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(compiler->Compile(&sourceBuffer, arguments.data(), static_cast<uint32_t>(arguments.size()),
 			includeHandler.Get(), IID_PPV_ARGS(&result)))) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "DXC를 실행하지 못했습니다: " + file.string()
-			});
+			return std::unexpected(ShaderCompileError{ file, "DXC를 실행하지 못했습니다: " + file.string() });
 		}
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
 		if (FAILED(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr)))
 			errors.Reset();
 		HRESULT status = E_FAIL;
 		if (FAILED(result->GetStatus(&status))) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "HLSL 컴파일 상태를 확인하지 못했습니다: " + file.string()
-			});
+			return std::unexpected(ShaderCompileError{ file, "HLSL 컴파일 상태를 확인하지 못했습니다: " + file.string() });
 		}
 		if (FAILED(status)) {
 			std::string message = "HLSL 셰이더를 컴파일하지 못했습니다: " + file.string();
@@ -69,17 +50,11 @@ namespace Chrivent {
 				message.push_back('\n');
 				message.append(errors->GetStringPointer(), errors->GetStringLength());
 			}
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = std::move(message)
-			});
+			return std::unexpected(ShaderCompileError{ file, std::move(message) });
 		}
 		Microsoft::WRL::ComPtr<IDxcBlob> object;
 		if (FAILED(result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&object), nullptr)) || !object) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "DXC가 올바르지 않은 셰이더 객체를 반환했습니다: " + file.string()
-			});
+			return std::unexpected(ShaderCompileError{ file, "DXC가 올바르지 않은 셰이더 객체를 반환했습니다: " + file.string() });
 		}
 		std::vector<uint8_t> compiledObject(object->GetBufferSize());
 		std::memcpy(compiledObject.data(), object->GetBufferPointer(), compiledObject.size());
@@ -135,10 +110,7 @@ namespace Chrivent {
 			return std::unexpected(std::move(objectResult.error()));
 		const std::vector<uint8_t>& object = *objectResult;
 		if (object.size() % sizeof(uint32_t) != 0) {
-			return std::unexpected(ShaderCompileError{
-				.shaderPath = file,
-				.message = "DXC가 올바르지 않은 SPIR-V를 반환했습니다: " + file.string()
-			});
+			return std::unexpected(ShaderCompileError{ file, "DXC가 올바르지 않은 SPIR-V를 반환했습니다: " + file.string() });
 		}
 		std::vector<uint32_t> spirv(object.size() / sizeof(uint32_t));
 		std::memcpy(spirv.data(), object.data(), object.size());

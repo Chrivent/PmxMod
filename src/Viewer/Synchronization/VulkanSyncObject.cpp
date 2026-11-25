@@ -39,8 +39,9 @@ namespace Chrivent {
 			vkDestroyFence(device, discardedFence, nullptr);
 		currentFence = VK_NULL_HANDLE;
 		constexpr VkFenceCreateInfo fenceInfo{
-			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-			.flags = VK_FENCE_CREATE_SIGNALED_BIT
+			VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			nullptr,
+			VK_FENCE_CREATE_SIGNALED_BIT
 		};
 		const VkResult result = vkCreateFence(device, &fenceInfo, nullptr, &currentFence);
 		if (result != VK_SUCCESS) {
@@ -165,18 +166,23 @@ namespace Chrivent {
 				"Vulkan 프레임 제출에 필요한 큐, command buffer 또는 이미지 색인이 올바르지 않습니다"));
 		}
 		const VkSemaphoreSubmitInfo waitSemaphoreInfo{
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-			.semaphore = imageAvailableSemaphores[currentFrame],
-			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+			VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			nullptr,
+			imageAvailableSemaphores[currentFrame],
+			0,
+			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
 		};
 		const VkSemaphoreSubmitInfo signalSemaphoreInfo{
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-			.semaphore = renderFinishedSemaphores[imageIndex],
-			.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
+			VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			nullptr,
+			renderFinishedSemaphores[imageIndex],
+			0,
+			VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT
 		};
 		const VkCommandBufferSubmitInfo commandBufferInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-			.commandBuffer = commandBuffer
+			VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			nullptr,
+			commandBuffer
 		};
 		const VkFence& inFlightFence = inFlightFences[currentFrame];
 		VkResult result = vkResetFences(device, 1, &inFlightFence);
@@ -185,15 +191,14 @@ namespace Chrivent {
 				GraphicsErrorCode::SynchronizationFailed, "프레임 fence 초기화",
 				"Vulkan in-flight fence를 초기화하지 못했습니다", result, true));
 		}
-		const VkSubmitInfo2 submitInfo{
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-			.waitSemaphoreInfoCount = 1,
-			.pWaitSemaphoreInfos = &waitSemaphoreInfo,
-			.commandBufferInfoCount = 1,
-			.pCommandBufferInfos = &commandBufferInfo,
-			.signalSemaphoreInfoCount = 1,
-			.pSignalSemaphoreInfos = &signalSemaphoreInfo
-		};
+		VkSubmitInfo2 submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+		submitInfo.waitSemaphoreInfoCount = 1;
+		submitInfo.pWaitSemaphoreInfos = &waitSemaphoreInfo;
+		submitInfo.commandBufferInfoCount = 1;
+		submitInfo.pCommandBufferInfos = &commandBufferInfo;
+		submitInfo.signalSemaphoreInfoCount = 1;
+		submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 		result = vkQueueSubmit2(graphicsQueue, 1, &submitInfo, inFlightFence);
 		if (result != VK_SUCCESS) {
 			const auto restoreResult = RestoreCurrentFence();

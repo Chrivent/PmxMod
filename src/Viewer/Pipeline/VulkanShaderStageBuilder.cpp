@@ -40,16 +40,20 @@ namespace Chrivent {
 
 	void VulkanShaderStageBuilder::BuildStageDescriptions() {
 		stages[0] = {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-			.stage = VK_SHADER_STAGE_VERTEX_BIT,
-			.module = vertexShader.GetShaderModule(),
-			.pName = vertexEntry.c_str()
+			VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			vertexShader.GetShaderModule(),
+			vertexEntry.c_str()
 		};
 		stages[1] = {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.module = pixelShader.GetShaderModule(),
-			.pName = pixelEntry.c_str()
+			VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			nullptr,
+			0,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			pixelShader.GetShaderModule(),
+			pixelEntry.c_str()
 		};
 	}
 

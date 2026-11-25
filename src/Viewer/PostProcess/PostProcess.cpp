@@ -23,12 +23,7 @@ namespace Chrivent {
 
 	PostProcessPlanError PreparedPostProcessEffects::CreatePlanError(const PostProcessPlanErrorCode code,
 		const size_t effectIndex, std::string message, const size_t passIndex) {
-		return {
-			.code = code,
-			.effectIndex = effectIndex,
-			.passIndex = passIndex,
-			.message = std::move(message)
-		};
+		return { code, effectIndex, passIndex, std::move(message) };
 	}
 
 	size_t PostProcess::ResolveNextHistoryIndex(const size_t currentIndex) {
@@ -148,7 +143,7 @@ namespace Chrivent {
 		std::vector<PassRoute> plannedRoutes;
 		std::vector<ParameterData> plannedParameters;
 		std::vector<Resource> plannedResources;
-		PassInputRoute effectInput{ .kind = InputKind::SceneColor };
+		PassInputRoute effectInput{};
 		bool requiresDepth = false;
 		bool requiresVelocity = false;
 		for (size_t effectIndex = 0; effectIndex < effects.size(); effectIndex++) {
@@ -198,13 +193,7 @@ namespace Chrivent {
 					return std::unexpected(CreatePlanError(PostProcessPlanErrorCode::InvalidResource,
 						effectIndex, "고정 리소스 크기가 렌더러 범위를 벗어났습니다"));
 				}
-				plannedResources.emplace_back(Resource{
-					.lifetime = lifetime,
-					.format = format,
-					.resolution = resolution,
-					.width = width,
-					.height = height
-				});
+				plannedResources.emplace_back(Resource{ lifetime, format, resolution, width, height });
 			}
 			std::vector<uint8_t> initializedTransientResources(resources.size(), 0);
 			const bool lastEffect = effectIndex + 1 == effects.size();
@@ -212,9 +201,9 @@ namespace Chrivent {
 			if (!lastEffect) {
 				effectOutputIndex = plannedResources.size();
 				plannedResources.emplace_back(Resource{
-					.lifetime = EffectResourceLifetime::Transient,
-					.format = EffectTextureFormat::Rgba8Unorm,
-					.resolution = EffectPassResolution::Full
+					EffectResourceLifetime::Transient,
+					EffectTextureFormat::Rgba8Unorm,
+					EffectPassResolution::Full
 				});
 			}
 			for (size_t passIndex = 0; passIndex < passes.size(); passIndex++) {
@@ -236,7 +225,7 @@ namespace Chrivent {
 							effectIndex, "중복된 texture 슬롯이 있습니다", passIndex));
 					}
 					usedSlots[slot] = true;
-					PassInputRoute inputRoute{ .slot = slot };
+					PassInputRoute inputRoute{ slot };
 					if (kind == EffectPassInputKind::EffectInput) {
 						inputRoute = effectInput;
 						inputRoute.slot = slot;
@@ -305,12 +294,12 @@ namespace Chrivent {
 			}
 		}
 		return ExecutionPlan{
-			.shaderPrograms = std::move(plannedPrograms),
-			.passRoutes = std::move(plannedRoutes),
-			.effectParameters = std::move(plannedParameters),
-			.resourcePlans = std::move(plannedResources),
-			.depthRequired = requiresDepth,
-			.velocityRequired = requiresVelocity
+			std::move(plannedPrograms),
+			std::move(plannedRoutes),
+			std::move(plannedParameters),
+			std::move(plannedResources),
+			requiresDepth,
+			requiresVelocity
 		};
 	}
 

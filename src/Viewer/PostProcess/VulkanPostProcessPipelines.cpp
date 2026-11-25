@@ -9,15 +9,14 @@ namespace Chrivent {
 		const VulkanDevice& sourceDevice,
 		const VkPipelineLayout pipelineLayout, const ShaderProgramDefinition& program,
 		const VkFormat targetFormat, VkPipeline& pipeline) {
-		const VulkanPipelineBuilder::Configuration configuration{
-			.pipelineLayout = pipelineLayout,
-			.colorFormat = targetFormat,
-			.cullMode = VK_CULL_MODE_NONE,
-			.vertexLayout = VulkanPipelineBuilder::VertexLayout::None,
-			.bindingProfile = SpirvBindingProfile::PostProcess,
-			.invertVertexY = true,
-			.blendEnabled = false
-		};
+		VulkanPipelineBuilder::Configuration configuration{};
+		configuration.pipelineLayout = pipelineLayout;
+		configuration.colorFormat = targetFormat;
+		configuration.cullMode = VK_CULL_MODE_NONE;
+		configuration.vertexLayout = VulkanPipelineBuilder::VertexLayout::None;
+		configuration.bindingProfile = SpirvBindingProfile::PostProcess;
+		configuration.invertVertexY = true;
+		configuration.blendEnabled = false;
 		return VulkanPipelineBuilder::Create(sourceDevice, program, configuration, pipeline);
 	}
 

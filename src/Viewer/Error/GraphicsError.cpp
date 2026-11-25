@@ -6,14 +6,7 @@ namespace Chrivent {
 	GraphicsError GraphicsError::Create(const GraphicsApi api, const GraphicsErrorCode code,
 		std::string operation, std::string message,
 		const int64_t nativeCode, const bool hasNativeCode) {
-		return {
-			.api = api,
-			.code = code,
-			.operation = std::move(operation),
-			.message = std::move(message),
-			.nativeCode = nativeCode,
-			.hasNativeCode = hasNativeCode
-		};
+		return { api, code, std::move(operation), std::move(message), nativeCode, hasNativeCode };
 	}
 
 	std::string GraphicsError::Format() const {

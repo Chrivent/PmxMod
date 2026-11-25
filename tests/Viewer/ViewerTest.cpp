@@ -90,16 +90,12 @@ namespace Chrivent {
 		GraphicsError::Result<void> SetupCore(const SceneShaderRuntimeContract&) override {
 			BindPostProcess(postProcess);
 			depthEffect.passes.emplace_back(EffectPassDefinition{
-				.program = {
-					.shaderPath = "test.hlsl",
-					.vertexEntry = "VSMain",
-					.pixelEntry = "PSMain"
+				{ "test.hlsl", {}, "VSMain", "PSMain" },
+				{
+					{ 0, EffectPassInputKind::SceneColor },
+					{ 1, EffectPassInputKind::SceneDepth }
 				},
-				.inputs = {
-					{ .slot = 0, .kind = EffectPassInputKind::SceneColor },
-					{ .slot = 1, .kind = EffectPassInputKind::SceneDepth }
-				},
-				.output = { .kind = EffectPassOutputKind::EffectOutput }
+				{ EffectPassOutputKind::EffectOutput }
 			});
 			const std::vector<const EffectRuntimeDefinition*> effects{ &depthEffect };
 			const auto result = postProcess.ConfigureDepthEffect(effects);
@@ -226,11 +222,7 @@ namespace Chrivent {
 		model->geometryData.indexCount = 1;
 		model->geometryData.indexElementSize = 1;
 		model->materialData.materials.emplace_back();
-		model->materialData.subMeshes.emplace_back(SubMesh{
-			.beginIndex = 0,
-			.indexCount = 1,
-			.materialId = 0
-		});
+		model->materialData.subMeshes.emplace_back(SubMesh{ 0, 1, 0 });
 		return model;
 	}
 
@@ -435,8 +427,8 @@ namespace Chrivent {
 		ViewerTestAdapter viewer;
 		ASSERT_TRUE(viewer.Setup(ResolveTestWindow(), 1280, 720, {}).has_value());
 		constexpr EffectParameterUpdate updates[]{
-			{ .effectIndex = 0, .slot = 2, .value = 0.25f },
-			{ .effectIndex = 0, .slot = 2, .value = 0.75f }
+			{ 0, 2, 0.25f },
+			{ 0, 2, 0.75f }
 		};
 		ASSERT_TRUE(viewer.UpdatePostProcessParameters(updates).has_value());
 		EXPECT_FLOAT_EQ(viewer.GetParameterValue(2), 0.0f);

@@ -11,40 +11,37 @@ namespace Chrivent {
 		const BuiltInShaderPasses& builtInPasses,
 		const SceneInputShaderPasses& sceneInputPasses) {
 		constexpr D3D11_INPUT_ELEMENT_DESC modelInputElements[] = {
-			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "NORMAL", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, normal), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "UV", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, uv), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "TEXCOORD", .SemanticIndex = 1, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, subTextureUv), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 }
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0,
+				offsetof(ViewerVertex, subTextureUv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		constexpr D3D11_INPUT_ELEMENT_DESC edgeInputElements[] = {
-			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "NORMAL", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, normal), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "TEXCOORD", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, edgeScale), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 }
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0,
+				offsetof(ViewerVertex, edgeScale), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		constexpr D3D11_INPUT_ELEMENT_DESC groundShadowInputElements[] = {
-			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 }
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		constexpr D3D11_INPUT_ELEMENT_DESC sceneDepthInputElements[] = {
-			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "UV", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, uv), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 }
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		constexpr D3D11_INPUT_ELEMENT_DESC sceneVelocityInputElements[] = {
-			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "POSITION", .SemanticIndex = 1, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, previousPosition), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
-			{ .SemanticName = "UV", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
-				.AlignedByteOffset = offsetof(ViewerVertex, uv), .InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA, .InstanceDataStepRate = 0 }
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				offsetof(ViewerVertex, previousPosition), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(ViewerVertex, uv), D3D11_INPUT_PER_VERTEX_DATA, 0 }
 		};
 		auto result = shaders.model.Initialize(
 			device, builtInPasses.model, modelInputElements);

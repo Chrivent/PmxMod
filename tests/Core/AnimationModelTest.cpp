@@ -202,8 +202,7 @@ namespace Chrivent {
 		solver.ikNode = &goal;
 		solver.ikTarget = &tip;
 		solver.iterateCount = 4;
-		solver.chains.push_back({.node = &joint, .enableAxisLimit = true,
-			.limitMax = glm::vec3(0, glm::half_pi<float>(), glm::pi<float>())});
+		solver.chains.push_back({ &joint, true, glm::vec3(0, glm::half_pi<float>(), glm::pi<float>()) });
 		solver.Solve();
 		EXPECT_LT(glm::distance(glm::vec3(tip.global[3]), goal.translate), 0.001f);
 	}
@@ -233,7 +232,7 @@ namespace Chrivent {
 		auto* const solver = AddIkSolver(*model);
 		solver->ikNode = AddNode(*model, "LegIK");
 		VmdParser::VmdData data{};
-		data.iks = {{0, 1, {{.name = "LegIK", .enable = 1}}}, {6, 1, {{"LegIK", 0}}}, {12, 1, {{"LegIK", 1}}}};
+		data.iks = {{0, 1, {{ "LegIK", 1 }}}, {6, 1, {{"LegIK", 0}}}, {12, 1, {{"LegIK", 1}}}};
 		AnimationBuilder builder(model);
 		builder.Build(data);
 		const auto animation = builder.TakeAnimation();
@@ -285,8 +284,15 @@ namespace Chrivent {
 		auto* const bone = AddNode(*model, "Root");
 		bone->initTranslate.y = 15;
 		ModelUpdater::InitializeAnimation(*model);
-		constexpr RigidBodyDefinition body{.nodeIndex = 0, .shapeSize = glm::vec3(0.25f),
-			.translate = glm::vec3(0, 15, 0), .mass = 1, .operation = RigidBodyOperation::Dynamic};
+		constexpr auto body = [] {
+			RigidBodyDefinition value{};
+			value.nodeIndex = 0;
+			value.shapeSize = glm::vec3(0.25f);
+			value.translate = glm::vec3(0, 15, 0);
+			value.mass = 1;
+			value.operation = RigidBodyOperation::Dynamic;
+			return value;
+		}();
 		ASSERT_TRUE(model->InitializePhysics(scene, {body}, {}));
 		VmdParser::VmdData data{};
 		VmdParser::VmdMotion key{};
@@ -405,9 +411,9 @@ namespace Chrivent {
 		ikSolver->enable = false;
 		morphTarget->weight = 0.75f;
 		const Animation animation(model,
-			{{.targetIndex = 0}},
-			{{.targetIndex = 0}},
-			{{.targetIndex = 0}});
+			{{}},
+			{{}},
+			{{}});
 		animation.Evaluate(0);
 		EXPECT_EQ(node->animTranslate, glm::vec3(0));
 		EXPECT_EQ(node->animRotate, glm::quat(1, 0, 0, 0));
@@ -596,9 +602,9 @@ namespace Chrivent {
 		MorphAnimationKey morphKey{};
 		morphKey.morphWeight = 1.0f;
 		const Animation animation(model,
-			{{.targetIndex = 0, .keys = {nodeKey} }},
+			{{ 0, {nodeKey} }},
 			{},
-			{{.targetIndex = 0, .keys = {morphKey} }});
+			{{ 0, {morphKey} }});
 		Model replacement;
 		Node* replacementNode = AddNode(replacement);
 		auto replacementMorph = std::make_unique<Morph>();
@@ -718,7 +724,7 @@ namespace Chrivent {
 		AnimationBuilder builder(model);
 		builder.Build(data);
 		const auto animation = builder.TakeAnimation();
-		const ModelAnimationTarget targets[]{{.model = *model, .animation = animation.get()}};
+		const ModelAnimationTarget targets[]{{ *model, animation.get() }};
 		ModelUpdater::ResetPhysicsAtFrame(scene, targets, 12.0f);
 		EXPECT_EQ(node->animTranslate, glm::vec3(3, 0, 0));
 		EXPECT_EQ(glm::vec3(node->global[3]), glm::vec3(3, 0, 0));

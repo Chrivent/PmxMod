@@ -13,19 +13,16 @@ namespace Chrivent {
 				"texture descriptor 개수가 Vulkan 범위를 벗어났습니다"));
 		}
 		std::vector poolSizes{
-			VkDescriptorPoolSize{
-				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-				.descriptorCount = 2
-			}
+			VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2 }
 		};
 		if (textureDescriptorCount > 0) {
 			poolSizes.emplace_back(VkDescriptorPoolSize{
-				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = static_cast<uint32_t>(textureDescriptorCount * SceneShaderInputLayout::textureCount)
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				static_cast<uint32_t>(textureDescriptorCount * SceneShaderInputLayout::textureCount)
 			});
 			poolSizes.emplace_back(VkDescriptorPoolSize{
-				.type = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = static_cast<uint32_t>(textureDescriptorCount * SceneShaderInputLayout::samplerCount)
+				VK_DESCRIPTOR_TYPE_SAMPLER,
+				static_cast<uint32_t>(textureDescriptorCount * SceneShaderInputLayout::samplerCount)
 			});
 		}
 		VkDescriptorPoolCreateInfo createInfo{};
@@ -86,45 +83,27 @@ namespace Chrivent {
 	}
 
 	void VulkanDescriptorSet::UpdateVertexDescriptorSet(const VulkanBuffer& vertexConstantBuffer, const VkDeviceSize vertexConstantRange) const {
-		const VkDescriptorBufferInfo vertexBufferInfo{
-			.buffer = vertexConstantBuffer.GetBuffer(),
-			.offset = 0,
-			.range = vertexConstantRange
-		};
-		const VkWriteDescriptorSet write{
-			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			.pNext = nullptr,
-			.dstSet = vertexDescriptorSet,
-			.dstBinding = SpirvBindingLayout::frameDataBinding,
-			.dstArrayElement = 0,
-			.descriptorCount = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			.pImageInfo = nullptr,
-			.pBufferInfo = &vertexBufferInfo,
-			.pTexelBufferView = nullptr
-		};
+		const VkDescriptorBufferInfo vertexBufferInfo{ vertexConstantBuffer.GetBuffer(), 0, vertexConstantRange };
+		VkWriteDescriptorSet write{};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.dstSet = vertexDescriptorSet;
+		write.dstBinding = SpirvBindingLayout::frameDataBinding;
+		write.descriptorCount = 1;
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		write.pBufferInfo = &vertexBufferInfo;
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
 	void VulkanDescriptorSet::UpdatePixelDescriptorSet(const VulkanBuffer& pixelConstantBuffer,
 		const VkDeviceSize pixelConstantRange) const {
-		const VkDescriptorBufferInfo pixelBufferInfo{
-			.buffer = pixelConstantBuffer.GetBuffer(),
-			.offset = 0,
-			.range = pixelConstantRange
-		};
-		const VkWriteDescriptorSet write{
-			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			.pNext = nullptr,
-			.dstSet = pixelDescriptorSet,
-			.dstBinding = SpirvBindingLayout::parameterDataBinding,
-			.dstArrayElement = 0,
-			.descriptorCount = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-			.pImageInfo = nullptr,
-			.pBufferInfo = &pixelBufferInfo,
-			.pTexelBufferView = nullptr
-		};
+		const VkDescriptorBufferInfo pixelBufferInfo{ pixelConstantBuffer.GetBuffer(), 0, pixelConstantRange };
+		VkWriteDescriptorSet write{};
+		write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.dstSet = pixelDescriptorSet;
+		write.dstBinding = SpirvBindingLayout::parameterDataBinding;
+		write.descriptorCount = 1;
+		write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		write.pBufferInfo = &pixelBufferInfo;
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
@@ -138,89 +117,34 @@ namespace Chrivent {
 			VulkanModelMaterial& material = materials[i];
 			material.textureDescriptorSet = textureDescriptorSets[i];
 			const VkDescriptorImageInfo imageInfos[] = {
-				VkDescriptorImageInfo{
-					.sampler = material.texture.sampler,
-					.imageView = material.texture.imageView,
-					.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-				},
-				VkDescriptorImageInfo{
-					.sampler = material.toonTexture.sampler,
-					.imageView = material.toonTexture.imageView,
-					.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-				},
-				VkDescriptorImageInfo{
-					.sampler = material.sphereTexture.sampler,
-					.imageView = material.sphereTexture.imageView,
-					.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-				}
+				{ material.texture.sampler, material.texture.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+				{ material.toonTexture.sampler, material.toonTexture.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL },
+				{ material.sphereTexture.sampler, material.sphereTexture.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL }
+			};
+			const auto MakeImageWrite = [&material](const uint32_t binding, const VkDescriptorType type,
+				const VkDescriptorImageInfo& imageInfo) {
+				VkWriteDescriptorSet write{};
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = material.textureDescriptorSet;
+				write.dstBinding = binding;
+				write.descriptorCount = 1;
+				write.descriptorType = type;
+				write.pImageInfo = &imageInfo;
+				return write;
 			};
 			const VkWriteDescriptorSet writes[] = {
-				VkWriteDescriptorSet{
-					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					.pNext = nullptr,
-					.dstSet = material.textureDescriptorSet,
-					.dstBinding = SpirvBindingLayout::ResolveTextureBinding(
-						SceneShaderInputLayout::baseTextureRegister),
-					.dstArrayElement = 0,
-					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-					.pImageInfo = &imageInfos[0],
-					.pBufferInfo = nullptr,
-					.pTexelBufferView = nullptr
-				},
-				VkWriteDescriptorSet{
-					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					.pNext = nullptr,
-					.dstSet = material.textureDescriptorSet,
-					.dstBinding = SpirvBindingLayout::ResolveTextureBinding(
-						SceneShaderInputLayout::toonTextureRegister),
-					.dstArrayElement = 0,
-					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-					.pImageInfo = &imageInfos[1],
-					.pBufferInfo = nullptr,
-					.pTexelBufferView = nullptr
-				},
-				VkWriteDescriptorSet{
-					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					.pNext = nullptr,
-					.dstSet = material.textureDescriptorSet,
-					.dstBinding = SpirvBindingLayout::ResolveTextureBinding(
-						SceneShaderInputLayout::sphereTextureRegister),
-					.dstArrayElement = 0,
-					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-					.pImageInfo = &imageInfos[2],
-					.pBufferInfo = nullptr,
-					.pTexelBufferView = nullptr
-				},
-				VkWriteDescriptorSet{
-					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					.dstSet = material.textureDescriptorSet,
-					.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(
-						SceneShaderInputLayout::baseSamplerRegister),
-					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-					.pImageInfo = &imageInfos[0]
-				},
-				VkWriteDescriptorSet{
-					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					.dstSet = material.textureDescriptorSet,
-					.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(
-						SceneShaderInputLayout::toonSamplerRegister),
-					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-					.pImageInfo = &imageInfos[1]
-				},
-				VkWriteDescriptorSet{
-					.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					.dstSet = material.textureDescriptorSet,
-					.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(
-						SceneShaderInputLayout::sphereSamplerRegister),
-					.descriptorCount = 1,
-					.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-					.pImageInfo = &imageInfos[2]
-				}
+				MakeImageWrite(SpirvBindingLayout::ResolveTextureBinding(SceneShaderInputLayout::baseTextureRegister),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, imageInfos[0]),
+				MakeImageWrite(SpirvBindingLayout::ResolveTextureBinding(SceneShaderInputLayout::toonTextureRegister),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, imageInfos[1]),
+				MakeImageWrite(SpirvBindingLayout::ResolveTextureBinding(SceneShaderInputLayout::sphereTextureRegister),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, imageInfos[2]),
+				MakeImageWrite(SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::baseSamplerRegister),
+					VK_DESCRIPTOR_TYPE_SAMPLER, imageInfos[0]),
+				MakeImageWrite(SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::toonSamplerRegister),
+					VK_DESCRIPTOR_TYPE_SAMPLER, imageInfos[1]),
+				MakeImageWrite(SpirvBindingLayout::ResolveSamplerBinding(SceneShaderInputLayout::sphereSamplerRegister),
+					VK_DESCRIPTOR_TYPE_SAMPLER, imageInfos[2])
 			};
 			vkUpdateDescriptorSets(device, std::size(writes), writes, 0, nullptr);
 		}

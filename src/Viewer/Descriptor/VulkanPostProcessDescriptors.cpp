@@ -7,26 +7,30 @@
 namespace Chrivent {
 	GraphicsError::Result<void> VulkanPostProcessDescriptors::CreateLayouts() {
 		static constexpr VkDescriptorSetLayoutBinding frameDataBinding{
-			.binding = SpirvBindingLayout::frameDataBinding,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			SpirvBindingLayout::frameDataBinding,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
 		constexpr VkDescriptorSetLayoutCreateInfo frameLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = 1,
-			.pBindings = &frameDataBinding
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&frameDataBinding
 		};
 		static constexpr VkDescriptorSetLayoutBinding parameterDataBinding{
-			.binding = SpirvBindingLayout::parameterDataBinding,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+			SpirvBindingLayout::parameterDataBinding,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			1,
+			VK_SHADER_STAGE_FRAGMENT_BIT
 		};
 		constexpr VkDescriptorSetLayoutCreateInfo parameterLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = 1,
-			.pBindings = &parameterDataBinding
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			1,
+			&parameterDataBinding
 		};
 		VkResult result = vkCreateDescriptorSetLayout(device, &frameLayoutInfo, nullptr,
 			&descriptorSetLayouts[SpirvBindingLayout::frameDataSet]);
@@ -46,24 +50,26 @@ namespace Chrivent {
 		textureBindings.reserve(PostProcessInputLayout::maxTextureCount + PostProcessInputLayout::samplerCount);
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
 			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = SpirvBindingLayout::ResolveTextureBinding(slot),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SpirvBindingLayout::ResolveTextureBinding(slot),
+				VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			});
 		}
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::samplerCount; slot++) {
 			textureBindings.emplace_back(VkDescriptorSetLayoutBinding{
-				.binding = SpirvBindingLayout::ResolveSamplerBinding(slot),
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = 1,
-				.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+				SpirvBindingLayout::ResolveSamplerBinding(slot),
+				VK_DESCRIPTOR_TYPE_SAMPLER,
+				1,
+				VK_SHADER_STAGE_FRAGMENT_BIT
 			});
 		}
 		const VkDescriptorSetLayoutCreateInfo textureLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = static_cast<uint32_t>(textureBindings.size()),
-			.pBindings = textureBindings.data()
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			static_cast<uint32_t>(textureBindings.size()),
+			textureBindings.data()
 		};
 		result = vkCreateDescriptorSetLayout(device, &textureLayoutInfo, nullptr,
 			&descriptorSetLayouts[SpirvBindingLayout::textureSet]);
@@ -73,9 +79,11 @@ namespace Chrivent {
 				"Vulkan texture descriptor set layout을 만들지 못했습니다", result, true));
 		}
 		const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.setLayoutCount = SpirvBindingLayout::setCount,
-			.pSetLayouts = descriptorSetLayouts
+			VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			nullptr,
+			0,
+			SpirvBindingLayout::setCount,
+			descriptorSetLayouts
 		};
 		result = vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout);
 		if (result != VK_SUCCESS) {
@@ -87,15 +95,17 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> VulkanPostProcessDescriptors::CreateSampler() {
-		constexpr VkSamplerCreateInfo samplerInfo{
-			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-			.magFilter = VK_FILTER_LINEAR,
-			.minFilter = VK_FILTER_LINEAR,
-			.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-			.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-			.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-			.maxLod = 1.0f
-		};
+		constexpr auto samplerInfo = [] {
+			VkSamplerCreateInfo value{};
+			value.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			value.magFilter = VK_FILTER_LINEAR;
+			value.minFilter = VK_FILTER_LINEAR;
+			value.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			value.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			value.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			value.maxLod = 1.0f;
+			return value;
+		}();
 		const VkResult result = vkCreateSampler(device, &samplerInfo, nullptr, &sampler);
 		if (result != VK_SUCCESS) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
@@ -128,12 +138,11 @@ namespace Chrivent {
 				textureSetCount * PostProcessInputLayout::maxTextureCount },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, textureSetCount * PostProcessInputLayout::samplerCount }
 		};
-		const VkDescriptorPoolCreateInfo poolInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = frameSetCount + parameterSetCount + textureSetCount,
-			.poolSizeCount = 3,
-			.pPoolSizes = poolSizes
-		};
+		VkDescriptorPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.maxSets = frameSetCount + parameterSetCount + textureSetCount;
+		poolInfo.poolSizeCount = 3;
+		poolInfo.pPoolSizes = poolSizes;
 		VkResult result = vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool);
 		if (result != VK_SUCCESS) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
@@ -147,12 +156,11 @@ namespace Chrivent {
 		for (uint32_t index = frameSetCount; index < frameSetCount + parameterSetCount; index++)
 			layouts[index] = descriptorSetLayouts[SpirvBindingLayout::parameterDataSet];
 		std::vector<VkDescriptorSet> sets(layouts.size());
-		const VkDescriptorSetAllocateInfo allocateInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
-			.pSetLayouts = layouts.data()
-		};
+		VkDescriptorSetAllocateInfo allocateInfo{};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocateInfo.descriptorPool = descriptorPool;
+		allocateInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
+		allocateInfo.pSetLayouts = layouts.data();
 		result = vkAllocateDescriptorSets(device, &allocateInfo, sets.data());
 		if (result != VK_SUCCESS) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
@@ -186,18 +194,14 @@ namespace Chrivent {
 					GraphicsErrorCode::InvalidState, "frame buffer descriptor 연결",
 					"Vulkan 후처리 frame buffer를 사용할 수 없습니다"));
 			}
-			const VkDescriptorBufferInfo bufferInfo{
-				.buffer = frameDataBuffers[index]->GetBuffer(),
-				.range = frameDataSize
-			};
-			const VkWriteDescriptorSet write{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = frameDataDescriptorSets[index],
-				.dstBinding = SpirvBindingLayout::frameDataBinding,
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.pBufferInfo = &bufferInfo
-			};
+			const VkDescriptorBufferInfo bufferInfo{ frameDataBuffers[index]->GetBuffer(), 0, frameDataSize };
+			VkWriteDescriptorSet write{};
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.dstSet = frameDataDescriptorSets[index];
+			write.dstBinding = SpirvBindingLayout::frameDataBinding;
+			write.descriptorCount = 1;
+			write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			write.pBufferInfo = &bufferInfo;
 			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 		}
 		for (size_t index = 0; index < parameterDataDescriptorSets.size(); index++) {
@@ -210,18 +214,17 @@ namespace Chrivent {
 					"Vulkan 후처리 parameter buffer를 사용할 수 없습니다"));
 			}
 			const VkDescriptorBufferInfo bufferInfo{
-				.buffer = parameterDataBuffers[imageIndex]->GetBuffer(),
-				.offset = passIndex * parameterDataStride,
-				.range = parameterDataSize
+				parameterDataBuffers[imageIndex]->GetBuffer(),
+				passIndex * parameterDataStride,
+				parameterDataSize
 			};
-			const VkWriteDescriptorSet write{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = parameterDataDescriptorSets[index],
-				.dstBinding = SpirvBindingLayout::parameterDataBinding,
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				.pBufferInfo = &bufferInfo
-			};
+			VkWriteDescriptorSet write{};
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.dstSet = parameterDataDescriptorSets[index];
+			write.dstBinding = SpirvBindingLayout::parameterDataBinding;
+			write.descriptorCount = 1;
+			write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			write.pBufferInfo = &bufferInfo;
 			vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 		}
 		return {};
@@ -320,30 +323,25 @@ namespace Chrivent {
 		VkWriteDescriptorSet writes[descriptorCount]{};
 		size_t writeCount = 0;
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::maxTextureCount; slot++) {
-			imageInfos[slot] = {
-				.imageView = imageViews[slot],
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-			writes[writeCount++] = VkWriteDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = descriptorSet,
-				.dstBinding = SpirvBindingLayout::ResolveTextureBinding(slot),
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.pImageInfo = &imageInfos[slot]
-			};
+			imageInfos[slot] = { VK_NULL_HANDLE, imageViews[slot], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+			auto& write = writes[writeCount++];
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.dstSet = descriptorSet;
+			write.dstBinding = SpirvBindingLayout::ResolveTextureBinding(slot);
+			write.descriptorCount = 1;
+			write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			write.pImageInfo = &imageInfos[slot];
 		}
 		for (uint32_t slot = 0; slot < PostProcessInputLayout::samplerCount; slot++) {
 			const size_t infoIndex = PostProcessInputLayout::maxTextureCount + slot;
-			imageInfos[infoIndex] = { .sampler = sampler };
-			writes[writeCount++] = VkWriteDescriptorSet{
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = descriptorSet,
-				.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(slot),
-				.descriptorCount = 1,
-				.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.pImageInfo = &imageInfos[infoIndex]
-			};
+			imageInfos[infoIndex] = { sampler };
+			auto& write = writes[writeCount++];
+			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write.dstSet = descriptorSet;
+			write.dstBinding = SpirvBindingLayout::ResolveSamplerBinding(slot);
+			write.descriptorCount = 1;
+			write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+			write.pImageInfo = &imageInfos[infoIndex];
 		}
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeCount), writes, 0, nullptr);
 		for (size_t index = 0; index < imageViews.size(); index++)

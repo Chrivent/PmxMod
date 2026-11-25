@@ -15,7 +15,7 @@ namespace Chrivent {
 		effectEntries.clear();
 		for (size_t packageIndex = 0; packageIndex < packages.size(); packageIndex++) {
 			for (size_t effectIndex = 0; effectIndex < packages[packageIndex].effects.size(); effectIndex++)
-				effectEntries.push_back({ .packageIndex = packageIndex, .effectIndex = effectIndex });
+				effectEntries.push_back({ packageIndex, effectIndex });
 		}
 	}
 
@@ -25,7 +25,7 @@ namespace Chrivent {
 		const auto& [packageIndex, packageEffectIndex] = effectEntries[effectIndex];
 		if (packageIndex >= packages.size() || packageEffectIndex >= packages[packageIndex].effects.size())
 			return {};
-		return { .package = &packages[packageIndex], .effect = &packages[packageIndex].effects[packageEffectIndex] };
+		return { &packages[packageIndex], &packages[packageIndex].effects[packageEffectIndex] };
 	}
 
 	void ShaderEffectController::RefreshPanel(PanelManager& panelManager, Viewer& viewer) const {
@@ -50,17 +50,17 @@ namespace Chrivent {
 			return;
 		}
 		std::vector<InformationField> fields{
-			{ .labelKey = "information.effect_name", .value = TextEncoding::Utf8ToWideOrEmpty(effect->name) },
-			{ .labelKey = "information.effect_id", .value = TextEncoding::Utf8ToWideOrEmpty(effect->id) },
-			{ .labelKey = "information.package_name", .value = TextEncoding::Utf8ToWideOrEmpty(package->name) },
-			{ .labelKey = "information.package_id", .value = TextEncoding::Utf8ToWideOrEmpty(package->id) },
-			{ .labelKey = "information.parameters", .value = std::to_wstring(effect->parameters.size()) },
-			{ .labelKey = "information.passes", .value = std::to_wstring(effect->runtime.passes.size()) }
+			{ "information.effect_name", TextEncoding::Utf8ToWideOrEmpty(effect->name) },
+			{ "information.effect_id", TextEncoding::Utf8ToWideOrEmpty(effect->id) },
+			{ "information.package_name", TextEncoding::Utf8ToWideOrEmpty(package->name) },
+			{ "information.package_id", TextEncoding::Utf8ToWideOrEmpty(package->id) },
+			{ "information.parameters", std::to_wstring(effect->parameters.size()) },
+			{ "information.passes", std::to_wstring(effect->runtime.passes.size()) }
 		};
 		if (!package->version.empty())
-			fields.push_back({ .labelKey = "information.version", .value = TextEncoding::Utf8ToWideOrEmpty(package->version) });
+			fields.push_back({ "information.version", TextEncoding::Utf8ToWideOrEmpty(package->version) });
 		if (!package->author.empty())
-			fields.push_back({ .labelKey = "information.author", .value = TextEncoding::Utf8ToWideOrEmpty(package->author) });
+			fields.push_back({ "information.author", TextEncoding::Utf8ToWideOrEmpty(package->author) });
 		panelManager.ApplyInformation(std::move(fields));
 	}
 

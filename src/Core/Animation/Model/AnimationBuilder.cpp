@@ -65,10 +65,10 @@ namespace Chrivent {
 		if (vmdData.iks.empty())
 			return;
 		for (const auto& [frame, show, ikStates] : vmdData.iks) {
-			visibilityKeys.push_back({.frame = frame, .visible = show != 0});
+			visibilityKeys.push_back({ frame, show != 0 });
 			for (const auto& [name, enable] : ikStates) {
 				const auto& ikName = ResolveName(name);
-				ikKeysByName[ikName].push_back({.frame = frame, .ikEnable = enable != 0});
+				ikKeysByName[ikName].push_back({ frame, enable != 0 });
 			}
 		}
 	}

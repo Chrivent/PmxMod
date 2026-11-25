@@ -8,6 +8,20 @@ namespace Chrivent {
 	// 스키닝 형식과 프레임 갱신 계약에 필요한 최소 모델 구성을 공유한다.
 	class ModelRuntimeContractTest : public testing::Test {
 	protected:
+		static constexpr RigidBodyDefinition unitSphere{ -1, RigidBodyShape::Sphere, glm::vec3(1) };
+
+		static constexpr RigidBodyDefinition MakeDynamicSphere(const int32_t nodeIndex, const float radius,
+			const glm::vec3& position, const uint16_t groupMask = 0) {
+			RigidBodyDefinition body{};
+			body.nodeIndex = nodeIndex;
+			body.shapeSize = glm::vec3(radius);
+			body.translate = position;
+			body.mass = 1;
+			body.operation = RigidBodyOperation::Dynamic;
+			body.groupMask = groupMask;
+			return body;
+		}
+
 		static void InitializeSkinningModel(Model& model, const WeightType weightType) {
 			model.geometryData.positions.emplace_back(0.0f);
 			model.geometryData.normals.emplace_back(0.0f, 1.0f, 0.0f);
@@ -164,9 +178,8 @@ namespace Chrivent {
 		ScenePhysics scene;
 		Model first;
 		Model second;
-		constexpr RigidBodyDefinition body{.shapeSize = glm::vec3(1)};
-		ASSERT_TRUE(first.InitializePhysics(scene, {body}, {}));
-		ASSERT_TRUE(second.InitializePhysics(scene, {body}, {}));
+		ASSERT_TRUE(first.InitializePhysics(scene, {unitSphere}, {}));
+		ASSERT_TRUE(second.InitializePhysics(scene, {unitSphere}, {}));
 		constexpr float halfTick = 1.0f / 120.0f;
 		EXPECT_EQ(scene.Step(halfTick), 0);
 		scene.Reset();
@@ -182,13 +195,12 @@ namespace Chrivent {
 	TEST_F(ModelRuntimeContractTest, LoadingOrDiscardingAnotherSceneDoesNotAdvanceTheLiveClock) {
 		ScenePhysics live;
 		Model actor;
-		constexpr RigidBodyDefinition body{.shapeSize = glm::vec3(1)};
-		ASSERT_TRUE(actor.InitializePhysics(live, {body}, {}));
+		ASSERT_TRUE(actor.InitializePhysics(live, {unitSphere}, {}));
 		EXPECT_EQ(live.Step(1.0f / 120.0f), 0);
 		{
 			ScenePhysics candidate;
 			Model other;
-			ASSERT_TRUE(other.InitializePhysics(candidate, {body}, {}));
+			ASSERT_TRUE(other.InitializePhysics(candidate, {unitSphere}, {}));
 			EXPECT_EQ(candidate.Step(1.0f / 30.0f), 2);
 			candidate.Reset();
 		}
@@ -199,15 +211,21 @@ namespace Chrivent {
 		ScenePhysics scene;
 		Model platform;
 		Model actor;
-		constexpr RigidBodyDefinition box{.shape = RigidBodyShape::Box, .shapeSize = glm::vec3(2, 0.5f, 2),
-			.translate = glm::vec3(0, 4, 0), .group = 1, .groupMask = 1};
+		constexpr auto box = [] {
+			RigidBodyDefinition value{};
+			value.shape = RigidBodyShape::Box;
+			value.shapeSize = glm::vec3(2, 0.5f, 2);
+			value.translate = glm::vec3(0, 4, 0);
+			value.group = 1;
+			value.groupMask = 1;
+			return value;
+		}();
 		ASSERT_TRUE(platform.InitializePhysics(scene, {box}, {}, 2.0f));
 		AddSkinningTransform(actor, glm::vec3(0, 13, 0));
 		const auto& bone = actor.skeletonData.GetNodes().front();
 		bone->isDeformAfterPhysics = true;
 		ModelUpdater::InitializeAnimation(actor);
-		constexpr RigidBodyDefinition ball{.nodeIndex = 0, .shapeSize = glm::vec3(1), .translate = glm::vec3(0, 13, 0),
-			.mass = 1, .operation = RigidBodyOperation::Dynamic, .group = 0, .groupMask = 2};
+		constexpr auto ball = MakeDynamicSphere(0, 1.0f, glm::vec3(0, 13, 0), 2);
 		ASSERT_TRUE(actor.InitializePhysics(scene, {ball}, {}));
 		const ModelAnimationTarget targets[]{{platform, nullptr}, {actor, nullptr}};
 		ModelUpdater::ResetPhysicsAtFrame(scene, targets, 0);
@@ -233,8 +251,7 @@ namespace Chrivent {
 		nodes[0]->AddChild(*nodes[1]);
 		nodes[1]->isDeformAfterPhysics = true;
 		ModelUpdater::InitializeAnimation(model);
-		constexpr RigidBodyDefinition child{.nodeIndex = 1, .shapeSize = glm::vec3(0.5f), .translate = glm::vec3(0, 23, 0),
-			.mass = 1, .operation = RigidBodyOperation::Dynamic};
+		constexpr auto child = MakeDynamicSphere(1, 0.5f, glm::vec3(0, 23, 0));
 		auto parent = child;
 		parent.nodeIndex = 0;
 		parent.translate.y = 20;

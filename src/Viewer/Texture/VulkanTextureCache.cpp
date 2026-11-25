@@ -30,11 +30,10 @@ namespace Chrivent {
 			barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 		}
-		const VkDependencyInfo dependencyInfo{
-			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-			.imageMemoryBarrierCount = 1,
-			.pImageMemoryBarriers = &barrier
-		};
+		VkDependencyInfo dependencyInfo{};
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.imageMemoryBarrierCount = 1;
+		dependencyInfo.pImageMemoryBarriers = &barrier;
 		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 	}
 
