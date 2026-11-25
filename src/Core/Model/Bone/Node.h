@@ -20,6 +20,7 @@ namespace Chrivent {
 		uint32_t				index = 0;
 		std::string				name;
 		bool					enableIk = false;
+		bool					physicsEnabled = true;
 		Node*					parent = nullptr;
 		glm::vec3				translate = glm::vec3(0);
 		glm::quat				rotate = glm::quat(1, 0, 0, 0);

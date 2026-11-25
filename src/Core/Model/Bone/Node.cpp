@@ -73,15 +73,26 @@ namespace Chrivent {
 		if (!appendNode)
 			return;
 		if (isAppendRotate) {
-			glm::quat appendRot = !isAppendLocal && appendNode->appendNode
-				? appendNode->appendRotate : appendNode->animRotate * appendNode->rotate;
-			if (appendNode->enableIk)
-				appendRot = appendNode->ikRotate * appendRot;
+			glm::quat appendRot;
+			if (isAppendLocal) {
+				// 부여와 IK, 물리가 끝난 로컬 행렬에서 스케일을 제외한 회전만 받는다.
+				glm::mat3 basis(appendNode->local);
+				for (int axis = 0; axis < 3; ++axis) {
+					const float length = glm::length(basis[axis]);
+					if (length > 0.0f)
+						basis[axis] /= length;
+				}
+				appendRot = glm::normalize(glm::quat_cast(basis));
+			} else {
+				appendRot = appendNode->appendNode ? appendNode->appendRotate : appendNode->animRotate * appendNode->rotate;
+				if (appendNode->enableIk)
+					appendRot = appendNode->ikRotate * appendRot;
+			}
 			appendRotate = glm::slerp(glm::quat(1, 0, 0, 0), appendRot, appendWeight);
 		}
 		if (isAppendTranslate) {
-			const glm::vec3 appendTrans = !isAppendLocal && appendNode->appendNode
-				? appendNode->appendTranslate : appendNode->animTranslate +
+			const glm::vec3 appendTrans = isAppendLocal ? glm::vec3(appendNode->local[3]) - appendNode->initTranslate
+				: appendNode->appendNode ? appendNode->appendTranslate : appendNode->animTranslate +
 					appendNode->translate - appendNode->initTranslate;
 			appendTranslate = appendTrans * appendWeight;
 		}

@@ -173,6 +173,8 @@ float GetTanHalfFov() {
 
 // 하드웨어 깊이를 뷰 공간의 전방 거리로 변환한다.
 float LinearizeDepth(float depth) {
+    if (CameraOrthographic > 0.5)
+        return lerp(CameraNearPlane, CameraFarPlane, depth);
     return CameraNearPlane * CameraFarPlane
         / max(CameraFarPlane - depth * (CameraFarPlane - CameraNearPlane), 0.0001);
 }
@@ -183,6 +185,8 @@ float DepthToCameraDistance(float depth, float2 uv) {
         return CameraFarPlane;
 
     float viewDepth = LinearizeDepth(depth);
+    if (CameraOrthographic > 0.5)
+        return viewDepth;
     float aspectRatio = ViewportSize.x / max(ViewportSize.y, 1.0);
     float2 ndc = uv * 2.0 - 1.0;
     float2 rayOffset = ndc * float2(aspectRatio, 1.0) * GetTanHalfFov();
@@ -205,6 +209,12 @@ float3 CalculateCameraRay(float2 uv) {
 
 // 화면 UV와 카메라 거리를 월드 공간 위치로 복원한다.
 float3 ReconstructWorldPosition(float2 uv, float cameraDistance) {
+    if (CameraOrthographic > 0.5) {
+        float2 ndc = uv * float2(2.0, -2.0) + float2(-1.0, 1.0);
+        float aspect = ViewportSize.x / max(ViewportSize.y, 1.0);
+        return CameraWorldPosition.xyz + CameraWorldDirection.xyz * cameraDistance
+            + CameraOrthoHalfHeight * (CameraWorldRight.xyz * (ndc.x * aspect) + CameraWorldUp.xyz * ndc.y);
+    }
     return CameraWorldPosition.xyz + CalculateCameraRay(uv) * cameraDistance;
 }
 

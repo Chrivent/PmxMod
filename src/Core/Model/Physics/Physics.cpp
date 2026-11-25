@@ -44,6 +44,11 @@ namespace Chrivent {
 	int Physics::StepSimulation(const float elapsed) const {
 		if (!std::isfinite(elapsed) || elapsed <= 0.0f)
 			return 0;
+		for (int index = 0; index < world->getNumCollisionObjects(); ++index) {
+			const auto* object = world->getCollisionObjectArray()[index];
+			if (auto* body = static_cast<RigidBody*>(object->getUserPointer()))
+				body->SynchronizeAnimationMode();
+		}
 		constexpr float tick = 1.0f / simulationFps;
 		constexpr float maxElapsed = maxSubStepCount * tick;
 		const float boundedElapsed = elapsed > maxElapsed ? maxElapsed + std::fmod(elapsed - maxElapsed, tick) : elapsed;

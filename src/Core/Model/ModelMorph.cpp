@@ -39,8 +39,12 @@ namespace Chrivent {
 			const MorphType type = currentMorph->morphType;
 			if (type == MorphType::Position)
 				MorphPosition(model, model.morphData.positionMorphs[currentMorph->dataIndex], currentWeight);
-			else if (type == MorphType::Uv)
-				MorphUv(model, model.morphData.uvMorphs[currentMorph->dataIndex], currentWeight);
+			else if (type >= MorphType::Uv && type <= MorphType::AddUv4) {
+				auto& values = type == MorphType::Uv ? model.morphData.morphUVs
+					: model.geometryData.updateAdditionalUVs[static_cast<size_t>(type) - static_cast<size_t>(MorphType::AddUv1)];
+				for (const auto& [vertexIndex, uv] : model.morphData.uvMorphs[currentMorph->dataIndex])
+					values[vertexIndex] += uv * currentWeight;
+			}
 			else if (type == MorphType::Material)
 				MorphMaterial(model, model.morphData.materialMorphs[currentMorph->dataIndex], currentWeight);
 			else if (type == MorphType::Bone)
@@ -61,11 +65,6 @@ namespace Chrivent {
 	void ModelMorph::MorphPosition(Model& model, const std::vector<PositionMorph>& morphData, const float weight) {
 		for (const auto& [vertexIndex, position] : morphData)
 			model.morphData.morphPositions[vertexIndex] += position * weight;
-	}
-
-	void ModelMorph::MorphUv(Model& model, const std::vector<UvMorph>& morphData, const float weight) {
-		for (const auto& [vertexIndex, uv] : morphData)
-			model.morphData.morphUVs[vertexIndex] += uv * weight;
 	}
 
 	void ModelMorph::BeginMorphMaterial(Model& model) {

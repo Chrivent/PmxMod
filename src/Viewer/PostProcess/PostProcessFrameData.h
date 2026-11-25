@@ -14,8 +14,8 @@ namespace Chrivent {
 		float inverseViewportWidth = 0.0f;
 		float inverseViewportHeight = 0.0f;
 		float historyReset = 1.0f;
-		float padding0 = 0.0f;
-		float padding1 = 0.0f;
+		float orthographic = 0.0f;
+		float orthoHalfHeight = 0.0f;
 		float padding2 = 0.0f;
 		glm::vec4 cameraWorldPosition{};
 		glm::vec4 previousCameraWorldPosition{};

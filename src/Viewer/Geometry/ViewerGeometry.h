@@ -13,6 +13,8 @@ namespace Chrivent {
 		glm::vec3 normal{};
 		glm::vec2 uv{};
 		glm::vec3 previousPosition{};
+		float edgeScale = 1.0f;
+		glm::vec2 subTextureUv{};
 	};
 
 	// 렌더러에 업로드할 인덱스 바이트와 요소 크기를 보관한다.

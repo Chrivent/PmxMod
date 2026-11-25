@@ -92,11 +92,13 @@ namespace Chrivent {
 				<< BinaryReader::FormatParseError(parseResult.error()) << '\n';
 			return false;
 		}
-		if (!camVmd.GetData().cameras.empty())
-			loadedCameraAnimation = CameraAnimationBuilder::Build(camVmd.GetData());
+		const auto& data = camVmd.GetData();
+		if (!data.cameras.empty() || !data.lights.empty())
+			loadedCameraAnimation = CameraAnimationBuilder::Build(data);
 		cameraAnim = std::move(loadedCameraAnimation);
 		useMotionCamera = true;
-		ResetFreeCamera();
+		if (UsesCameraKeys())
+			ResetFreeCamera();
 		return true;
 	}
 
@@ -168,7 +170,7 @@ namespace Chrivent {
 		const auto& [moveForward, moveBackward
 			, moveLeft, moveRight, moveDown, moveUp
 			, rotateCamera, mouseDelta, wheelDelta] = inputManager.GetState();
-		if (useMotionCamera)
+		if (UsesCameraKeys())
 			return;
 		const float moveSpeed = 100.0f * std::max(playback.elapsed, 1.0f / 120.0f);
 		glm::vec3 forward(
@@ -206,11 +208,12 @@ namespace Chrivent {
 		const PlaybackState& playback = playbackState;
 		constexpr float nearPlane = 1.0f;
 		constexpr float farPlane = 10000.0f;
-		float verticalFov = glm::radians(30.0f);
-		if (useMotionCamera && cameraAnim) {
-			const auto cam = cameraAnim->Evaluate(playback.animationTime * 30.0f);
+		const float frame = playback.animationTime * 30.0f;
+		scene.lighting = cameraAnim ? cameraAnim->EvaluateLighting(frame) : SceneLighting{};
+		Camera cam;
+		if (UsesCameraKeys()) {
+			cam = cameraAnim->Evaluate(frame);
 			scene.viewMatrix = cam.CalculateViewMatrix();
-			verticalFov = cam.fov;
 		} else {
 			glm::vec3 forward(
 				std::cos(freeCamPitch) * std::cos(freeCamYaw),
@@ -222,17 +225,17 @@ namespace Chrivent {
 		}
 		const float viewportWidth = static_cast<float>(viewer.GetScreenWidth());
 		const float viewportHeight = static_cast<float>(viewer.GetScreenHeight());
-		scene.projectionMatrix = glm::perspectiveFovRH(
-			verticalFov, viewportWidth, viewportHeight, nearPlane, farPlane
-		);
+		const float verticalFov = cam.fov;
+		scene.projectionMatrix = cam.CalculateProjection(viewportWidth, viewportHeight, nearPlane, farPlane);
 		const glm::mat4 inverseView = glm::inverse(scene.viewMatrix);
 		const auto cameraPosition = glm::vec3(inverseView[3]);
 		const glm::vec3 cameraDirection = glm::normalize(-glm::vec3(inverseView[2]));
-		if (useMotionCamera && cameraAnim && !viewer.IsPostProcessHistoryResetPending()) {
+		if (UsesCameraKeys() && !viewer.IsPostProcessHistoryResetPending()) {
 			const glm::mat4 previousInverseView = glm::inverse(viewer.GetPreviousViewMatrix());
 			const auto previousCameraPosition = glm::vec3(previousInverseView[3]);
 			const glm::vec3 previousCameraDirection = glm::normalize(-glm::vec3(previousInverseView[2]));
-			if (IsCameraCut(cameraPosition, previousCameraPosition, cameraDirection, previousCameraDirection,
+			if (cam.perspective != (viewer.GetPreviousProjectionMatrix()[3][3] == 0.0f) ||
+				IsCameraCut(cameraPosition, previousCameraPosition, cameraDirection, previousCameraDirection,
 				verticalFov, viewer.GetPostProcessFrameData().verticalFovRadians))
 				viewer.ResetPostProcessHistory();
 		}
@@ -253,6 +256,8 @@ namespace Chrivent {
 			.inverseViewportWidth = viewportWidth > 0.0f ? 1.0f / viewportWidth : 0.0f,
 			.inverseViewportHeight = viewportHeight > 0.0f ? 1.0f / viewportHeight : 0.0f,
 			.historyReset = historyResetPending ? 1.0f : 0.0f,
+			.orthographic = cam.perspective ? 0.0f : 1.0f,
+			.orthoHalfHeight = cam.perspective ? 0.0f : 1.0f / scene.projectionMatrix[1][1],
 			.cameraWorldPosition = glm::vec4(cameraPosition, 0.0f),
 			.previousCameraWorldPosition = glm::vec4(previousCameraPosition, 0.0f),
 			.cameraWorldDirection = glm::vec4(cameraDirection, 0.0f),

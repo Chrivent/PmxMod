@@ -1,14 +1,13 @@
 ﻿#pragma once
 
-#include <glm/glm.hpp>
+#include "Core/Animation/Camera/Camera.h"
 
 namespace Chrivent {
 	// 카메라, 조명과 내장 패스 활성 상태를 한 프레임의 장면 입력으로 묶는다.
 	struct SceneRenderState {
 		glm::mat4 viewMatrix{1.0f};
 		glm::mat4 projectionMatrix{1.0f};
-		glm::vec3 lightColor{1.0f, 1.0f, 1.0f};
-		glm::vec3 lightDirection{-0.5f, -1.0f, 0.5f};
+		SceneLighting lighting;
 		bool modelEnabled = true;
 		bool edgeEnabled = true;
 		bool groundShadowEnabled = true;

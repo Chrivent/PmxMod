@@ -23,14 +23,18 @@ namespace Chrivent {
 			: positions;
 		if (destination.size() < positions.size())
 			return false;
+		const auto& additionalUv = useUpdateData && !geometryData.updateAdditionalUVs[0].empty()
+			? geometryData.updateAdditionalUVs[0] : geometryData.additionalUVs[0];
 		for (size_t index = 0; index < positions.size(); index++) {
-			auto& [position, normal, uv, previousPosition] = destination[index];
+			auto& [position, normal, uv, previousPosition, edgeScale, subTextureUv] = destination[index];
 			position = positions[index];
 			if (index < normals.size())
 				normal = normals[index];
 			if (index < uvs.size())
 				uv = uvs[index];
 			previousPosition = previousPositions[index];
+			edgeScale = index < geometryData.edgeScales.size() ? geometryData.edgeScales[index] : 1.0f;
+			subTextureUv = index < additionalUv.size() ? glm::vec2(additionalUv[index]) : glm::vec2(0);
 		}
 		return true;
 	}

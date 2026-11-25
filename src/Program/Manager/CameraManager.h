@@ -28,6 +28,7 @@ namespace Chrivent {
 		float freeCamPitch = 0.0f;
 		std::unique_ptr<CameraAnimation> cameraAnim;
 
+		bool UsesCameraKeys() const { return useMotionCamera && cameraAnim && !cameraAnim->GetKeys().empty(); }
 		// 자유 카메라 위치와 회전값을 기본 시점으로 되돌린다.
 		void ResetFreeCamera();
 		// 연속 프레임으로 보기 어려운 카메라 위치, 방향 또는 FOV 변화인지 확인한다.

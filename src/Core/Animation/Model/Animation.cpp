@@ -7,10 +7,11 @@
 
 namespace Chrivent {
 	Animation::Animation(std::shared_ptr<Model> model, std::vector<NodeAnimationTrack> nodes,
-		std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs)
+		std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs, std::vector<ModelVisibilityKey> visibility)
 		: targetModel(std::move(model)),
 		targetModelRevision(targetModel ? targetModel->GetStructureRevision() : 0),
-		nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)) {
+		nodeTracks(std::move(nodes)), ikTracks(std::move(iks)), morphTracks(std::move(morphs)), visibilityKeys(std::move(visibility)) {
+		AnimationKeySequence::SortAndKeepLastKeyPerFrame(visibilityKeys);
 		const auto NormalizeTracks = []<typename Tracks>(Tracks& tracks) {
 			for (auto& track : tracks)
 				AnimationKeySequence::SortAndKeepLastKeyPerFrame(track.keys);
@@ -25,7 +26,7 @@ namespace Chrivent {
 	}
 
 	uint32_t Animation::CalculateLastFrame() const {
-		uint32_t lastFrame = 0;
+		uint32_t lastFrame = visibilityKeys.empty() ? 0 : visibilityKeys.back().frame;
 		const auto IncludeTracks = [&lastFrame](const auto& tracks) {
 			for (const auto& track : tracks) {
 				if (!track.keys.empty())
@@ -41,6 +42,8 @@ namespace Chrivent {
 	void Animation::Evaluate(const float t, const float animWeight) const {
 		if (!targetModel || !IsBoundTo(*targetModel))
 			return;
+		const auto visible = AnimationKeySequence::FindUpperKey(visibilityKeys, t);
+		targetModel->visible = visible == visibilityKeys.begin() || std::prev(visible)->visible;
 		EvaluateNodes(t, animWeight);
 		EvaluateIks(t, animWeight);
 		EvaluateMorphs(t, animWeight);
@@ -60,13 +63,14 @@ namespace Chrivent {
 				continue;
 			}
 			const auto it = AnimationKeySequence::FindUpperKey(keys, t);
+			node->physicsEnabled = it == keys.begin() || std::prev(it)->physicsEnabled;
 			const auto& cur = it != keys.end() ? *it : keys.back();
 			glm::vec3 vt = cur.translate;
 			glm::quat q  = cur.rotate;
 			if (it != keys.begin() && it != keys.end()) {
 				const auto& prev = *std::prev(it);
 				const auto& [frame, translate, rotate,
-					txBezier, tyBezier, tzBezier, rotBezier] = *it;
+					txBezier, tyBezier, tzBezier, rotBezier, physicsEnabled] = *it;
 				const float prevFrame = static_cast<float>(prev.frame);
 				const float nextFrame = static_cast<float>(frame);
 				const float normalizedTime = (t - prevFrame) / (nextFrame - prevFrame);

@@ -38,6 +38,7 @@ PmxMod 是一款面向 Windows、使用 C++23 编写的应用程序，可加载 
 - 加载 PMX 模型并播放 VMD 模型／相机动作
 - 运行时切换 OpenGL、Direct3D 11、Direct3D 12 和 Vulkan
 - 开关内置 model、edge 和 ground shadow
+- 根据 VMD 灯光关键帧播放光照颜色与方向的变化
 - 使用 depth、velocity、中间资源与 temporal history 的有序后处理
 - 基于文件夹的 HLSL 着色器包
 - 加载和保存 `.pmscene` 场景

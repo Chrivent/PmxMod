@@ -11,6 +11,7 @@ namespace Chrivent {
 		key.rotate = camera.rotate;
 		key.distance = camera.distance;
 		key.fov = glm::radians(static_cast<float>(camera.viewAngle));
+		key.perspective = camera.isPerspective == 0;
 		key.ixBezier.Assign(camera.interpolation[0], camera.interpolation[1], camera.interpolation[2], camera.interpolation[3]);
 		key.iyBezier.Assign(camera.interpolation[4], camera.interpolation[5], camera.interpolation[6], camera.interpolation[7]);
 		key.izBezier.Assign(camera.interpolation[8], camera.interpolation[9], camera.interpolation[10], camera.interpolation[11]);
@@ -24,6 +25,9 @@ namespace Chrivent {
 		auto keys = vmdData.cameras
 			| std::views::transform(CreateCameraKey)
 			| std::ranges::to<std::vector>();
-		return std::make_unique<CameraAnimation>(std::move(keys));
+		std::vector<LightAnimationKey> lights;
+		for (const auto& [frame, color, position] : vmdData.lights)
+			lights.push_back({frame, color, position * glm::vec3(1, 1, -1)});
+		return std::make_unique<CameraAnimation>(std::move(keys), std::move(lights));
 	}
 }

@@ -128,6 +128,7 @@ namespace Chrivent {
 		const glm::mat4& GetPreviousViewMatrix() const {
 			return postProcessTemporalState.previousViewMatrix;
 		}
+		const glm::mat4& GetPreviousProjectionMatrix() const { return postProcessTemporalState.previousProjectionMatrix; }
 		const PostProcessFrameData& GetPostProcessFrameData() const {
 			return postProcessTemporalState.frameData;
 		}

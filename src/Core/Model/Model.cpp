@@ -40,6 +40,7 @@ namespace Chrivent {
 	}
 
 	void Model::Swap(Model& other) {
+		std::swap(visible, other.visible);
 		std::swap(infoData, other.infoData);
 		std::swap(geometryData, other.geometryData);
 		std::swap(materialData, other.materialData);

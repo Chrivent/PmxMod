@@ -7,7 +7,7 @@
 namespace Chrivent {
 	GraphicsError::Result<void> VulkanDescriptorSet::CreateDescriptorPool(const size_t textureDescriptorCount) {
 		constexpr size_t maximumDescriptorCount = std::numeric_limits<uint32_t>::max();
-		if (textureDescriptorCount > maximumDescriptorCount / 3) {
+		if (textureDescriptorCount > maximumDescriptorCount / SceneShaderInputLayout::textureCount) {
 			return std::unexpected(GraphicsError::Create(GraphicsApi::Vulkan,
 				GraphicsErrorCode::InvalidArgument, "descriptor pool 생성",
 				"texture descriptor 개수가 Vulkan 범위를 벗어났습니다"));
@@ -21,11 +21,11 @@ namespace Chrivent {
 		if (textureDescriptorCount > 0) {
 			poolSizes.emplace_back(VkDescriptorPoolSize{
 				.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-				.descriptorCount = static_cast<uint32_t>(textureDescriptorCount * 3)
+				.descriptorCount = static_cast<uint32_t>(textureDescriptorCount * SceneShaderInputLayout::textureCount)
 			});
 			poolSizes.emplace_back(VkDescriptorPoolSize{
 				.type = VK_DESCRIPTOR_TYPE_SAMPLER,
-				.descriptorCount = static_cast<uint32_t>(textureDescriptorCount * 3)
+				.descriptorCount = static_cast<uint32_t>(textureDescriptorCount * SceneShaderInputLayout::samplerCount)
 			});
 		}
 		VkDescriptorPoolCreateInfo createInfo{};

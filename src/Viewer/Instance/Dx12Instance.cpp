@@ -5,6 +5,7 @@
 #include "Viewer/DrawContext/Dx12DrawContext.h"
 #include "Viewer/Command/Dx12UploadContext.h"
 #include "Viewer/Shader/ShaderConstants.h"
+#include "Viewer/Shader/SceneShaderInputLayout.h"
 #include "Viewer/Texture/Dx12TextureCache.h"
 #include "Core/Model/Model.h"
 #include "Viewer/Geometry/ViewerGeometry.h"
@@ -157,11 +158,11 @@ namespace Chrivent {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidState,
 				"DX12 texture descriptor 생성", "DirectX 12 device를 사용할 수 없습니다"));
 		}
-		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / 3) {
+		if (modelResources.materials.size() > std::numeric_limits<UINT>::max() / SceneShaderInputLayout::textureCount) {
 			return std::unexpected(CreateGraphicsError(GraphicsErrorCode::InvalidArgument,
 				"DX12 texture descriptor 생성", "material 수가 descriptor 개수 범위를 벗어났습니다"));
 		}
-		const size_t descriptorCount = modelResources.materials.size() * 3;
+		const size_t descriptorCount = modelResources.materials.size() * SceneShaderInputLayout::textureCount;
 		D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
 		heapDesc.NumDescriptors = static_cast<UINT>(descriptorCount);
 		heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -198,7 +199,7 @@ namespace Chrivent {
 			cpuHandle.ptr += textureDescriptorSize;
 			CreateSrv(sphereTexture, cpuHandle);
 			cpuHandle.ptr += textureDescriptorSize;
-			gpuHandle.ptr += textureDescriptorSize * 3;
+			gpuHandle.ptr += textureDescriptorSize * SceneShaderInputLayout::textureCount;
 		}
 		return {};
 	}

@@ -18,6 +18,7 @@ namespace Chrivent {
 		std::map<std::string, std::vector<NodeAnimationKey>> nodeKeysByName;
 		std::map<std::string, std::vector<IkAnimationKey>> ikKeysByName;
 		std::map<std::string, std::vector<MorphAnimationKey>> morphKeysByName;
+		std::vector<ModelVisibilityKey> visibilityKeys;
 		std::map<std::string, std::string> decodedNames;
 		std::shared_ptr<Model> model;
 

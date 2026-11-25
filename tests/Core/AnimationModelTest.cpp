@@ -76,11 +76,11 @@ namespace Chrivent {
 		}
 
 		// 정점, 면, 재질과 본 변환을 함께 검증할 수 있는 최소 PMX를 만든다.
-		static std::string BuildRenderablePmx() {
+		static std::string BuildRenderablePmx(const bool includeUvMorphs = false) {
 			std::string bytes;
 			bytes.append("PMX ", 4);
 			Append(bytes, 2.0f);
-			constexpr uint8_t headerData[] = {8, 1, 0, 1, 1, 1, 1, 1, 1};
+			const uint8_t headerData[] = {8, 1, static_cast<uint8_t>(includeUvMorphs), 1, 1, 1, 1, 1, 1};
 			bytes.append(reinterpret_cast<const char*>(headerData), sizeof(headerData));
 			const auto AppendString = [&](const std::string& value) {
 				const int32_t length = static_cast<int32_t>(value.size());
@@ -97,9 +97,11 @@ namespace Chrivent {
 				Append(bytes, position);
 				Append(bytes, glm::vec3(0, 0, 1));
 				Append(bytes, uv);
+				if (includeUvMorphs)
+					Append(bytes, glm::vec4(1, 2, 3, 4));
 				Append(bytes, PmxParser::WeightType::BoneDeform1);
 				Append(bytes, uint8_t{0});
-				Append(bytes, 1.0f);
+				Append(bytes, includeUvMorphs ? 0.0f : 1.0f);
 			};
 			AppendVertex(glm::vec3(-1, 0, 2), glm::vec2(0, 0));
 			AppendVertex(glm::vec3(1, 0, 2), glm::vec2(1, 0));
@@ -139,7 +141,19 @@ namespace Chrivent {
 			Append(bytes, int32_t{0});
 			Append(bytes, PmxParser::BoneFlags::Visible);
 			Append(bytes, glm::vec3(0, 1, 0));
-			for (int sectionIndex = 0; sectionIndex < 4; sectionIndex++)
+			Append(bytes, includeUvMorphs ? int32_t{5} : emptyCount);
+			if (includeUvMorphs) {
+				for (int channel = 0; channel <= 4; ++channel) {
+					AppendString("UV" + std::to_string(channel));
+					AppendString({});
+					Append(bytes, uint8_t{1});
+					Append(bytes, static_cast<uint8_t>(static_cast<int>(PmxParser::MorphType::Uv) + channel));
+					Append(bytes, int32_t{1});
+					Append(bytes, uint8_t{0});
+					Append(bytes, glm::vec4(0.25f, 0.5f, 1, 2));
+				}
+			}
+			for (int sectionIndex = 0; sectionIndex < 3; sectionIndex++)
 				Append(bytes, emptyCount);
 			return bytes;
 		}
@@ -149,6 +163,192 @@ namespace Chrivent {
 				std::isfinite(value.y) && std::isfinite(value.z);
 		}
 	};
+
+	TEST_F(AnimationModelContractTest, PreservesVertexEdgeScaleAndAllFiveUvMorphChannels) {
+		const auto path = std::filesystem::temp_directory_path() / "pmxmod_uv_channels_test.pmx";
+		const auto bytes = BuildRenderablePmx(true);
+		{
+			std::ofstream file(path, std::ios::binary);
+			file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+		}
+		Model model;
+		const auto result = ModelLoader::Load(model, path, {}, scene);
+		std::filesystem::remove(path);
+		ASSERT_TRUE(result);
+		EXPECT_FLOAT_EQ(model.geometryData.edgeScales.at(0), 0.0f);
+		for (const auto& morph : model.morphData.GetMorphs())
+			morph->weight = 1;
+		for (int frame = 0; frame < 2; ++frame) {
+			PreparePose(model);
+			ModelUpdater::UpdateSkinning(model, 0);
+			EXPECT_EQ(model.geometryData.updateUVs.at(0), glm::vec2(0.25f, 0.5f));
+			EXPECT_EQ(model.geometryData.updateAdditionalUVs[0].at(0), glm::vec4(1.25f, 2.5f, 4, 6));
+			for (size_t channel = 1; channel < 4; ++channel)
+				EXPECT_EQ(model.geometryData.updateAdditionalUVs[channel].at(0), glm::vec4(0.25f, 0.5f, 1, 2));
+		}
+	}
+
+	TEST_F(AnimationModelContractTest, TwoOneSidedIkAxesAreNotASingleHinge) {
+		Node joint, tip, goal;
+		joint.enableIk = true;
+		joint.AddChild(tip);
+		tip.translate = glm::vec3(1, 0, 0);
+		goal.translate = glm::vec3(0, 1, 0);
+		tip.UpdateLocalTransform();
+		joint.UpdateGlobalTransform();
+		goal.UpdateLocalTransform();
+		goal.UpdateGlobalTransform();
+		IkSolver solver;
+		solver.ikNode = &goal;
+		solver.ikTarget = &tip;
+		solver.iterateCount = 4;
+		solver.chains.push_back({.node = &joint, .enableAxisLimit = true,
+			.limitMax = glm::vec3(0, glm::half_pi<float>(), glm::pi<float>())});
+		solver.Solve();
+		EXPECT_LT(glm::distance(glm::vec3(tip.global[3]), goal.translate), 0.001f);
+	}
+
+	TEST_F(AnimationModelContractTest, LocalGrantUsesTheFinalLocalTransformOnlyOnce) {
+		Node source, middle, child;
+		source.animTranslate.x = 1;
+		source.animRotate = glm::angleAxis(0.4f, glm::vec3(0, 0, 1));
+		source.UpdateLocalTransform();
+		middle.appendNode = &source;
+		middle.isAppendRotate = middle.isAppendTranslate = true;
+		middle.appendWeight = 1;
+		middle.initTranslate.x = middle.translate.x = 10;
+		middle.animTranslate.x = 2;
+		middle.scale = glm::vec3(2, 3, 4);
+		middle.UpdateAppendTransform();
+		child.appendNode = &middle;
+		child.isAppendLocal = child.isAppendTranslate = child.isAppendRotate = true;
+		child.appendWeight = 1;
+		child.UpdateAppendTransform();
+		EXPECT_NEAR(child.local[3].x, 3.0f, 0.0001f);
+		EXPECT_NEAR(glm::abs(glm::dot(glm::quat_cast(child.local), source.animRotate)), 1.0f, 0.0001f);
+	}
+
+	TEST_F(AnimationModelContractTest, VmdIkSwitchesOnItsRecordedFrames) {
+		const auto model = std::make_shared<Model>();
+		auto* const solver = AddIkSolver(*model);
+		solver->ikNode = AddNode(*model, "LegIK");
+		VmdParser::VmdData data{};
+		data.iks = {{0, 1, {{.name = "LegIK", .enable = 1}}}, {6, 1, {{"LegIK", 0}}}, {12, 1, {{"LegIK", 1}}}};
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		animation->Evaluate(5.5f);
+		EXPECT_TRUE(solver->enable);
+		animation->Evaluate(6);
+		EXPECT_FALSE(solver->enable);
+		animation->Evaluate(11.5f);
+		EXPECT_FALSE(solver->enable);
+		animation->Evaluate(12);
+		EXPECT_TRUE(solver->enable);
+	}
+
+	TEST_F(AnimationModelContractTest, VmdVisibilityAndBonePhysicsAreIndependentStepKeys) {
+		auto model = std::make_shared<Model>();
+		const auto* node = AddNode(*model, "Root");
+		VmdParser::VmdData data{};
+		VmdParser::VmdMotion key{};
+		std::ranges::copy(std::string_view("Root"), key.boneName);
+		key.quaternion = glm::quat(1, 0, 0, 0);
+		key.frame = 4;
+		key.interpolation[2] = 99;
+		key.interpolation[3] = 15;
+		data.motions.push_back(key);
+		key.frame = 7;
+		key.interpolation[17] = 99;
+		key.interpolation[18] = 15;
+		data.motions.push_back(key);
+		data.iks = {{3, 0, {}}, {12, 1, {}}};
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		EXPECT_EQ(animation->CalculateLastFrame(), 12u);
+		animation->Evaluate(6.5f);
+		EXPECT_FALSE(node->physicsEnabled);
+		EXPECT_FALSE(model->visible);
+		animation->Evaluate(7);
+		EXPECT_TRUE(node->physicsEnabled);
+		EXPECT_FALSE(model->visible);
+		animation->Evaluate(12);
+		EXPECT_TRUE(model->visible);
+		animation->Evaluate(2);
+		EXPECT_TRUE(node->physicsEnabled);
+		EXPECT_TRUE(model->visible);
+	}
+
+	TEST_F(AnimationModelContractTest, DisabledPhysicsFollowsTheBoneAndResumesFromItsCurrentPose) {
+		auto model = std::make_shared<Model>();
+		auto* const bone = AddNode(*model, "Root");
+		bone->initTranslate.y = 15;
+		ModelUpdater::InitializeAnimation(*model);
+		constexpr RigidBodyDefinition body{.nodeIndex = 0, .shapeSize = glm::vec3(0.25f),
+			.translate = glm::vec3(0, 15, 0), .mass = 1, .operation = RigidBodyOperation::Dynamic};
+		ASSERT_TRUE(model->InitializePhysics(scene, {body}, {}));
+		VmdParser::VmdData data{};
+		VmdParser::VmdMotion key{};
+		std::ranges::copy(std::string_view("Root"), key.boneName);
+		key.quaternion = glm::quat(1, 0, 0, 0);
+		key.interpolation[2] = 99;
+		key.interpolation[3] = 15;
+		data.motions.push_back(key);
+		key.frame = 4;
+		key.translate.x = 2;
+		data.motions.push_back(key);
+		key.frame = 8;
+		key.interpolation[2] = key.interpolation[3] = 0;
+		data.motions.push_back(key);
+		AnimationBuilder builder(model);
+		builder.Build(data);
+		const auto animation = builder.TakeAnimation();
+		const auto Tick = [&](const float frame) {
+			ModelUpdater::PrepareBeforePhysics(*model, animation.get(), frame);
+			EXPECT_EQ(scene.Step(1.0f / 30.0f), 2);
+			ModelUpdater::PrepareAfterPhysics(*model, true, false);
+		};
+		for (int frame = 0; frame < 8; ++frame)
+			Tick(static_cast<float>(frame));
+		EXPECT_NEAR(bone->global[3].x, 2, 0.001f);
+		EXPECT_NEAR(bone->global[3].y, 15, 0.001f);
+		for (int frame = 8; frame <= 19; ++frame)
+			Tick(static_cast<float>(frame));
+		EXPECT_LT(bone->global[3].y, 14);
+		EXPECT_NEAR(bone->global[3].x, 2, 0.001f);
+		Tick(0);
+		EXPECT_NEAR(bone->global[3].x, 0, 0.001f);
+		EXPECT_NEAR(bone->global[3].y, 15, 0.001f);
+	}
+
+	TEST_F(AnimationModelContractTest, CameraProjectionAndLightTracksHaveIndependentBoundaries) {
+		const auto [defaultColor, defaultDirection] = CameraAnimationBuilder::Build({})->EvaluateLighting(0);
+		EXPECT_EQ(defaultColor, glm::vec3(154.0f / 255.0f));
+		EXPECT_EQ(defaultDirection, glm::vec3(-0.5f, -1, -0.5f));
+		VmdParser::VmdData data{};
+		VmdParser::VmdCamera camera{};
+		camera.distance = -40;
+		camera.viewAngle = 30;
+		data.cameras.push_back(camera);
+		camera.frame = 10;
+		camera.isPerspective = 1;
+		data.cameras.push_back(camera);
+		data.lights = {{0, glm::vec3(0), {0, -1, -1}}, {20, glm::vec3(1), {1, -1, -1}}};
+		data.shadows = {{100, VmdParser::ShadowType::Mode1, 0.02f}}; // 사용하지 않는 키는 재생 길이를 늘리지 않는다.
+		const auto animation = CameraAnimationBuilder::Build(data);
+		EXPECT_EQ(animation->GetLastFrame(), 20u);
+		EXPECT_TRUE(animation->Evaluate(9.9f).perspective);
+		const auto ortho = animation->Evaluate(10);
+		EXPECT_FALSE(ortho.perspective);
+		const auto matrix = ortho.CalculateProjection(800, 600, 1, 100);
+		EXPECT_FLOAT_EQ(matrix[3][3], 1);
+		EXPECT_NEAR(matrix[1][1] / matrix[0][0], 800.0f / 600.0f, 0.0001f);
+		const auto [interpolatedColor, interpolatedDirection] = animation->EvaluateLighting(10);
+		EXPECT_EQ(interpolatedColor, glm::vec3(0.5f));
+		EXPECT_EQ(interpolatedDirection, glm::vec3(0.5f, -1, 1));
+		EXPECT_EQ(animation->EvaluateLighting(20).color, glm::vec3(1));
+	}
 
 	TEST_F(AnimationModelContractTest, CutsExactlyAtAdjacentCameraFrame) {
 		std::vector<CameraAnimationKey> keys;

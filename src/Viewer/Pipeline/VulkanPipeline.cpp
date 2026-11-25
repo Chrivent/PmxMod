@@ -169,7 +169,8 @@ namespace Chrivent {
 			.colorFormat = sourceColorFormat,
 			.depthFormat = sourceDepthFormat,
 			.sampleCount = sourceDevice.GetMsaaSampleCount(),
-			.cullMode = VK_CULL_MODE_FRONT_BIT
+			.cullMode = VK_CULL_MODE_FRONT_BIT,
+			.vertexLayout = Builder::VertexLayout::Edge
 		};
 		const auto edgeResult = Builder::Create(
 			sourceDevice, passes.edge, edgeConfiguration, edgePipeline);

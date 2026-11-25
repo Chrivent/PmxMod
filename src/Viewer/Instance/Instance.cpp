@@ -85,28 +85,28 @@ namespace Chrivent {
 		const auto initializedResult = CheckInitialized("모델 패스 그리기");
 		if (!initializedResult)
 			return std::unexpected(initializedResult.error());
-		return drawer->DrawModelPass();
+		return model->visible ? drawer->DrawModelPass() : GraphicsError::Result<void>{};
 	}
 
 	GraphicsError::Result<void> Instance::DrawEdgePass() const {
 		const auto initializedResult = CheckInitialized("엣지 패스 그리기");
 		if (!initializedResult)
 			return std::unexpected(initializedResult.error());
-		return drawer->DrawEdgePass();
+		return model->visible ? drawer->DrawEdgePass() : GraphicsError::Result<void>{};
 	}
 
 	GraphicsError::Result<void> Instance::DrawGroundShadowPass() const {
 		const auto initializedResult = CheckInitialized("지면 그림자 패스 그리기");
 		if (!initializedResult)
 			return std::unexpected(initializedResult.error());
-		return drawer->DrawGroundShadowPass();
+		return model->visible ? drawer->DrawGroundShadowPass() : GraphicsError::Result<void>{};
 	}
 
 	GraphicsError::Result<void> Instance::DrawPostProcessSceneInputs() const {
 		const auto initializedResult = CheckInitialized("후처리 장면 입력 그리기");
 		if (!initializedResult)
 			return std::unexpected(initializedResult.error());
-		return drawer->DrawPostProcessSceneInputs();
+		return model->visible ? drawer->DrawPostProcessSceneInputs() : GraphicsError::Result<void>{};
 	}
 
 	void Instance::PrepareBeforePhysics(const float frame, ModelUpdateTiming* timing) const {

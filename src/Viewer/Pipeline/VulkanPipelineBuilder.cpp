@@ -29,7 +29,7 @@ namespace Chrivent {
 			.stride = sizeof(ViewerVertex),
 			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
 		};
-		VkVertexInputAttributeDescription attributeDescriptions[3]{};
+		VkVertexInputAttributeDescription attributeDescriptions[4]{};
 		attributeDescriptions[0] = {
 			.location = 0,
 			.binding = 0,
@@ -46,6 +46,7 @@ namespace Chrivent {
 			};
 			attributeCount = 2;
 		} else if (configuration.vertexLayout == VertexLayout::Model
+			|| configuration.vertexLayout == VertexLayout::Edge
 			|| configuration.vertexLayout == VertexLayout::Velocity) {
 			attributeDescriptions[1] = {
 				.location = 1,
@@ -63,6 +64,12 @@ namespace Chrivent {
 				.offset = offsetof(ViewerVertex, uv)
 			};
 			attributeCount = 3;
+			if (configuration.vertexLayout == VertexLayout::Edge)
+				attributeDescriptions[2] = {.location = 2, .binding = 0, .format = VK_FORMAT_R32_SFLOAT, .offset = offsetof(ViewerVertex, edgeScale) };
+			else if (configuration.vertexLayout == VertexLayout::Model) {
+				attributeDescriptions[3] = {.location = 3, .binding = 0, .format = VK_FORMAT_R32G32_SFLOAT, .offset = offsetof(ViewerVertex, subTextureUv) };
+				attributeCount = 4;
+			}
 		}
 		const VkPipelineVertexInputStateCreateInfo vertexInputInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

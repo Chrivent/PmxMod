@@ -23,8 +23,6 @@ namespace Chrivent {
 		void EvaluateMorph(Model& model, const Morph* morph, float morphWeight);
 		// 위치 모프 데이터를 버텍스 위치에 적용한다.
 		static void MorphPosition(Model& model, const std::vector<PositionMorph>& morphData, float weight);
-		// UV 모프 데이터를 버텍스 UV에 적용한다.
-		static void MorphUv(Model& model, const std::vector<UvMorph>& morphData, float weight);
 		// 재질 모프 누적을 시작하기 위해 재질 계수를 초기화한다.
 		static void BeginMorphMaterial(Model& model);
 		// 누적된 재질 모프 결과를 최종 재질에 반영한다.

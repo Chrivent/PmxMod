@@ -38,6 +38,7 @@ PmxMod는 PMX 모델을 불러오고 VMD 모델·카메라 모션을 재생하�
 - PMX 모델 불러오기와 VMD 모델·카메라 모션 재생
 - OpenGL, Direct3D 11, Direct3D 12, Vulkan 실행 중 전환
 - 내장 모델, 엣지, 지면 그림자 켜기·끄기
+- VMD 조명 키에 따른 조명색과 방향 재생
 - depth, velocity, 중간 리소스와 temporal history를 사용하는 순차 후처리
 - 폴더 단위 HLSL 셰이더 패키지
 - `.pmscene` 씬 불러오기와 저장

@@ -38,6 +38,7 @@ Click a thumbnail or title to watch on YouTube.
 - PMX model loading and VMD model/camera motion playback
 - Runtime switching between OpenGL, Direct3D 11, Direct3D 12, and Vulkan
 - Built-in model, edge, and ground-shadow toggles
+- VMD light keyframes animate the scene's light color and direction.
 - Ordered post-process effects with depth, velocity, intermediate, and temporal history resources
 - Folder-based HLSL shader packages
 - Scene loading and saving with `.pmscene` files

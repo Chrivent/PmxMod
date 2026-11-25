@@ -115,23 +115,23 @@ namespace Chrivent {
 	}
 
 	GraphicsError::Result<void> OpenGlInstance::CreateVertexArrays() {
-		constexpr GLint locations[][3] = {
+		constexpr GLint locations[][4] = {
+			{ 0, 1, 2, 3 },
 			{ 0, 1, 2 },
-			{ 0, 1, -1 },
 			{ 0, -1, -1 },
 			{ 0, 1, -1 },
 			{ 0, 1, 2 }
 		};
-		constexpr GLint sizes[][3] = {
-			{ 3, 3, 2 },
-			{ 3, 3 },
+		constexpr GLint sizes[][4] = {
+			{ 3, 3, 2, 2 },
+			{ 3, 3, 1 },
 			{ 3 },
 			{ 3, 2 },
 			{ 3, 3, 2 }
 		};
-		constexpr size_t offsets[][3] = {
-			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal), offsetof(ViewerVertex, uv) },
-			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal) },
+		constexpr size_t offsets[][4] = {
+			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal), offsetof(ViewerVertex, uv), offsetof(ViewerVertex, subTextureUv) },
+			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, normal), offsetof(ViewerVertex, edgeScale) },
 			{ offsetof(ViewerVertex, position) },
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, uv) },
 			{ offsetof(ViewerVertex, position), offsetof(ViewerVertex, previousPosition), offsetof(ViewerVertex, uv) }
@@ -144,7 +144,7 @@ namespace Chrivent {
 			&modelResources.velocityVao
 		};
 		for (size_t index = 0; index < std::size(vaos); index++) {
-			constexpr int attributeCounts[] = { 3, 2, 1, 2, 3 };
+			constexpr int attributeCounts[] = { 4, 3, 1, 2, 3 };
 			const auto result = CreateVao(
 				vertexVbo, locations[index], sizes[index], offsets[index], attributeCounts[index], ibo);
 			if (!result)

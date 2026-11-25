@@ -31,13 +31,20 @@ namespace Chrivent {
 	}
 
 	void ModelUpdater::BeginAnimation(Model& model) {
+		model.visible = true;
 		for (const auto& node : model.skeletonData.GetNodes()) {
+			node->physicsEnabled = true;
 			node->BeginUpdateTransform();
 			node->animTranslate = glm::vec3(0);
 			node->animRotate = glm::quat(1, 0, 0, 0);
 		}
 		std::ranges::fill(model.morphData.morphPositions, glm::vec3(0));
 		std::ranges::fill(model.morphData.morphUVs, glm::vec4(0));
+		for (size_t channel = 0; channel < model.geometryData.updateAdditionalUVs.size(); ++channel) {
+			auto& updated = model.geometryData.updateAdditionalUVs[channel];
+			if (!updated.empty())
+				updated = model.geometryData.additionalUVs[channel];
+		}
 	}
 
 	void ModelUpdater::UpdateStageTransforms(const Model& model, const bool afterPhysics) {

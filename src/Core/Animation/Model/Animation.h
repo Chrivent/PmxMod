@@ -20,6 +20,13 @@ namespace Chrivent {
 		Bezier		tyBezier;
 		Bezier		tzBezier;
 		Bezier		rotBezier;
+		bool		physicsEnabled = true;
+	};
+
+	// VMD 모델 표시 키는 지정 프레임부터 다음 키 전까지 유지된다.
+	struct ModelVisibilityKey {
+		uint32_t frame = 0;
+		bool visible = true;
 	};
 
 	// 한 프레임의 모프 가중치를 보관한다.
@@ -59,6 +66,7 @@ namespace Chrivent {
 		std::vector<NodeAnimationTrack> nodeTracks;
 		std::vector<IkAnimationTrack> ikTracks;
 		std::vector<MorphAnimationTrack> morphTracks;
+		std::vector<ModelVisibilityKey> visibilityKeys;
 
 		// 지정 시간의 노드 애니메이션을 평가한다.
 		void EvaluateNodes(float t, float animWeight) const;
@@ -69,7 +77,8 @@ namespace Chrivent {
 		
 	public:
 		Animation(std::shared_ptr<Model> model, std::vector<NodeAnimationTrack> nodes,
-			std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs);
+			std::vector<IkAnimationTrack> iks, std::vector<MorphAnimationTrack> morphs,
+			std::vector<ModelVisibilityKey> visibility = {});
 
 		const std::vector<NodeAnimationTrack>& GetNodeTracks() const { return nodeTracks; }
 		const std::vector<IkAnimationTrack>& GetIkTracks() const { return ikTracks; }

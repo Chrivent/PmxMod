@@ -10,8 +10,8 @@ cbuffer PostProcessFrameData : register(b0) {
     float2 ViewportSize;
     float2 InverseViewportSize;
     float FrameHistoryReset;
-    float FrameDataPadding0;
-    float FrameDataPadding1;
+    float CameraOrthographic;
+    float CameraOrthoHalfHeight;
     float FrameDataPadding2;
     float4 CameraWorldPosition;
     float4 PreviousCameraWorldPosition;

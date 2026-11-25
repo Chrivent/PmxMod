@@ -112,6 +112,8 @@ float2 PrepareVelocity(float2 velocity) {
 
 // 하드웨어 깊이를 모션 경계 판정에 사용할 뷰 공간 거리로 변환한다.
 float LinearizeMotionDepth(float depth) {
+    if (CameraOrthographic > 0.5)
+        return lerp(CameraNearPlane, CameraFarPlane, depth);
     return CameraNearPlane * CameraFarPlane
         / max(CameraFarPlane - saturate(depth) * (CameraFarPlane - CameraNearPlane), 0.0001);
 }

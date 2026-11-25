@@ -7,8 +7,9 @@ namespace Chrivent {
 			VK_FORMAT_D24_UNORM_S8_UINT,
 			VK_FORMAT_D32_SFLOAT
 		};
-		return FindSupportedFormat(sourceDevice, candidates,
-			VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+		// 후처리에서도 같은 깊이 포맷을 장면 입력 텍스처로 읽는다.
+		return FindSupportedFormat(sourceDevice, candidates, VK_IMAGE_TILING_OPTIMAL,
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT);
 	}
 
 	VkFormat VulkanMsaaDepthBuffer::FindSupportedFormat(const VulkanDevice& sourceDevice,

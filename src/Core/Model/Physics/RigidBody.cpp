@@ -36,6 +36,9 @@ namespace Chrivent {
 		else if (definition.operation == RigidBodyOperation::Static)
 			motionState = std::make_unique<KinematicMotionState>(sourceNode, offsetMat, scale);
 		else {
+			dynamicNode = sourceNode;
+			dynamicMass = mass;
+			dynamicInertia = localInertia;
 			for (const Node* ancestor = sourceNode; ancestor; ancestor = ancestor->parent)
 				++poseDepth;
 			if (definition.operation == RigidBodyOperation::Dynamic)
@@ -55,6 +58,26 @@ namespace Chrivent {
 		rigidBody->setActivationState(DISABLE_DEACTIVATION);
 		if (definition.operation == RigidBodyOperation::Static)
 			rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+	}
+
+	void RigidBody::SynchronizeAnimationMode() {
+		if (!dynamicNode || dynamicMass <= 0)
+			return;
+		const bool follow = !dynamicNode->physicsEnabled;
+		if (follow != followsAnimation) {
+			followsAnimation = follow;
+			rigidBody->setMassProps(follow ? 0 : dynamicMass, follow ? btVector3(0, 0, 0) : dynamicInertia);
+			const int flags = rigidBody->getCollisionFlags() & ~(btCollisionObject::CF_STATIC_OBJECT | btCollisionObject::CF_KINEMATIC_OBJECT);
+			rigidBody->setCollisionFlags(follow ? flags | btCollisionObject::CF_KINEMATIC_OBJECT : flags);
+			rigidBody->updateInertiaTensor();
+			ResetTransform();
+		} else if (follow)
+			motionState->Reset();
+	}
+
+	void RigidBody::ReflectGlobalTransform() const {
+		if (!dynamicNode || dynamicNode->physicsEnabled)
+			motionState->ReflectGlobalTransform();
 	}
 
 	void RigidBody::ResetTransform() const {

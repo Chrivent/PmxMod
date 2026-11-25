@@ -13,6 +13,11 @@ namespace Chrivent {
 		return {block[0], block[4], block[8], block[12]};
 	}
 
+	bool VmdParser::VmdMotion::IsPhysicsEnabled() const {
+		return interpolation[2] != 99 || interpolation[3] != 15 ||
+			(interpolation[17] == 99 && interpolation[18] == 15);
+	}
+
 	void VmdParser::ReadHeader(BinaryReader& reader) {
 		reader.Read(data.header.header, sizeof(data.header.header));
 		reader.Read(data.header.modelName, sizeof(data.header.modelName));

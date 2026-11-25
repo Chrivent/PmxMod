@@ -80,6 +80,8 @@ namespace Chrivent {
 
 			// X, Y, Z, 회전 채널은 각각 16바이트 블록의 0/4/8/12에 x1/y1/x2/y2를 저장한다.
 			std::array<uint8_t, 4> GetCurve(std::size_t channel) const;
+			// 구형 VMD의 중복 보간 바이트와 MMD의 물리 OFF 표식을 구분한다.
+			bool IsPhysicsEnabled() const;
 		};
 
 		// 한 VMD 파일에서 읽은 모든 키프레임 섹션을 묶어 보관한다.

@@ -25,6 +25,10 @@ namespace Chrivent {
 				case PmxParser::MorphType::Position:
 				case PmxParser::MorphType::Bone:
 				case PmxParser::MorphType::Uv:
+				case PmxParser::MorphType::AddUv1:
+				case PmxParser::MorphType::AddUv2:
+				case PmxParser::MorphType::AddUv3:
+				case PmxParser::MorphType::AddUv4:
 				case PmxParser::MorphType::Material:
 					break;
 				default:
@@ -140,6 +144,9 @@ namespace Chrivent {
 		model.geometryData.positions.reserve(vertexCount);
 		model.geometryData.normals.reserve(vertexCount);
 		model.geometryData.uvs.reserve(vertexCount);
+		model.geometryData.edgeScales.reserve(vertexCount);
+		for (size_t channel = 0; channel < pmxData.header.addUvNum; ++channel)
+			model.geometryData.additionalUVs[channel].reserve(vertexCount);
 		model.geometryData.vertexBoneInfos.reserve(vertexCount);
 		if (vertexCount == 0) {
 			model.geometryData.bboxMin = glm::vec3(0);
@@ -156,6 +163,9 @@ namespace Chrivent {
 			model.geometryData.normals.push_back(normalLengthSquared > std::numeric_limits<float>::epsilon()
 				? normal / std::sqrt(normalLengthSquared) : glm::vec3(0));
 			model.geometryData.uvs.emplace_back(v.uv.x, 1.0f - v.uv.y);
+			model.geometryData.edgeScales.push_back(v.edgeMag);
+			for (size_t channel = 0; channel < pmxData.header.addUvNum; ++channel)
+				model.geometryData.additionalUVs[channel].push_back(v.addUv[channel]);
 			Vertex vtxBoneInfo{};
 			const uint8_t influenceCount = v.weightType == PmxParser::WeightType::BoneDeform1 ? 1
 				: v.weightType == PmxParser::WeightType::BoneDeform2 ||
@@ -388,12 +398,26 @@ namespace Chrivent {
 					model.morphData.positionMorphs.emplace_back(std::move(morphData));
 					break;
 				}
-				case PmxParser::MorphType::Uv: {
+				case PmxParser::MorphType::Uv:
+				case PmxParser::MorphType::AddUv1:
+				case PmxParser::MorphType::AddUv2:
+				case PmxParser::MorphType::AddUv3:
+				case PmxParser::MorphType::AddUv4: {
+					const bool baseUv = m->morphType == MorphType::Uv;
+					if (!baseUv) {
+						const auto channel = static_cast<size_t>(m->morphType) - static_cast<size_t>(MorphType::AddUv1);
+						auto& base = model.geometryData.additionalUVs[channel];
+						if (base.empty())
+							base.resize(model.geometryData.positions.size(), glm::vec4(0));
+						auto& updated = model.geometryData.updateAdditionalUVs[channel];
+						if (updated.empty())
+							updated = base;
+					}
 					m->dataIndex = model.morphData.uvMorphs.size();
 					std::vector<UvMorph> morphData;
 					morphData.reserve(morph.uvMorph.size());
 					for (const auto& [vertexIndex, uv] : morph.uvMorph)
-						morphData.push_back({vertexIndex, uv});
+						morphData.push_back({vertexIndex, baseUv ? glm::vec4(uv.x, -uv.y, uv.z, uv.w) : uv});
 					model.morphData.uvMorphs.emplace_back(std::move(morphData));
 					break;
 				}

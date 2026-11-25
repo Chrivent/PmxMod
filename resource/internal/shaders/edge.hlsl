@@ -12,6 +12,7 @@ cbuffer PSData : register(b1) {
 struct VSInput {
     float3 Pos : POSITION;
     float3 Nor : NORMAL;
+    float EdgeScale : TEXCOORD0;
 };
 
 struct VSOutput {
@@ -22,8 +23,8 @@ VSOutput VSMain(VSInput input) {
     VSOutput vsOut;
     float3 nor = mul((float3x3)wv, input.Nor);
     float4 pos = mul(wvp, float4(input.Pos, 1.0));
-    float2 screenNor = normalize((float2)nor);
-    pos.xy += screenNor * float2(1.0, 1.0) / (screenSize * 0.5) * edgeSize * pos.w;
+    float2 screenNor = nor.xy * rsqrt(max(dot(nor.xy, nor.xy), 1e-12));
+    pos.xy += screenNor / (screenSize * 0.5) * (edgeSize * input.EdgeScale) * pos.w;
     vsOut.Position = pos;
     return vsOut;
 }

@@ -19,6 +19,7 @@ gtest_discover_tests(PmxModViewerTests)
 add_executable(PmxModViewerApiTests
         Viewer/ApiDescriptorTest.cpp
         Viewer/GraphicsContractTest.cpp
+        Viewer/ModelShadingTest.cpp
         Viewer/ShaderCompilerTest.cpp
         ${PROJECT_SOURCE_DIR}/src/Program/Shader/InternalShaderCatalog.h
         ${PROJECT_SOURCE_DIR}/src/Program/Shader/InternalShaderCatalog.cpp

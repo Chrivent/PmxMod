@@ -36,6 +36,7 @@ namespace Chrivent {
 	NodeAnimationKey AnimationBuilder::CreateNodeAnimationKey(const VmdParser::VmdMotion& motion) {
 		NodeAnimationKey key{};
 		key.frame = motion.frame;
+		key.physicsEnabled = motion.IsPhysicsEnabled();
 		key.translate = motion.translate * glm::vec3(1, 1, -1);
 		const glm::quat q = glm::normalize(motion.quaternion);
 		const auto rot = ModelCoordinateConverter::ConvertZAxis(glm::mat3_cast(q));
@@ -63,13 +64,11 @@ namespace Chrivent {
 	void AnimationBuilder::AddIkAnimations(const VmdParser::VmdData& vmdData) {
 		if (vmdData.iks.empty())
 			return;
-		for (const auto& ik : vmdData.iks) {
-			for (const auto& [name, enable] : ik.ikStates) {
+		for (const auto& [frame, show, ikStates] : vmdData.iks) {
+			visibilityKeys.push_back({.frame = frame, .visible = show != 0});
+			for (const auto& [name, enable] : ikStates) {
 				const auto& ikName = ResolveName(name);
-				auto& keys = ikKeysByName[ikName];
-				auto& [frame, ikEnable] = keys.emplace_back();
-				frame = ik.frame;
-				ikEnable = enable != 0;
+				ikKeysByName[ikName].push_back({.frame = frame, .ikEnable = enable != 0});
 			}
 		}
 	}
@@ -134,6 +133,6 @@ namespace Chrivent {
 		auto ikTracks = TakeTracks<IkAnimationTrack>(ikKeysByName, ResolveIkSolver);
 		auto morphTracks = TakeTracks<MorphAnimationTrack>(morphKeysByName, ResolveMorph);
 		return std::make_unique<Animation>(
-			model, std::move(nodeTracks), std::move(ikTracks), std::move(morphTracks));
+			model, std::move(nodeTracks), std::move(ikTracks), std::move(morphTracks), std::exchange(visibilityKeys, {}));
 	}
 }

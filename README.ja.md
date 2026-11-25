@@ -38,6 +38,7 @@ PmxMod は PMX モデルを読み込み、VMD のモデル／カメラモーシ�
 - PMX モデルの読み込みと VMD モデル／カメラモーションの再生
 - OpenGL、Direct3D 11、Direct3D 12、Vulkan の実行時切り替え
 - 内蔵 model、edge、ground shadow のオン／オフ
+- VMD の照明キーフレームに合わせて光の色と向きを再生
 - depth、velocity、中間リソース、temporal history を使用する順序付きポストプロセス
 - フォルダー単位の HLSL シェーダーパッケージ
 - `.pmscene` シーンの読み込みと保存

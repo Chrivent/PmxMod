@@ -88,12 +88,14 @@ namespace Chrivent {
 	GraphicsError::Result<void> Dx12Pipeline::CreateModelPipelineStates(
 		const Dx12Device& sourceDevice, const ShaderProgramDefinition& program) {
 		D3D12_INPUT_ELEMENT_DESC inputElements[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
-				offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
-				offsetof(ViewerVertex, normal), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
-				offsetof(ViewerVertex, uv), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ .SemanticName = "POSITION", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
+				.AlignedByteOffset = offsetof(ViewerVertex, position), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
+			{ .SemanticName = "NORMAL", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32B32_FLOAT, .InputSlot = 0,
+				.AlignedByteOffset = offsetof(ViewerVertex, normal), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
+			{ .SemanticName = "UV", .SemanticIndex = 0, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
+				.AlignedByteOffset = offsetof(ViewerVertex, uv), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
+			{ .SemanticName = "TEXCOORD", .SemanticIndex = 1, .Format = DXGI_FORMAT_R32G32_FLOAT, .InputSlot = 0,
+				.AlignedByteOffset = offsetof(ViewerVertex, subTextureUv), .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, .InstanceDataStepRate = 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = modelRootSignature.Get();
@@ -101,7 +103,7 @@ namespace Chrivent {
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_BACK);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
-		pipelineDesc.InputLayout = { inputElements, 3 };
+		pipelineDesc.InputLayout = { inputElements, static_cast<UINT>(std::size(inputElements)) };
 		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -198,6 +200,8 @@ namespace Chrivent {
 				offsetof(ViewerVertex, position), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
 				offsetof(ViewerVertex, normal), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32_FLOAT, 0,
+				offsetof(ViewerVertex, edgeScale), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		};
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 		pipelineDesc.pRootSignature = simplePassRootSignature.Get();
@@ -205,7 +209,7 @@ namespace Chrivent {
 		pipelineDesc.SampleMask = std::numeric_limits<UINT>::max();
 		Dx12PipelineBuilder::ConfigureRasterizer(pipelineDesc.RasterizerState, D3D12_CULL_MODE_FRONT);
 		ConfigureDefaultDepthStencil(pipelineDesc.DepthStencilState);
-		pipelineDesc.InputLayout = { inputElements, 2 };
+		pipelineDesc.InputLayout = { inputElements, static_cast<UINT>(std::size(inputElements)) };
 		pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		pipelineDesc.NumRenderTargets = 1;
 		pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;

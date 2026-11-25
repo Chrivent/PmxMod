@@ -4,6 +4,7 @@
 #include "Core/Model/ModelMorph.h"
 #include "Core/Model/Bone/Node.h"
 #include "Core/Model/Bone/IkSolver.h"
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <filesystem>
@@ -96,6 +97,10 @@ namespace Chrivent {
 		std::vector<glm::vec3>						positions;
 		std::vector<glm::vec3>						normals;
 		std::vector<glm::vec2>						uvs;
+		std::vector<float>							edgeScales;
+		std::array<std::vector<glm::vec4>, 4>		additionalUVs;
+		// 추가 UV 모프가 있는 채널만 프레임별 작업 배열을 사용한다.
+		std::array<std::vector<glm::vec4>, 4>		updateAdditionalUVs;
 		std::vector<Vertex>							vertexBoneInfos;
 		std::vector<char>							indices;
 		std::size_t									indexCount = 0;
@@ -225,6 +230,7 @@ namespace Chrivent {
 		uint64_t structureRevision = 0;
 
 	public:
+		bool			visible = true;
 		ModelInfoData		infoData;
 		ModelGeometryData	geometryData;
 		ModelMaterialData	materialData;

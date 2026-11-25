@@ -20,17 +20,27 @@ namespace Chrivent {
 		Bezier		rotateBezier;
 		Bezier		distanceBezier;
 		Bezier		fovBezier;
+		bool		perspective = true;
+	};
+
+	// VMD 조명의 색과 방향은 키 사이에서 선형 보간된다.
+	struct LightAnimationKey {
+		uint32_t frame;
+		glm::vec3 color;
+		glm::vec3 direction;
 	};
 
 	// 카메라 키 목록을 평가해 지정한 시간의 카메라 상태를 만든다.
 	class CameraAnimation {
 		std::vector<CameraAnimationKey> keys;
+		std::vector<LightAnimationKey> lights;
 
 	public:
-		explicit CameraAnimation(std::vector<CameraAnimationKey> animationKeys);
+		explicit CameraAnimation(std::vector<CameraAnimationKey> animationKeys, std::vector<LightAnimationKey> lightKeys = {});
 
 		const std::vector<CameraAnimationKey>& GetKeys() const { return keys; }
-		uint32_t GetLastFrame() const { return keys.empty() ? 0 : keys.back().frame; }
+		uint32_t GetLastFrame() const;
+		SceneLighting EvaluateLighting(float t) const;
 
 		// 지정한 시간의 카메라 키를 보간해 현재 카메라를 반환한다.
 		Camera Evaluate(float t) const;

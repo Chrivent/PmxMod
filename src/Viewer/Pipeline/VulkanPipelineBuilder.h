@@ -14,6 +14,7 @@ namespace Chrivent {
 			None,
 			PositionOnly,
 			PositionUv,
+			Edge,
 			Model,
 			Velocity
 		};

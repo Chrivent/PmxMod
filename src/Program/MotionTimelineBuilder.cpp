@@ -64,7 +64,7 @@ namespace Chrivent {
 		};
 		cameraRow.keys.reserve(cameraKeys.size());
 		for (const auto& [frame, interest, rotate, distance, fov
-			, ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier] : cameraKeys) {
+			, ixBezier, iyBezier, izBezier, rotateBezier, distanceBezier, fovBezier, perspective] : cameraKeys) {
 			cameraRow.keys.push_back({
 				.frame = ToTimelineFrame(frame),
 				.curves = {
@@ -111,7 +111,7 @@ namespace Chrivent {
 				auto& timelineKeys = nodeKeys[node];
 				timelineKeys.reserve(keys.size());
 				for (const auto& [frame, translate, rotate
-					, txBezier, tyBezier, tzBezier, rotBezier] : keys) {
+					, txBezier, tyBezier, tzBezier, rotBezier, physicsEnabled] : keys) {
 					glm::quat rotation = glm::normalize(rotate);
 					if (rotation.w < 0.0f)
 						rotation = -rotation;

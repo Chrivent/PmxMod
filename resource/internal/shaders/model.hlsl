@@ -29,6 +29,7 @@ struct VSInput {
     float3 Pos : POSITION;
     float3 Nor : NORMAL;
     float2 UV : UV;
+    float2 SubUV : TEXCOORD1;
 };
 
 struct VSOutput {
@@ -36,6 +37,7 @@ struct VSOutput {
     float3 Pos : VIEWPOS;
     float3 Nor : VIEWNORMAL;
     float2 UV : UV;
+    float2 SubUV : TEXCOORD1;
 };
 
 VSOutput VSMain(VSInput input) {
@@ -44,6 +46,7 @@ VSOutput VSMain(VSInput input) {
     vsOut.Pos = mul(wv, float4(input.Pos, 1.0)).xyz;
     vsOut.Nor = mul((float3x3)wv, input.Nor);
     vsOut.UV = float2(input.UV.x, 1.0 - input.UV.y);
+    vsOut.SubUV = input.SubUV;
     return vsOut;
 }
 
@@ -59,17 +62,12 @@ float3 ComputeTexAddFactor(float3 texColor, float4 factor) {
 }
 
 float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
-    float3 eyeDir = normalize(vsOut.Pos);
+    float3 eyeDir = normalize(-vsOut.Pos);
     float3 lightDirection = normalize(-lightDir.xyz);
     float3 nor = normalize(vsOut.Nor);
-    float ln = dot(nor, lightDirection);
-    ln = clamp(ln + 0.5, 0.0, 1.0);
-    float3 color = float3(0.0, 0.0, 0.0);
     float opacity = diffuseAlpha.a;
-    float3 diffuseColor = diffuseAlpha.rgb * lightColor.rgb;
-    color = diffuseColor;
-    color += ambientSpecularPower.rgb;
-    color = clamp(color, 0.0, 1.0);
+    // MMD 모델은 기본 재질색에 툰을 곱한다. 미지정 툰은 흰색이므로 별도의 확산 명암을 넣지 않는다.
+    float3 color = saturate(ambientSpecularPower.rgb + diffuseAlpha.rgb * lightColor.rgb);
     int texMode = textureModes.x;
     int toonTexMode = textureModes.y;
     int sphereTexMode = textureModes.z;
@@ -81,22 +79,23 @@ float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
         if (texMode == 2)
             opacity *= texColor.a;
     }
-    if (opacity == 0.0)
-        discard;
     if (sphereTexMode != 0) {
-        float2 spUV = (float2)0.0;
-        spUV.x = nor.x * 0.5 + 0.5;
-        spUV.y = nor.y * 0.5 + 0.5;
-        float3 spColor = sphereTex.Sample(sphereTexSampler, spUV).rgb;
+        float2 spUV = nor.xy * float2(0.5, -0.5) + 0.5;
+        float4 sphereSample = sphereTex.Sample(sphereTexSampler, sphereTexMode == 3 ? vsOut.SubUV : spUV);
+        opacity *= sphereSample.a;
+        float3 spColor = sphereSample.rgb;
         spColor = ComputeTexMulFactor(spColor, sphereTexMulFactor);
         spColor = ComputeTexAddFactor(spColor, sphereTexAddFactor);
-        if (sphereTexMode == 1)
+        if (sphereTexMode == 1 || sphereTexMode == 3)
             color *= spColor;
         else if (sphereTexMode == 2)
             color += spColor;
     }
+    if (opacity == 0.0)
+        discard;
     if (toonTexMode != 0) {
-        float3 toonColor = toonTex.Sample(toonTexSampler, float2(0.0, 1.0 - ln)).rgb;
+        float toonV = saturate(0.5 - 0.5 * dot(nor, lightDirection));
+        float3 toonColor = toonTex.SampleLevel(toonTexSampler, float2(0.0, toonV), 0.0).rgb;
         toonColor = ComputeTexMulFactor(toonColor, toonTexMulFactor);
         toonColor = ComputeTexAddFactor(toonColor, toonTexAddFactor);
         color *= toonColor;
@@ -107,6 +106,5 @@ float4 PSMain(VSOutput vsOut) : SV_TARGET0 {
         float3 specularColor = specular.rgb * lightColor.rgb;
         specularTerm += pow(max(0.0, dot(halfVec, nor)), ambientSpecularPower.a) * specularColor;
     }
-    color += specularTerm;
-    return float4(color, opacity);
+    return float4(color + specularTerm, opacity);
 }

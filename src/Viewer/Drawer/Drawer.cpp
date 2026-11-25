@@ -55,8 +55,8 @@ namespace Chrivent {
 			.diffuseAlpha = material.diffuse,
 			.ambientSpecularPower = glm::vec4(material.ambient, material.specularPower),
 			.specular = glm::vec4(material.specular, 0.0f),
-			.lightColor = glm::vec4(scene.lightColor, 0.0f),
-			.lightDir = glm::vec4(glm::mat3(scene.viewMatrix) * scene.lightDirection, 0.0f)
+			.lightColor = glm::vec4(scene.lighting.color, 0.0f),
+			.lightDir = glm::vec4(glm::mat3(scene.viewMatrix) * scene.lighting.direction, 0.0f)
 		};
 	}
 
@@ -71,6 +71,8 @@ namespace Chrivent {
 				modes.sphere = 1;
 			else if (material.spTextureMode == SphereMode::Add)
 				modes.sphere = 2;
+			else if (material.spTextureMode == SphereMode::SubTexture)
+				modes.sphere = 3;
 		}
 		return modes;
 	}
@@ -101,7 +103,7 @@ namespace Chrivent {
 		const SceneDrawState& state, const glm::mat4& world, const glm::mat4& clipMatrix) {
 		const SceneRenderState& scene = state.scene;
 		return { .wvp = clipMatrix * scene.projectionMatrix * scene.viewMatrix
-			* BuildGroundShadowMatrix(scene.lightDirection) * world };
+			* BuildGroundShadowMatrix(scene.lighting.direction) * world };
 	}
 
 	SceneVelocityVertexConstants Drawer::BuildSceneVelocityVertexConstants(

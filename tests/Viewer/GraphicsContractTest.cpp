@@ -97,7 +97,9 @@ namespace Chrivent {
 		EXPECT_EQ(offsetof(ViewerVertex, normal), 12);
 		EXPECT_EQ(offsetof(ViewerVertex, uv), 24);
 		EXPECT_EQ(offsetof(ViewerVertex, previousPosition), 32);
-		EXPECT_EQ(sizeof(ViewerVertex), 44);
+		EXPECT_EQ(offsetof(ViewerVertex, edgeScale), 44);
+		EXPECT_EQ(offsetof(ViewerVertex, subTextureUv), 48);
+		EXPECT_EQ(sizeof(ViewerVertex), 56);
 	}
 
 	TEST(GraphicsContract, SpirvBindingsKeepTexturesAndSamplersDisjoint) {
@@ -162,10 +164,27 @@ namespace Chrivent {
 		EXPECT_EQ(modes.x, 2);
 		EXPECT_EQ(modes.y, 1);
 		EXPECT_EQ(modes.z, 2);
+		material.spTextureMode = SphereMode::SubTexture;
+		EXPECT_EQ(DrawerContractTestAdapter::ResolveTextureModes(material, false, false, false, true).z, 3);
 		material.diffuse.a = 0.0f;
 		EXPECT_FALSE(DrawerContractTestAdapter::IsModelMaterialVisible(material));
 		EXPECT_FALSE(DrawerContractTestAdapter::IsEdgeMaterialVisible(material));
 		EXPECT_FALSE(DrawerContractTestAdapter::IsGroundShadowMaterialVisible(material));
+	}
+
+	TEST(DrawerContract, GroundShadowUsesItsOwnMaterialFlag) {
+		Material material;
+		material.diffuse.a = 1.0f;
+		for (const bool casts : {false, true}) {
+			for (const bool receives : {false, true}) {
+				material.shadowCaster = casts;
+				material.shadowReceiver = receives;
+				material.groundShadow = true;
+				EXPECT_TRUE(DrawerContractTestAdapter::IsGroundShadowMaterialVisible(material));
+				material.groundShadow = false;
+				EXPECT_FALSE(DrawerContractTestAdapter::IsGroundShadowMaterialVisible(material));
+			}
+		}
 	}
 
 	TEST(ViewerGeometryContract, WritesTemporalVerticesAndConvertsByteIndices) {

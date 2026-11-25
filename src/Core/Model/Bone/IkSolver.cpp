@@ -16,22 +16,12 @@ namespace Chrivent {
 			if (!chainNode || chainNode == ikTarget)
 				continue;
 			if (chain.enableAxisLimit) {
-				if ((chain.limitMin.x != 0 || chain.limitMax.x != 0) &&
-					(chain.limitMin.y == 0 || chain.limitMax.y == 0) &&
-					(chain.limitMin.z == 0 || chain.limitMax.z == 0)) {
-					SolvePlane(iteration, chainIndex, 0);
-					continue;
-				}
-				if ((chain.limitMin.y != 0 || chain.limitMax.y != 0) &&
-					(chain.limitMin.x == 0 || chain.limitMax.x == 0) &&
-					(chain.limitMin.z == 0 || chain.limitMax.z == 0)) {
-					SolvePlane(iteration, chainIndex, 1);
-					continue;
-				}
-				if ((chain.limitMin.z != 0 || chain.limitMax.z != 0) &&
-					(chain.limitMin.x == 0 || chain.limitMax.x == 0) &&
-					(chain.limitMin.y == 0 || chain.limitMax.y == 0)) {
-					SolvePlane(iteration, chainIndex, 2);
+				const auto CanRotate = [&chain](const int axis) {
+					return chain.limitMin[axis] != 0 || chain.limitMax[axis] != 0;
+				};
+				const bool x = CanRotate(0), y = CanRotate(1), z = CanRotate(2);
+				if (static_cast<int>(x) + y + z == 1) {
+					SolvePlane(iteration, chainIndex, x ? 0 : y ? 1 : 2);
 					continue;
 				}
 			}
